@@ -1,0 +1,130 @@
+@use "../../variables" as *;
+
+.#{$slug} {
+    &-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--fp-primary-background-color);
+        padding: 16px 20px;
+        &-info {
+            color: var(--fp-text-secondary);
+            text-align: center;
+            font-size: 14px;
+            font-style: normal;
+            font-weight: 400;
+            line-height: 20px;
+        }
+        .el-select__wrapper {
+            border-radius: var(--fp-radius-md);
+            border: 1px solid var(--fp-border-light);
+            background: var(--fp-bg-secondary);
+            box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+            display: flex;
+            padding: 6px 6px 6px 10px;
+            align-items: center;
+            gap: 2px;
+            &.is-hovering {
+                box-shadow: inherit;
+                border-color: var(--fp-border-hover);
+            }
+            &.is-focused,
+            &:focus-within {
+                border-color: var(--fp-border-hover);
+                box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+            }
+            span {
+                color: var(--fp-text-primary);
+                font-size: 14px;
+                font-style: normal;
+                font-weight: 400;
+            }
+        }
+        .btn-prev, .btn-next {
+            border-radius: var(--fp-radius-md);
+            display: flex;
+            padding: 6px;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+            color: var(--fp-text-secondary);
+
+            @media (max-width: 576px) {
+                padding: 8px;
+                min-height: 44px;
+                min-width: 44px;
+            }
+            &.is-active, &:hover {
+                border-color: var(--fp-border-hover);
+                color: var(--fp-text-primary);
+            }
+            &:focus,
+            &:focus-visible {
+                outline: none;
+                border-color: var(--fp-border-hover);
+                color: var(--fp-text-primary);
+                box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+            }
+            .el-icon {
+                font-size: 14px;
+            }
+        }
+        .btn-prev {
+            margin-right: 8px;
+        }
+        .btn-next {
+            margin-left: 8px;
+        }
+        .el-pager {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            .number {
+                display: flex;
+                padding: 4px;
+                gap: 6px;
+                border-radius: var(--fp-radius-md);
+                border: 1px solid var(--fp-border-light);
+                background: var(--fp-bg-primary);
+                color: var(--fp-text-secondary);
+                text-align: center;
+                font-size: 14px;
+                font-weight: 500;
+
+                @media (max-width: 576px) {
+                    padding: 8px;
+                    min-height: 44px;
+                    min-width: 44px;
+                }
+                &:hover:not(.is-active) {
+                    border-color: var(--fp-border-hover);
+                }
+                &:focus,
+                &:focus-visible {
+                    outline: none;
+                    border-color: var(--fp-border-hover);
+                    box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+                }
+                &.is-active {
+                    background: #F5F7FA;
+                    border: none;
+                }
+            }
+        }
+    }
+
+    &-pagination-sizes-dropdown {
+        .el-select-dropdown__item {
+            color: var(--fp-text-primary, #0E121B);
+
+            &.is-selected,
+            &.is-hovering,
+            &:hover {
+                background: var(--fp-bg-tertiary, #F5F7FA);
+                color: var(--fp-text-primary, #0E121B);
+                font-weight: 600;
+            }
+        }
+    }
+}

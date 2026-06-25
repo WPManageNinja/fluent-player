@@ -1,0 +1,43 @@
+/*************************************************************************************************
+ * Chapter Title
+ *************************************************************************************************/
+
+%shared-title-styles {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.64);
+  flex: 1 1 0%;
+  padding-inline: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 100px;
+  max-width: 300px;
+  text-align: left;
+}
+
+media-chapter-title {
+  @extend %shared-title-styles;
+  &::before {
+    content: '\2022';
+    display: inline-block;
+    margin-right: 6px;
+    color: rgb(255 255 255 / 0.64);
+  }
+
+  &:empty::before {
+    content: '';
+    margin-left: 0;
+  }
+}
+
+.fp-media-title {
+  @extend %shared-title-styles;
+}
+
+@media (max-width: 768px) {
+  .fp-media-title{
+    display: none;
+  }
+}

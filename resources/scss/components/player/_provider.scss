@@ -1,0 +1,24 @@
+/*************************************************************************************************
+ * Provider
+ *************************************************************************************************/
+
+media-provider {
+  media-poster {
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+/* Fullscreen: use contain to show entire video without cropping */
+media-player[data-fullscreen] {
+  media-provider media-poster img {
+    object-fit: contain;
+  }
+
+  video {
+    object-fit: contain;
+  }
+}

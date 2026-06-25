@@ -1,0 +1,345 @@
+@use "../variables" as *;
+
+@mixin migration-checkbox-overrides {
+    .el-checkbox {
+        --el-checkbox-checked-bg-color: var(--fp-button-bg-color);
+        --el-checkbox-checked-input-border-color: var(--fp-button-bg-color);
+        --el-checkbox-checked-text-color: var(--fp-text-primary);
+        --el-checkbox-input-border-color-hover: var(--fp-button-bg-color);
+    }
+}
+
+// RTL fix: Element Plus checkbox label uses padding-left:8px; in RTL the gap
+// ends up on the wrong side of the label. Hoisted to top-level because
+// [dir='rtl'] sits on <html> (ancestor of the page), not a descendant.
+[dir='rtl'] .#{$slug}-migration-settings-page .el-checkbox__label {
+    padding-right: 8px;
+    padding-left: 0;
+}
+
+.#{$slug}-migration {
+    &-settings-page {
+        max-width: 700px;
+
+        --el-color-primary: var(--fp-button-bg-color);
+        --el-color-primary-light-3: color-mix(in srgb, var(--fp-button-bg-color) 70%, white);
+        --el-color-primary-light-5: color-mix(in srgb, var(--fp-button-bg-color) 50%, white);
+        --el-color-primary-light-7: color-mix(in srgb, var(--fp-button-bg-color) 30%, white);
+        --el-color-primary-light-9: color-mix(in srgb, var(--fp-button-bg-color) 10%, white);
+
+        @include migration-checkbox-overrides;
+
+        .#{$slug}-primary-btn {
+            color: var(--fp-button-color, #fff);
+            background-color: var(--fp-button-bg-color);
+            border-color: var(--fp-button-bg-color);
+
+            &:hover,
+            &:focus {
+                color: var(--fp-button-color, #fff);
+                background-color: var(--fp-button-hover-bg-color);
+                border-color: var(--fp-button-hover-bg-color);
+            }
+
+            &:focus {
+                outline: none;
+                box-shadow: var(--fp-focus-ring-strong, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-bg-strong, #0E121B));
+            }
+
+            &:disabled,
+            &.is-disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+
+        .#{$slug}-secondary-btn {
+            color: var(--fp-text-secondary);
+            background-color: var(--fp-bg-primary);
+            border: 1px solid var(--fp-border-light);
+
+            &:hover,
+            &:focus {
+                color: var(--fp-text-primary);
+                background-color: var(--fp-bg-secondary);
+                border-color: var(--fp-border-hover);
+            }
+
+            &:focus {
+                outline: none;
+                box-shadow: var(--fp-focus-ring-strong, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-bg-strong, #0E121B));
+            }
+        }
+
+        .#{$slug}-danger-btn {
+            color: #fff;
+            background-color: var(--el-color-danger, #f56c6c);
+            border-color: var(--el-color-danger, #f56c6c);
+
+            &:hover,
+            &:focus {
+                color: #fff;
+                background-color: var(--el-color-danger-light-3, #f89898);
+                border-color: var(--el-color-danger-light-3, #f89898);
+            }
+
+            &:focus {
+                outline: none;
+                box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+            }
+        }
+    }
+
+    &-header {
+        margin-bottom: 24px;
+    }
+
+    &-header-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    &-title {
+        margin: 0 0 4px;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--fp-text-primary);
+    }
+
+    &-success {
+        color: var(--fp-state-success);
+    }
+
+    &-subtitle {
+        margin: 0;
+        color: var(--fp-text-secondary);
+        font-size: 14px;
+    }
+
+    &-link {
+        color: var(--fp-text-secondary);
+        font-weight: 500;
+
+        &:hover {
+            color: var(--fp-text-primary);
+        }
+    }
+
+    &-history {
+        padding: 4px 0;
+    }
+
+    &-history-notice {
+        margin-bottom: 16px;
+    }
+
+    &-history-summary {
+        margin-bottom: 8px;
+    }
+
+    &-categories {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    &-category {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--fp-bg-primary);
+        border: 1px solid var(--fp-border-light);
+        border-radius: var(--fp-radius-md);
+    }
+
+    &-category-detail {
+        color: var(--fp-text-muted);
+        font-size: 13px;
+    }
+
+    &-arrow {
+        display: inline-block;
+
+        [dir='rtl'] & {
+            transform: scaleX(-1);
+        }
+    }
+
+    &-warning {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    &-unmigratable {
+        margin-bottom: 24px;
+        padding: 12px 16px;
+        background: var(--fp-bg-primary);
+        border: 1px solid var(--fp-border-light);
+        border-radius: var(--fp-radius-md);
+
+        h4 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: var(--fp-text-secondary);
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--fp-text-muted);
+            font-size: 13px;
+
+            li {
+                margin-bottom: 4px;
+            }
+        }
+    }
+
+    &-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    &-media-filters {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    &-media-tabs {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    &-media-search {
+        width: 200px;
+        margin-left: auto;
+    }
+
+    &-media-select-all {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--fp-border-light);
+        margin-bottom: 8px;
+    }
+
+    &-media-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    &-media-item {
+        padding: 6px 0;
+        border-bottom: 1px solid var(--fp-border-light);
+
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+
+    &-media-title {
+        margin-right: 8px;
+    }
+
+    &-media-empty {
+        padding: 20px;
+        text-align: center;
+        color: var(--fp-text-muted);
+    }
+
+    &-media-footer {
+        padding-top: 12px;
+        color: var(--fp-text-secondary);
+        font-size: 13px;
+    }
+
+    &-review-list {
+        padding-left: 20px;
+        margin-bottom: 16px;
+
+        li {
+            margin-bottom: 6px;
+            color: var(--fp-text-primary);
+        }
+    }
+
+    &-review-note {
+        margin-top: 16px;
+    }
+
+    &-progress {
+        margin-bottom: 24px;
+    }
+
+    &-progress-detail {
+        margin-top: 12px;
+        color: var(--fp-text-secondary);
+        font-size: 14px;
+    }
+
+    &-progress-phases {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    &-progress-phase {
+        font-size: 14px;
+        color: var(--fp-text-primary);
+    }
+
+    &-results-list {
+        padding-left: 20px;
+        margin-bottom: 16px;
+
+        li {
+            margin-bottom: 6px;
+            color: var(--fp-text-primary);
+        }
+    }
+
+    &-setup-notice {
+        margin-top: 16px;
+
+        ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+    }
+
+    &-errors {
+        margin-top: 16px;
+
+        ul {
+            margin: 8px 0 0;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+    }
+
+    &-empty {
+        padding: 20px 0;
+    }
+}
+
+.#{$slug}-phase-done {
+    color: var(--fp-state-success);
+    margin-right: 6px;
+}
+
+.#{$slug}-phase-active {
+    margin-right: 6px;
+}
+
+.#{$slug}-phase-pending {
+    color: var(--fp-text-muted);
+    margin-right: 6px;
+}

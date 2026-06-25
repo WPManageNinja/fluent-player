@@ -1,0 +1,113 @@
+/*************************************************************************************************
+ * Gestures
+ *************************************************************************************************/
+
+media-gesture {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: auto;
+
+  &[action^='seek'] {
+    width: 30%;
+    z-index: 1;
+
+    &[action$='10'] {
+      left: unset;
+      right: 0;
+    }
+    &[action$='-10'] {
+      left: 0;
+      right: unset;
+    }
+  }
+
+}
+
+@media (pointer: coarse) {
+  media-gesture[action='toggle:paused'] {
+    display: none;
+  }
+}
+
+@media (pointer: coarse), (hover: none) {
+  media-gesture[action='toggle:controls'] {
+    display: block;
+  }
+}
+
+@media (pointer: fine) {
+  media-gesture[action='toggle:controls'] {
+    display: none;
+  }
+}
+
+/*************************************************************************************************
+ * Seek Bezel (Vidstack-style keyboard/gesture feedback)
+ *************************************************************************************************/
+
+.fp-seek-bezel {
+  --size: 52px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size);
+  height: var(--size);
+  margin-left: calc(-1 * var(--size) / 2);
+  margin-top: calc(-1 * var(--size) / 2);
+  z-index: 20;
+  background-color: rgb(10 10 10 / 0.6);
+  border-radius: calc(var(--size) / 2);
+  pointer-events: none;
+  opacity: 0;
+
+  &[data-action='seek-forward'] {
+    left: unset;
+    right: 10%;
+    margin-left: 0;
+  }
+
+  &[data-action='seek-backward'] {
+    left: 10%;
+    margin-left: 0;
+  }
+
+  &.is-active {
+    backdrop-filter: blur(2px);
+    animation: fp-bezel-fade 0.35s linear 1 normal forwards;
+  }
+}
+
+.fp-seek-bezel-icon {
+  --size: 38px;
+  width: var(--size);
+  height: var(--size);
+  color: #f5f5f5;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+@keyframes fp-bezel-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+/* Portrait videos: wider seek zones since the player is narrow */
+.fp-portrait media-gesture[action^='seek'] {
+  width: 40%;
+}

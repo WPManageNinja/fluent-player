@@ -1,0 +1,20 @@
+/**
+ * Timed Content - Frontend Styles
+ *
+ * Only the active section (`.fp-tc-visible`) is shown.
+ * Behaves like a normal container — no grid stacking.
+ */
+
+.fp-timed-content-container {
+    .fp-timed-content {
+        display: none;
+
+        &.fp-tc-visible {
+            display: block;
+        }
+    }
+
+    &:not(:has(.fp-tc-visible)) {
+        display: none !important;
+    }
+}

@@ -1,0 +1,162 @@
+/*************************************************************************************************
+ * Controls
+ *************************************************************************************************/
+
+media-controls {
+  $gradient: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.6),
+    10%,
+    transparent,
+    90%,
+    rgb(0 0 0 / 0.5)
+  );
+
+  direction: ltr;
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+
+  &[data-visible] {
+    opacity: 1;
+    background-image: $gradient;
+  }
+
+  &-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding-inline: 8px;
+
+    &:last-child {
+      margin-top: -4px;
+      padding-bottom: 8px;
+    }
+  }
+
+  /* All skins: keep bottom control bar inside player on narrow viewports */
+  &.fp-media-controls-bottom {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    media-controls-group {
+      box-sizing: border-box;
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+}
+
+.fp-media-controls {
+  &-center {
+    justify-content: center;
+    align-items: center;
+
+    media-controls-group {
+      justify-content: center;
+      pointer-events: auto;
+      width: auto;
+      flex: none;
+      padding: 0;
+    }
+
+    // Make the play button larger in center controls
+    media-play-button {
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0px 4px 8px rgba(82, 82, 82, 0.08);
+      transition: all 0.2s ease;
+
+      &:not([data-paused]) {
+        opacity: 0;
+      }
+
+      media-icon {
+        width: 32px;
+        height: 32px;
+        color: var(--media-brand, #DD1F13) !important;
+      }
+
+      // Hover effect
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 12px;
+        background-color: transparent;
+        transition: background-color 0.2s ease;
+        pointer-events: none;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background: rgba(255, 255, 255, 0.95);
+          box-shadow: 0px 6px 12px rgba(82, 82, 82, 0.12);
+          transform: scale(1.02);
+        }
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+
+      &[data-focus],
+      &:focus-visible {
+        outline: none;
+        box-shadow: 0px 4px 8px rgba(82, 82, 82, 0.08), var(--media-focus-ring);
+      }
+    }
+  }
+
+  &-top {
+    justify-content: flex-start;
+    padding-top: 20px;
+  }
+
+  &-spacer {
+    flex: 1 1 0%;
+    pointer-events: none;
+  }
+}
+
+// Responsive sizing for center play button
+@media (max-width: 768px) {
+  .fp-media-controls-center media-play-button {
+    width: 48px;
+    height: 48px;
+    padding: 10px;
+    border-radius: 10px;
+
+    media-icon {
+      width: 26px;
+      height: 26px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .fp-media-controls-center media-play-button {
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+
+    media-icon {
+      width: 24px;
+      height: 24px;
+    }
+  }
+}

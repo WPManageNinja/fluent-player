@@ -1,0 +1,144 @@
+@use "../../variables" as *;
+.#{$slug} {
+    &-setup-instructions-modal {
+        .#{$slug}-setup-instructions-content {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .el-dialog__headerbtn {
+            .el-dialog__close {
+                color: var(--fp-text-muted);
+            }
+            &:hover {
+                .el-dialog__close {
+                    color: var(--fp-text-primary);
+                }
+            }
+        }
+    }
+    &-instruction-step {
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--fp-border-light);
+
+        &:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+    }
+    &-step-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    &-step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: var(--fp-bg-page);
+        color: var(--fp-text-muted);
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 14px;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+    &-step-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--fp-text-primary);
+    }
+    &-step-content {
+        margin-left: 40px;
+
+        p {
+            margin: 0 0 12px 0;
+            line-height: 1.6;
+            color: var(--fp-text-secondary);
+        }
+    }
+    &-code-block {
+        margin: 12px 0;
+        background: #f5f7fa;
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        padding: 12px;
+
+        pre {
+            margin: 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+
+        code {
+            background: none;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+        }
+    }
+    &-step-link {
+        margin: 12px 0;
+        button.is-link {
+            color: var(--fp-primary-color);
+            text-decoration: underline;
+            &:hover {
+                color: var(--fp-text-secondary);
+            }
+        }
+    }
+    &-step-note {
+        margin: 12px 0;
+
+        .el-alert {
+            border-radius: 4px;
+        }
+    }
+    @media (max-width: 768px) {
+        &-step-content {
+            margin-left: 0;
+        }
+
+        &-step-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        &-step-number {
+            margin-bottom: 8px;
+            margin-right: 0;
+        }
+    }
+}
+
+.#{$slug}-setup-instructions-modal {
+    @media (max-width: 768px) {
+        width: 90% !important;
+        max-width: 100%;
+    }
+    @media (max-width: 576px) {
+        width: 95% !important;
+        max-width: 100%;
+
+        .el-dialog__header {
+            padding: 12px 16px;
+        }
+        .el-dialog__body {
+            padding: 12px 16px;
+        }
+        .el-dialog__footer {
+            padding: 12px 16px;
+        }
+    }
+    @media (max-width: 480px) {
+        .#{$slug}-setup-step-content {
+            margin-left: 24px;
+        }
+    }
+}
+

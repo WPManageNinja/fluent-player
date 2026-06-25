@@ -1,0 +1,100 @@
+@use '../../colors' as *;
+
+/*************************************************************************************************
+ * Captions
+ *************************************************************************************************/
+
+media-captions {
+  --overlay-padding: var(--media-captions-padding, 1%);
+  --cue-color: var(--media-cue-color, #000);
+  --cue-bg-color: var(--media-cue-bg, #{$bg-weak-50});
+  --cue-default-font-size: var(--media-cue-font-size, calc(var(--overlay-height) / 100 * 4.5));
+  --cue-font-size: calc(var(--cue-default-font-size) * var(--media-user-font-size, 1));
+  --cue-line-height: var(--media-cue-line-height, calc(var(--cue-font-size) * 1.2));
+  --cue-padding-x: var(--media-cue-padding-x, calc(var(--cue-font-size) * 0.4));
+  --cue-padding-y: var(--media-cue-padding-y, calc(var(--cue-font-size) * 0.2));
+  --cue-padding: var(--cue-padding-y) var(--cue-padding-x);
+  --cue-outline: var(--media-cue-outline, unset);
+  --cue-text-shadow: var(--media-cue-text-shadow, none);
+
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  contain: layout style;
+  margin: var(--overlay-padding);
+  font-size: var(--cue-font-size);
+  pointer-events: none;
+  user-select: none;
+  word-spacing: normal;
+  word-break: break-word;
+  bottom: 8px;
+  transition: bottom 0.15s linear;
+
+  &[aria-hidden='true'] { display: none; }
+
+  [data-part='cue-display'] {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    direction: ltr;
+    overflow: visible;
+    contain: content;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--cue-width, auto);
+    height: var(--cue-height, auto);
+    margin: 0 auto;
+    transform: none;
+    text-align: center;
+    writing-mode: var(--cue-writing-mode, unset);
+    white-space: pre-line;
+    unicode-bidi: plaintext;
+    min-width: min-content;
+    min-height: min-content;
+
+    &[data-vertical] [data-part='cue'] {
+      padding: var(--cue-padding-x) var(--cue-padding-y);
+    }
+  }
+
+  &[data-dir='rtl'] [data-part='cue-display'] {
+    direction: rtl;
+  }
+
+  [data-part='cue'] {
+    display: inline-block;
+    contain: content;
+    border-radius: 4px;
+    backdrop-filter: blur(12px);
+    padding: var(--cue-padding);
+    line-height: var(--cue-line-height);
+    background-color: var(--cue-bg-color);
+    color: var(--cue-color);
+    white-space: pre-wrap;
+    text-align: center;
+    outline: var(--cue-outline);
+    text-shadow: var(--cue-text-shadow);
+  }
+}
+
+/* Player States */
+media-player {
+  &[data-preview] media-captions {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  &[data-controls] media-captions {
+    bottom: 78px;
+  }
+
+  /* Preset "Customize Caption Style" off: hide captions and all caption controls on frontend */
+  &.fp-captions-hidden media-captions,
+  &.fp-captions-hidden media-caption-button,
+  &.fp-captions-hidden .fp-subtitle-menu,
+  &.fp-captions-hidden .fp-settings-captions-menu {
+    display: none !important;
+  }
+}

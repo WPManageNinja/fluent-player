@@ -1,0 +1,195 @@
+// Variables
+$overlay-spacing: 20px;
+$overlay-padding: 8px 10px;
+$overlay-border-radius: 4px;
+$overlay-font-size: 14px;
+$overlay-transition: 0.3s ease;
+
+// Base overlay styles
+.fp-media-custom-overlay {
+  position: absolute;
+  display: none;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity $overlay-transition;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  max-width: 95%;
+
+  &.active {
+    display: block;
+    opacity: 1;
+  }
+
+  // Position variants
+  &.position {
+    &-top {
+      &-left {
+        top: $overlay-spacing;
+        left: $overlay-spacing;
+      }
+
+      &-right {
+        top: $overlay-spacing;
+        right: $overlay-spacing;
+      }
+    }
+
+    &-bottom {
+      &-left {
+        bottom: $overlay-spacing;
+        left: $overlay-spacing;
+      }
+
+      &-right {
+        bottom: $overlay-spacing;
+        right: $overlay-spacing;
+      }
+    }
+
+    &-dynamic {
+      top: $overlay-spacing;
+      left: $overlay-spacing;
+    }
+  }
+}
+
+// Block styles
+.fp-media-custom-overlay-block {
+  position: relative;
+  border-radius: $overlay-border-radius;
+  transition: background $overlay-transition;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+}
+
+// Link and text styles (shared so non-link overlay text looks the same)
+.fp-media-custom-overlay-link,
+.fp-media-custom-overlay-text {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  padding: $overlay-padding;
+  font-weight: 400;
+  font-size: $overlay-font-size;
+  overflow: auto;
+  text-overflow: ellipsis;
+}
+
+.fp-media-custom-overlay-link:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.fp-media-custom-overlay-stretch-link {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 0;
+  overflow: hidden;
+  text-indent: -9999px;
+}
+
+.fp-media-custom-overlay-text a {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  text-decoration: underline;
+}
+
+// Logo specific styles
+.fp-media-logo-overlay {
+  z-index: 10;
+  opacity: 1;
+  display: block;
+  width: max-content;
+  max-width: 95%;
+
+  .fp-media-logo-block {
+    background-color: transparent;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
+
+  .fp-media-custom-overlay-link {
+    display: inline-block; // Keep link only as wide as the logo image
+  }
+}
+
+// Video error overlay styles
+.fluent-player-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+}
+
+.fluent-player-error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  max-width: 320px;
+}
+
+.fluent-player-error-icon {
+  width: 48px;
+  height: 48px;
+  color: #ef4444;
+  margin-bottom: 16px;
+  overflow: visible;
+
+  circle, line, path {
+    stroke: currentColor;
+    vector-effect: non-scaling-stroke;
+  }
+}
+
+.fluent-player-error-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.fluent-player-error-detail {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.fluent-player-error-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background: #fff;
+  color: #0e121b;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.9);
+    color: #0e121b;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}

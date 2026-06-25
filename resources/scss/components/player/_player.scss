@@ -1,0 +1,436 @@
+/* Main player styles */
+
+.fluent-player-container {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  display: block;
+  justify-content: center;
+  background-color: #212121; // Fallback color when no poster
+}
+
+/* Portrait aspect ratios (9:16, 4:5, etc.) — cap width so height stays reasonable */
+.fluent-player.fp-portrait {
+  max-width: min(100%, 45vh);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+media-player[data-view-type='video'] {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: #f5f5f5;
+  background-color: #212121;
+  overflow: hidden;
+  contain: style;
+  display: block;
+
+  &[data-focus]:not([data-playing]) {
+    box-shadow: var(--media-focus-ring);
+  }
+}
+
+/* Skip rendering offscreen players entirely — the browser defers layout/paint
+   for elements far from the viewport. contain-intrinsic-size prevents layout shift. */
+.fluent-player {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
+}
+
+/* Disable content-visibility inside containers where the browser misjudges
+   visibility: SPA portals, sliders/carousels (overflow-hidden + transforms),
+   modals, and tabs. The browser thinks the player is offscreen so it never
+   paints, causing an infinite loading spinner. */
+.fluent_com .fluent-player,
+.splide .fluent-player,
+.swiper .fluent-player,
+.slick-slider .fluent-player,
+.wp-block-kadence-slider .fluent-player,
+.carousel .fluent-player,
+[class*="modal"] .fluent-player,
+[class*="tab-content"] .fluent-player {
+  content-visibility: visible;
+}
+
+/* Fullscreen: relax containment so overlays are visible and not clipped */
+media-player[data-fullscreen] {
+  overflow: visible;
+
+  /* Full-viewport overlays only - do not include .fp-media-custom-overlay so its position classes (top-left, top-right, etc.) are preserved */
+  .media-email-capture-overlay,
+  .cta-overlay,
+  .action-bar-overlay,
+  .fluent-player-layers-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Contain poster/loader in fullscreen to prevent cropping */
+  .fluent-player-loader-poster,
+  img.fluent-player-loader-poster,
+  picture.fluent-player-loader-poster img {
+    object-fit: contain;
+  }
+}
+
+/* For load="play": Always show player (controls + poster) but hide video until ready */
+media-player[load="play"]:not([data-can-play]) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+
+  /* Show controls immediately for load="play" so play button is visible */
+  media-controls {
+    opacity: 1 !important;
+  }
+
+  /* Hide video element until ready */
+  > media-provider {
+    video,
+    iframe {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+}
+
+/* Hide player until it's ready to prevent flash of unstyled content */
+/* This applies to all strategies EXCEPT load="play" */
+media-player:not([data-can-play]):not([load="play"]) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  /* Hide video element inside provider until it loads */
+  > media-provider {
+    video,
+    iframe {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+}
+
+/* Show player when ready */
+media-player[data-can-play] {
+  opacity: 1 !important;
+  visibility: visible;
+  pointer-events: auto;
+
+  /* Show provider and video when ready */
+  > media-provider {
+    opacity: 1;
+    visibility: visible;
+
+    video,
+    iframe {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
+/* Loader Styles - Integrated with poster for better LCP */
+.fluent-player-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  background-color: #000;
+  opacity: 1;
+  transition: opacity 0.35s ease-out;
+
+  // Poster image (for LCP optimization)
+  // Style both <picture> and <img> elements to prevent FOUC
+  .fluent-player-loader-poster,
+  img.fluent-player-loader-poster,
+  picture.fluent-player-loader-poster {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+  }
+
+  // Apply object-fit only to img elements (not picture)
+  img.fluent-player-loader-poster,
+  picture.fluent-player-loader-poster img {
+    object-fit: cover;
+  }
+
+  // Overlay for spinner (only visible when loading)
+  .fluent-player-loader-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    opacity: 1;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
+    &.is-hidden {
+      opacity: 0 !important;
+    }
+  }
+
+  // Hidden state (controlled by JS)
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.fluent-player-loader-spinner {
+  width: 50px;
+  height: 50px;
+  border: 6px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--media-brand, #ffffff);
+  animation: spinner 1s linear infinite;
+}
+
+.fluent-player-autoplay-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.fluent-player-autoplay-container {
+  text-align: center;
+  color: white;
+}
+
+.fluent-player-autoplay-title {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.fluent-player-autoplay-countdown {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  margin: 0 auto 30px;
+}
+
+.fluent-player-autoplay-countdown svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.fluent-player-countdown-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 3;
+}
+
+.fluent-player-countdown-progress {
+  fill: none;
+  stroke: #E50914; /* Streaming red */
+  stroke-width: 3;
+  transition: stroke-dasharray 0.9s linear;
+}
+
+.fluent-player-countdown-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.fluent-player-autoplay-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: white;
+  padding: 8px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.fluent-player-autoplay-cancel:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile styles */
+@media (max-width: 600px) {
+  .fluent-player-autoplay-title {
+    font-size: 16px;
+  }
+
+  .fluent-player-autoplay-countdown {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 20px;
+  }
+
+  .fluent-player-countdown-number {
+    font-size: 24px;
+  }
+
+  .fluent-player-autoplay-cancel {
+    padding: 6px 20px;
+    font-size: 14px;
+  }
+}
+
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}
+
+/* Portrait only: override Vidstack's height:1000% to prevent extreme zoom.
+   For landscape videos, Vidstack's 1000% is intentional — it pushes YouTube's
+   UI chrome (title bar, copy-link) out of the visible viewport area. */
+.fluent-player.fp-portrait iframe.vds-youtube[data-no-controls],
+.fluent-player.fp-short iframe.vds-youtube[data-no-controls] {
+  height: 100%;
+}
+
+
+/* Keep YouTube iframe hidden until onReady fires (data-can-play).
+   During init YouTube shows its title bar — keeping the iframe hidden means
+   the user never sees it. After onReady the title is already gone. */
+.fluent-player media-player iframe.vds-youtube {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Reveal iframe after onReady. Poster still covers the player until user plays,
+   so the transition is invisible to the user. */
+.fluent-player media-player[data-can-play] iframe.vds-youtube {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: opacity 0.3s ease;
+}
+
+/* Keep poster visible for YouTube before first play (covers hidden iframe) */
+.fluent-player [data-media-provider]:has(iframe.vds-youtube) media-poster {
+  opacity: 1;
+  background-color: #000;
+  transition: none;
+}
+
+/* Once playback starts, fade out poster (delay covers YouTube's initial logo flash) */
+.fluent-player media-player[data-started] [data-media-provider]:has(iframe.vds-youtube) media-poster {
+  opacity: 0 !important;
+  transition: opacity 0s linear 0.4s;
+
+  /* Hide poster image immediately to prevent crop mismatch, keep black bg for the delay */
+  img {
+    opacity: 0 !important;
+    transition: none;
+  }
+}
+
+/* vds-blocker: intercept pointer events so YouTube doesn't detect hover (title/copy-link overlay).
+   Only override background during active playback — when data-ended is set, let Vidstack's
+   black background cover the YouTube end-screen UI. */
+.fluent-player media-player[data-started]:not([data-ended]) [data-media-provider]:has(iframe.vds-youtube) .vds-blocker {
+  display: block !important;
+  background: transparent !important;
+}
+
+/* vds-scrim: covers YouTube's logo/watermark (bottom) during controls-visible state.
+   transition: none on the active rule = instant show (no fade-in delay).
+   The 0.3s ease on the base rule applies only when hiding (controls auto-hide). */
+.vds-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.fluent-player media-player[data-controls]:has(iframe.vds-youtube) .vds-scrim {
+  opacity: 1;
+  transition: none;
+  background:
+    linear-gradient(to top, rgb(0 0 0 / 0.5) 0%, transparent 12%);
+}
+
+/* Ensure iframe is visible whenever actively playing — covers replay-after-end
+   where data-can-play may be briefly removed during re-initialization. */
+.fluent-player media-player[data-playing] iframe.vds-youtube {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* On PAUSE (Shorts only): show poster to cover YouTube's suggestions overlay. */
+.fluent-player.fp-short media-player[data-started][data-paused] [data-media-provider]:has(iframe.vds-youtube) media-poster {
+  opacity: 1 !important;
+  transition: none !important;
+
+  img {
+    opacity: 1 !important;
+  }
+}
+
+/* On END: show poster to cover YouTube's end-screen suggestions.
+   We intentionally do NOT hide the iframe — doing so (opacity:0) can interfere with
+   YouTube's IFrame API state machine during replay+seek, causing stuck loading states. */
+.fluent-player media-player[data-started][data-ended] [data-media-provider]:has(iframe.vds-youtube) media-poster {
+  opacity: 1 !important;
+  transition: none !important;
+
+  img {
+    opacity: 1 !important;
+  }
+}
+
+
+/* Prevent iframe flash on mobile (non-YouTube) */
+media-player:not([data-can-play]) iframe[src*="youtube"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+media-player[data-can-play] iframe {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Responsive adjustments for loader positioning */
+@media (max-width: 768px) {
+  .fluent-player-loader-spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fluent-player-loader-spinner {
+    width: 35px;
+    height: 35px;
+    border-width: 5px;
+  }
+}

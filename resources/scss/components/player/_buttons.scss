@@ -1,0 +1,187 @@
+/*************************************************************************************************
+ * Buttons
+ *************************************************************************************************/
+.fp-media-button {
+  display: inline-flex;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  color: white;
+  border-radius: 8px;
+  margin-right: 2.5px;
+  cursor: pointer;
+  /* Resets */
+  padding: 0;
+  user-select: none;
+  appearance: none;
+  //background: none;
+  outline: none;
+  border: none;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.5s ease-in-out;
+
+
+
+
+  &[aria-hidden='true'] {
+    display: none;
+  }
+
+  > media-icon,
+  > svg {
+    width: 80%;
+    height: 80%;
+    border-radius: 2px;
+    transition: opacity 0.25s ease, transform 0.18s ease;
+  }
+
+  &[data-focus],
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--media-focus-ring);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: var(--media-brand, rgb(255 255 255 / 0.2));
+      cursor: pointer;
+    }
+  }
+}
+
+// Specific button adjustments
+media-mute-button {
+  margin-left: -2.5px;
+  margin-right: -5px !important;
+}
+
+media-fullscreen-button {
+  margin-right: 0 !important;
+}
+
+// Icon visibility rules
+media-play-button {
+
+  &:not([data-paused]) {
+    .fp-media-play-icon { display: none; }
+  }
+
+  &[data-paused], &[data-ended] {
+    .fp-media-pause-icon { display: none; }
+  }
+  &:not([data-ended]) {
+    .fp-media-replay-icon { display: none; }
+  }
+}
+
+media-pip-button {
+  &[data-active] .fp-media-pip-enter-icon,
+  &:not([data-active]) .fp-media-pip-exit-icon {
+    display: none;
+  }
+}
+
+media-fullscreen-button {
+  &[data-active] .fp-media-fs-enter-icon,
+  &:not([data-active]) .fp-media-fs-exit-icon {
+    display: none;
+  }
+}
+
+media-caption-button {
+  &:not([data-active]) .fp-media-cc-on-icon,
+  &[data-active] .fp-media-cc-off-icon {
+    display: none;
+  }
+}
+
+media-mute-button {
+  &:not([data-state='muted']) .fp-media-mute-icon,
+  &:not([data-state='low']) .fp-media-volume-low-icon,
+  &:not([data-state='high']) .fp-media-volume-high-icon {
+    display: none;
+  }
+}
+
+// Playlist toggle button
+.fp-playlist-toggle {
+  // Highlight when playlist is visible
+  &[aria-label="Hide Playlist"] {
+    background-color: var(--media-brand, rgb(255 255 255 / 0.15));
+  }
+
+  // Smooth icon transition
+  media-icon {
+    transition: transform 0.3s ease;
+  }
+
+  &:active media-icon {
+    transform: scale(0.9);
+  }
+}
+
+// Info toggle button
+.fp-info-toggle {
+  // Highlight when info is visible
+  &[aria-label="Hide Info"] {
+    background-color: var(--media-brand, rgb(255 255 255 / 0.15));
+  }
+
+  // Smooth icon transition
+  media-icon {
+    transition: transform 0.3s ease;
+  }
+
+  &:active media-icon {
+    transform: scale(0.9);
+  }
+}
+
+// Playlist track navigation buttons (previous / next track)
+// Wired to FluentPlaylist.prevMedia() / nextMedia() via class selector.
+// Boundary state is communicated via aria-disabled (focusable, announced)
+// rather than the HTML disabled attribute (focus-stealing, silent).
+.fp-prev-track,
+.fp-next-track {
+  media-icon {
+    transition: transform 0.18s ease;
+  }
+
+  &:active media-icon {
+    transform: scale(0.9);
+  }
+
+  &[aria-disabled='true'] {
+    opacity: 0.4;
+    cursor: not-allowed;
+
+    // Remove hover affordance at boundaries so the button reads as inactive
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background-color: transparent;
+      }
+    }
+  }
+}
+
+// Mobile tap target — bump to ≥44×44 to meet WCAG target-size guidance on touch.
+// Constrained to the playlist nav buttons so existing chrome sizing is unchanged.
+@media (max-width: 768px) {
+  .fp-prev-track,
+  .fp-next-track {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    margin-right: 4px;
+
+    media-icon {
+      width: 70%;
+      height: 70%;
+    }
+  }
+}

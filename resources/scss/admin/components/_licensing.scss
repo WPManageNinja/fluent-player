@@ -1,0 +1,172 @@
+@use "../../variables" as *;
+
+.#{$slug} {
+    &-licensing-settings-page {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    &-license-box {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 24px;
+        background: var(--fp-bg-primary);
+        border: 1px solid var(--fp-border-light);
+        border-radius: 12px;
+    }
+
+    &-license-content {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+
+        h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--fp-text-primary);
+        }
+
+        p {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--fp-text-secondary);
+
+            a {
+                color: var(--fp-primary);
+                font-weight: 500;
+                text-decoration: none;
+                border-bottom: 1px solid currentColor;
+            }
+        }
+
+        &.is-centered {
+            align-items: center;
+            text-align: center;
+            gap: 6px;
+
+            h3 {
+                font-size: 16px;
+            }
+        }
+    }
+
+    &-license-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+
+        .el-icon {
+            font-size: 48px;
+        }
+
+        &.is-success .el-icon {
+            color: var(--el-color-success, #67c23a);
+        }
+
+        &.is-warning .el-icon {
+            color: var(--el-color-warning, #e6a23c);
+        }
+    }
+
+    &-license-input-block {
+        width: 100%;
+        max-width: 420px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        text-align: left;
+    }
+
+    &-license-details {
+        width: 100%;
+        max-width: 420px;
+        margin-top: 14px;
+        border: 1px solid var(--fp-border-light);
+        border-radius: 10px;
+
+        p {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--fp-border-light);
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            .label {
+                font-weight: 500;
+                color: var(--fp-text-primary);
+            }
+
+            .value {
+                color: var(--fp-text-secondary);
+                text-align: right;
+                word-break: break-word;
+            }
+        }
+    }
+
+    &-license-key {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        code {
+            font-size: 13px;
+            color: var(--fp-text-primary);
+        }
+    }
+
+    &-license-copy {
+        padding: 2px;
+        min-height: auto;
+    }
+
+    &-license-error {
+        margin: 0;
+        color: var(--el-color-danger, #f56c6c);
+        font-size: 13px;
+    }
+
+    &-license-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+
+        .el-icon {
+            margin-right: 6px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        &-license-details p {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+
+            .value {
+                text-align: left;
+            }
+        }
+
+        &-license-actions {
+            justify-content: stretch;
+
+            .el-button {
+                flex: 1;
+            }
+        }
+    }
+}

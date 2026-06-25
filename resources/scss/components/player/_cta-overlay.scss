@@ -1,0 +1,107 @@
+/*************************************************************************************************
+ * CTA Overlay
+ *************************************************************************************************/
+
+.cta-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  
+  &.active {
+    display: flex;
+  }
+  
+  .cta-container {
+    background-color: var(--cta-bg-color, rgba(0, 0, 0, 0.7));
+    color: var(--cta-text-color, #ffffff);
+    padding: 30px;
+    width: min(500px, 90vw);
+    max-width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+    text-align: center;
+    position: relative;
+    border-radius: 8px;
+
+    h1, h2, h3, h4, h5, h6, p {
+      color: inherit;
+    }
+
+    @media (max-width: 480px) {
+      padding: 20px 16px;
+    }
+  }
+  
+  .cta-skip {
+    position: sticky;
+    top: 0;
+    float: right;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, box-shadow 0.2s ease;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 1;
+    
+    &:hover {
+      opacity: 1;
+    }
+    
+    &:focus {
+      outline: none;
+      opacity: 1;
+      box-shadow: var(--media-focus-ring, var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))));
+    }
+  }
+  
+  .cta-skip-text {
+    font-weight: bold;
+    text-decoration: underline;
+  }
+  
+  .cta-skip-icon {
+    vertical-align: bottom;
+    font-size: 20px;
+  }
+}
+
+/* Styles for when overlay is active */
+.media-player.overlay-active {
+  .media-controls {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  
+  media-play-button,
+  media-mute-button,
+  media-fullscreen-button,
+  media-pip-button,
+  media-caption-button,
+  media-seek-button {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    
+    &:hover {
+      background-color: transparent !important;
+    }
+  }
+}
+
+/* Focus management for CTA overlay */
+.cta-overlay.active {
+  .cta-skip:focus {
+    outline: none;
+    box-shadow: var(--media-focus-ring, var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))));
+  }
+}

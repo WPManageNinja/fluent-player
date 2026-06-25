@@ -1,0 +1,67 @@
+ //Import base styles
+@use 'vidstack/player/styles/base.css';
+
+// Import components
+@use '../components/player/buttons';
+@use '../components/player/captions';
+@use '../components/player/chapter-title';
+@use '../components/player/controls';
+@use '../components/player/context-menu';
+@use '../components/player/gestures';
+@use '../components/player/menus';
+@use '../components/player/poster';
+@use '../components/player/slider';
+@use '../components/player/time';
+@use '../components/player/tooltips';
+@use '../components/player/overlay';
+@use '../components/player/skin';
+@use '../components/player/skin-standard';
+@use '../components/player/provider';
+@use "../components/player/root-var";
+@use "../components/player/player";
+@use '../components/player/email-capture';
+@use '../components/player/cta-overlay';
+@use '../components/player/action-bar';
+@use '../components/player/youtube-subscribe';
+@use '../components/player/language-switcher';
+@use '../components/player/top-title-overlay';
+@use '../components/player/audio';
+@use 'layers';
+@use "timed-content";
+
+// This prevents tooltip text and other content from flashing before player initializes
+.fluent-player-container {
+    media-player:not(:defined),
+    media-controls:not(:defined),
+    media-tooltip:not(:defined),
+    media-tooltip-content:not(:defined) {
+        opacity: 0 !important;
+        visibility: hidden !important;
+    }
+}
+
+// Screen reader only utility
+.fp-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+// Reduced motion preference
+@media (prefers-reduced-motion: reduce) {
+    .fluent-player-container {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}

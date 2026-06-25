@@ -1,0 +1,180 @@
+@use "../root";
+@use "../normalize";
+@use "../variables" as *;
+@use "../globals";
+@use "../elements/nav";
+@use "components/list-table";
+@use "components/header-filters";
+@use "components/manage-tags";
+@use "components/admin-notice";
+@use "components/pagination";
+@use "settings";
+@use "migration";
+@use "components/integrations";
+@use "../components/analytics/index";
+
+// Element plus styles
+@import '../../../node_modules/element-plus/theme-chalk/el-notification.css';
+@import '../../../node_modules/element-plus/theme-chalk/el-loading.css';
+@import '../../../node_modules/element-plus/theme-chalk/el-message-box.css';
+@import '../../../node_modules/element-plus/theme-chalk/el-menu.css';
+@import '../../../node_modules/element-plus/theme-chalk/el-tooltip.css';
+
+.#{$slug} {
+    &-app {
+        margin-left: -20px;
+        background: var(--fp-body-bg-color);
+
+        @media (max-width: 782px) {
+            margin-left: -10px;
+        }
+        @media (max-width: 768px) {
+            margin-left: -15px;
+        }
+    }
+
+    &-body {
+        padding: 24px 32px;
+        background: var(--fp-body-bg-color);
+
+        &:has(.fplayer-admin-page-settings) {
+            padding: 0;
+        }
+
+        @media (max-width: 480px) {
+            padding: 0 16px;
+        }
+    }
+
+    &-admin-page {
+        background-color: var(--fp-body-bg-color);
+
+        &:not(.fplayer-admin-page-settings) {
+            @media (max-width: 575px) {
+                margin-top: 16px;
+            }
+        }
+
+        &-header {
+            background-color: transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            h1 {
+                margin: 0;
+                color: #2F3448;
+                font-size: 20px;
+                font-style: normal;
+                font-weight: 600;
+                line-height: 28px;
+                letter-spacing: -0.27px;
+            }
+        }
+
+        &-content {
+            padding: 10px;
+            background-color: #fff;
+
+            .el-tag__content {
+                text-transform: capitalize;
+            }
+        }
+
+        // Button styles
+        .back-button {
+            background-color: #f6f7f7;
+            border-color: #c3c4c7;
+            color: #2c3338;
+
+            &:hover {
+                background-color: #f0f0f1;
+                border-color: #8c8f94;
+            }
+        }
+
+
+        .view-button {
+            background-color: #f0f0f1;
+            border-color: #c3c4c7;
+            color: #2c3338;
+
+            &:hover {
+                background-color: #dcdcde;
+                border-color: #8c8f94;
+            }
+        }
+
+        .view-video-container {
+            max-width: 100%;
+            width: 100%;
+        }
+
+        // Media page specific styles
+        &--media {
+            .media-list {
+                margin-top: 20px;
+
+                &-pagination {
+                    margin-top: 20px;
+                    display: flex;
+                    justify-content: flex-end;
+                }
+            }
+        }
+
+        // Playlist page specific styles
+        &--playlist {
+            .playlist-list {
+                margin-top: 20px;
+            }
+        }
+
+    }
+
+}
+
+/* FluentPlayer Media Toolbar Styles */
+.fluent-player-edit-root {
+
+    .fp-media-visibility-dropdown {
+        z-index: 999999;
+
+        .components-popover__content {
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .components-radio-control {
+            .components-radio-control__option {
+                margin-bottom: 8px;
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+            }
+
+            .components-radio-control__input {
+                margin-right: 8px !important;
+            }
+        }
+    }
+}
+
+// WordPress 7.0 forms.css forces `min-height: 40px` / `padding: 0 12px` onto admin
+// <input> elements, which Element Plus's internal inputs are — making admin text
+// fields render 40px (vs 32px selects/buttons). Hand sizing back to Element Plus,
+// scoped to our admin app root only. The #id selector outranks forms.css.
+// NOTE: must be top-level — NOT nested under .fluent-player-edit-root (that class
+// is only on the block-editor root, never the admin app).
+#fplayer_admin_app {
+    .el-input__inner,
+    .el-select__input {
+        min-height: 0;
+        padding: 0;
+    }
+
+    .el-textarea__inner {
+        min-height: 0; // Element Plus controls the textarea's own padding
+    }
+}

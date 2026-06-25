@@ -1,0 +1,118 @@
+media-player[data-playing] {
+  .fluent-player-top-title-overlay {
+    opacity: 0;
+  }
+}
+
+.fluent-player-top-title-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 120px;
+  color: white;
+  z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+  max-width: calc(100% - 140px); // Leave space for language controls (120px) and some padding
+  box-sizing: border-box;
+
+
+  @media (max-width: 768px) {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+
+  @media (max-width: 480px) {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .fluent-player-title-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .fluent-player-media-title {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (max-width: 768px) {
+      font-size: 14px;
+      -webkit-line-clamp: 2;
+      padding: 0 4px 0 0;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 13px;
+      -webkit-line-clamp: 2;
+    }
+  }
+
+  .fluent-player-chapter-subtitle {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin: 0;
+
+    &::before {
+      content: '• ';
+      margin-right: 4px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    @media (max-width: 768px) {
+      font-size: 12px;
+      padding: 0;
+    }
+  }
+}
+
+// Show title overlay using Vidstack data attributes
+// Show on hover (using :hover pseudo-class)
+
+// Show when paused (using Vidstack data-paused attribute)
+media-player[data-paused] .fluent-player-top-title-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+// Hide when playing and not hovered (using Vidstack data-playing attribute)
+media-player[data-playing]:not(:hover) .fluent-player-top-title-overlay {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+// Show when media has ended (using Vidstack data-ended attribute)
+media-player[data-ended] .fluent-player-top-title-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+

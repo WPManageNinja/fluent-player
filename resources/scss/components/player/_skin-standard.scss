@@ -1,0 +1,294 @@
+/*************************************************************************************************
+ * Standard Skin - Modern two-row layout with glass morphism effect
+ *************************************************************************************************/
+
+// Standard skin variables
+$standard-bg: var(--fp-control-bar-bg, rgba(14, 18, 27, 0.7));
+$standard-blur: var(--fp-control-bar-blur, 6px);
+$standard-border: 1px solid rgba(255, 255, 255, 0.24);
+$standard-radius: 0 0 0 0;
+$standard-padding: 10px 16px;
+$standard-height: 34px;
+
+// Progress bar colors for standard skin
+$standard-progress-track: #E1E4EA;
+$standard-progress-fill: #FFFFFF;
+$standard-volume-track: #CACFD8;
+
+media-controls.fp-skin-standard {
+  direction: ltr;
+  &.fp-media-controls-bottom {
+    pointer-events: none;
+
+    media-controls-group.fp-controls-group {
+      pointer-events: auto;
+      flex-wrap: wrap;
+      align-content: center;
+      gap: 6px;
+      padding: $standard-padding;
+      min-height: $standard-height;
+      background: $standard-bg;
+      border: $standard-border;
+      backdrop-filter: blur($standard-blur);
+      -webkit-backdrop-filter: blur($standard-blur);
+      border-radius: $standard-radius;
+      box-sizing: border-box;
+    }
+
+    // Progress bar row - full width at top
+    .fp-standard-progress-row {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 6px;
+      order: -1;
+    }
+
+    // Controls row - below progress
+    .fp-standard-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 8px;
+    }
+
+    // Left controls group (volume)
+    .fp-standard-left-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 110px;
+    }
+
+    // Center controls group (playback)
+    .fp-standard-center-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    // Right controls group (utility)
+    .fp-standard-right-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 70px;
+    }
+
+    // Time display styling
+    .fp-media-time {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #FFFFFF;
+      white-space: nowrap;
+      min-width: 26px;
+      line-height: 12px;
+    }
+
+    // Progress slider (time slider)
+    .fp-media-time-slider {
+      flex: 1;
+      height: 20px;
+      margin: 0;
+
+      .fp-media-slider-track {
+        height: 6px;
+        border-radius: 999px;
+        background-color: $standard-progress-track;
+      }
+
+      .fp-media-slider-track-fill {
+        background-color: $standard-progress-fill;
+        border-radius: 999px;
+      }
+
+      .fp-media-slider-thumb {
+        width: 12px;
+        height: 12px;
+        background: #FFFFFF;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .fp-media-slider-progress {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+      }
+    }
+
+    // Volume slider
+    .fp-media-volume-slider {
+      width: 80px;
+      max-width: 80px;
+      height: 20px;
+      margin: 0;
+
+      .fp-media-slider-track {
+        height: 6px;
+        border-radius: 999px;
+        background-color: $standard-volume-track;
+      }
+
+      .fp-media-slider-track-fill {
+        background-color: var(--media-brand, #DD1F13);
+        border-radius: 999px;
+      }
+
+      .fp-media-slider-thumb {
+        width: 10px;
+        height: 10px;
+        background: var(--media-brand, #DD1F13);
+        border: 2px solid #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    // Button styling
+    .fp-media-button {
+      width: 28px;
+      min-width: 28px;
+      height: 28px;
+      background: transparent;
+      color: #FFFFFF;
+      border-radius: 4px;
+      margin: 0;
+      transition: background-color 0.2s ease, transform 0.15s ease;
+
+      media-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+          transform: scale(1.05);
+        }
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    // Mute button specific
+    media-mute-button {
+      margin: 0;
+    }
+
+    // Menu buttons in controls bar only — exclude submenu buttons inside the popup menu
+    .fp-media-menu-button:not([role='menuitem']) {
+      width: 20px;
+      min-width: 20px;
+      height: 20px;
+      background: transparent;
+      color: #FFFFFF;
+
+      media-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      &[aria-expanded="true"] {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    // Tooltip adjustments
+    .fp-media-tooltip {
+      bottom: calc(100% + 8px);
+    }
+  }
+    .fp-media-slider{
+        height: 20px ;
+    }
+}
+
+// Responsive adjustments for standard skin
+@media (max-width: 768px) {
+  media-controls.fp-skin-standard {
+    &.fp-media-controls-bottom {
+      media-controls-group.fp-controls-group {
+        padding: 8px 12px;
+        min-height: 56px;
+        gap: 5px;
+      }
+
+      .fp-standard-progress-row {
+        gap: 5px;
+      }
+
+      .fp-standard-controls-row {
+        gap: 6px;
+      }
+
+      .fp-media-time {
+        font-size: 10px;
+        min-width: 22px;
+      }
+
+      .fp-media-volume-slider {
+        width: 64px;
+        max-width: 64px;
+      }
+
+      .fp-media-button {
+        width: 24px;
+        min-width: 24px;
+        height: 24px;
+
+        media-icon {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  media-controls.fp-skin-standard {
+    &.fp-media-controls-bottom {
+      media-controls-group.fp-controls-group {
+        padding: 8px 10px;
+        min-height: 50px;
+      }
+
+      .fp-standard-center-controls {
+        gap: 6px;
+      }
+
+      .fp-standard-right-controls {
+        gap: 6px;
+      }
+
+      .fp-media-volume-slider {
+        width: 40px;
+        max-width: 40px;
+      }
+    }
+  }
+}
+
+@media (max-width: 380px) {
+  media-controls.fp-skin-standard {
+    &.fp-media-controls-bottom {
+      media-controls-group.fp-controls-group {
+        padding: 6px 6px;
+      }
+    }
+  }
+}

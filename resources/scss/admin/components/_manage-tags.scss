@@ -1,0 +1,106 @@
+@use "../../variables" as *;
+
+.#{$slug}-manage-tags-modal {
+    --el-color-primary: var(--fp-button-bg-color);
+    --el-color-primary-light-3: color-mix(in srgb, var(--fp-button-bg-color) 70%, white);
+    --el-color-primary-light-5: color-mix(in srgb, var(--fp-button-bg-color) 50%, white);
+    --el-color-primary-light-7: color-mix(in srgb, var(--fp-button-bg-color) 30%, white);
+    --el-color-primary-light-9: color-mix(in srgb, var(--fp-button-bg-color) 10%, white);
+
+    .el-dialog__body {
+        padding: 0;
+    }
+
+    .#{$slug}-primary-btn {
+        &.is-disabled,
+        &.is-disabled:hover,
+        &[disabled],
+        &[disabled]:hover {
+            background: var(--fp-button-bg-color);
+            border: none;
+            color: #fff;
+            opacity: 0.45;
+        }
+    }
+
+    .#{$slug}-manage-tags-input {
+        .el-input__wrapper {
+            box-shadow: 0 0 0 1px var(--fp-border-light) inset;
+        }
+
+        .el-input__wrapper:hover {
+            box-shadow: 0 0 0 1px var(--fp-border-hover) inset;
+        }
+
+        .el-input__wrapper.is-focus {
+            box-shadow: 0 0 0 1px var(--fp-button-bg-color) inset;
+        }
+    }
+}
+
+.#{$slug}-manage-tags-content {
+    max-height: 400px;
+    overflow-y: auto;
+    min-height: 100px;
+}
+
+.#{$slug}-manage-tags-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #99A0AE;
+    font-size: 14px;
+}
+
+.#{$slug}-manage-tags-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--fp-border-light);
+    gap: 12px;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: var(--fp-bg-tertiary, #f9fafb);
+    }
+}
+
+.#{$slug}-manage-tags-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--fp-text-color);
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &:hover {
+        color: var(--fp-primary-color);
+    }
+}
+
+.#{$slug}-manage-tags-count {
+    flex-shrink: 0;
+}
+
+.#{$slug}-manage-tags-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.#{$slug}-manage-tags-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}

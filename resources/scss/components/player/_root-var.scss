@@ -1,0 +1,12 @@
+// Root variables
+:root {
+  --fp-bg-white: #FFF;
+  --fp-bg-strong: #0E121B;
+  --fp-alpha-slate-16: rgba(153, 160, 174, 0.16);
+  --fp-focus-ring: 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16));
+  --fp-focus-ring-strong: 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-bg-strong, #0E121B);
+  --media-brand: #DD1F13;
+  --media-focus-ring: 0 0 0 2px color-mix(in srgb, var(--media-brand, #DD1F13) 72%, white), 0 0 0 4px color-mix(in srgb, var(--media-brand, #DD1F13) 32%, transparent);
+  --media-tooltip-y-offset: 30px;
+  --media-menu-y-offset: 30px;
+}

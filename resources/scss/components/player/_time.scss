@@ -1,0 +1,23 @@
+/*************************************************************************************************
+ * Time
+ *************************************************************************************************/
+
+.fp-media-time-group {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  word-break: normal;
+}
+
+media-time {
+  display: inline-block;
+  contain: content;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+}
+
+.fp-media-time-divider {
+  margin: 0 2.5px;
+  color: #e0e0e0;
+}

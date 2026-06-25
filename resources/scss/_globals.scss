@@ -1,0 +1,146 @@
+@use "variables" as *;
+
+body {
+    background-color: var(--fp-body-bg-color, #F3F5FA);
+}
+
+.#{$slug} {
+    &-w-full {
+        width: 100%;
+    }
+
+    &-icon-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+
+        .#{$slug}-icon {
+            display: inline-flex;
+            flex-shrink: 0;
+        }
+
+        .#{$slug}-icon-label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    &-copy {
+        background-color: var(--fp-bg-tertiary);
+        color: #222530;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 16px;
+        display: inline-flex;
+        padding: 4px 4px 4px 8px;
+        justify-content: center;
+        align-items: center;
+        gap: 2px;
+        cursor: copy;
+    }
+
+    // Button Component
+    &-primary-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: var(--fp-border-radius);
+        background: var(--fp-button-bg-color);
+        border: none;
+        &:hover,
+        &:focus-visible {
+            background: var(--fp-button-hover-bg-color);
+        }
+        &:focus-visible {
+            outline: none;
+            box-shadow: var(--fp-focus-ring-strong, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-bg-strong, #0E121B));
+        }
+    }
+
+    &-secondary-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: var(--fp-radius-md);
+        background: var(--fp-bg-primary);
+        border: 1px solid var(--fp-border-light);
+        color: var(--fp-text-secondary);
+        &:hover,
+        &:focus-visible {
+            background: var(--fp-bg-secondary);
+            border-color: var(--fp-border-hover);
+            color: var(--fp-text-primary);
+        }
+        &:focus-visible {
+            outline: none;
+            box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+        }
+        .el-icon {
+            color: var(--fp-text-secondary);
+            width: 20px;
+            height: 20px;
+            font-size: 1.3em;
+        }
+    }
+
+    // Card Component
+    &-card {
+        background: var(--fp-bg-primary);
+        border-radius: var(--fp-radius-md);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+        &-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--fp-border-light);
+            h3 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 500;
+                color: var(--fp-text-primary);
+            }
+        }
+        &-body {
+            padding: 20px;
+        }
+    }
+    &-switch {
+        &.el-switch {
+            .el-switch__core {
+                border-color: #E1E4EA;
+                background-color: #E1E4EA;
+            }
+
+            &.is-checked .el-switch__core {
+                border-color: #222530;
+                background-color: #222530;
+            }
+
+            &:focus-visible,
+            &:focus-within {
+                .el-switch__core {
+                    box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+                }
+            }
+        }
+    }
+
+    .el-button:focus,
+    .el-button:focus-visible,
+    .el-checkbox__input.is-focus .el-checkbox__inner,
+    .el-radio__input.is-focus .el-radio__inner,
+    .el-input__wrapper.is-focus,
+    .el-select .el-input.is-focus .el-input__wrapper,
+    .el-textarea__inner:focus {
+        outline: none;
+        box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+    }
+
+    &-mt-2 {
+        margin-top: 12px;
+    }
+}

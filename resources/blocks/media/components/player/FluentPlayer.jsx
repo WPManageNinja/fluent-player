@@ -1,0 +1,782 @@
+/**
+ * Fluent Player React Component
+ * Based on the Vue CssPlayer component
+ */
+
+import 'vidstack/player/styles/base.css';
+import 'vidstack/player';
+import 'vidstack/player/ui';
+import '@icons'; // Custom icon loader - only imports icons we actually use
+import VideoLayout from './VideoLayout';
+import CenterControls from './CenterControls';
+import VideoErrorOverlay from '../common/VideoErrorOverlay';
+import '../PresetStyles.scss';
+
+const {useRef, useEffect, useState, useCallback, useMemo} = wp.element;
+const {__} = wp.i18n;
+
+/** Append Mux playback JWT to stream/image URLs when saved media includes a token (editor preview). */
+function appendMuxTokenToUrl(url, token) {
+    if (!url || !token) return url;
+    const s = String(url);
+    if (s.includes('token=')) return url;
+    const sep = s.includes('?') ? '&' : '?';
+    return s + sep + 'token=' + encodeURIComponent(token);
+}
+
+function getMuxPlaybackTokenFromMedia(mediaData) {
+    const policy =
+        mediaData?.mux?.playback_policy ||
+        mediaData?.settings?.mux?.playback_policy ||
+        '';
+    // Public assets must not send a stale signed JWT (breaks playback).
+    if (policy === 'public') {
+        return '';
+    }
+    const raw = mediaData?.mux?.playback_token || mediaData?.settings?.mux?.playback_token;
+    if (typeof raw !== 'string') return '';
+    const t = raw.trim();
+    return t || '';
+}
+
+function getEditorPosterCandidate(mediaData) {
+    return mediaData?.posterSrc || mediaData?.settings?.posterSrc || '';
+}
+
+const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false, presetData, onPlayerReady }) => {
+    const [currentTime, setCurrentTime] = useState(0);
+    const [brandingColor, setBrandingColor] = useState('');
+    const [controlBarColor, setControlBarColor] = useState('');
+    const playerRef = useRef(null);
+    const onPlayerReadyCalled = useRef(false);
+    const [trackKey, setTrackKey] = useState(0);
+    const savedLoadStrategy = mediaData?.loadStrategy || mediaData?.settings?.loadStrategy || 'visible';
+    const isPosterOnlyPreview = !isPresetPreview && savedLoadStrategy === 'poster';
+    const loadStrategy = 'idle';
+    const behaviors = mediaData?.settings?.behaviors || mediaData?.behaviors || {};
+    // For load="play": start with loader hidden (poster + controls visible)
+    // For other strategies: start with loader visible
+    const [isLoading, setIsLoading] = useState(loadStrategy !== 'play');
+    const [videoError, setVideoError] = useState(null);
+    const [ytCover, setYtCover] = useState(false);
+    const blockVars = window.fluentPlayerBlockVars || {};
+    const defaultPreload = blockVars.defaultSettings?.preload || 'metadata';
+    const preload = ['none', 'metadata', 'auto'].includes(mediaData?.preload)
+        ? mediaData.preload
+        : (['none', 'metadata', 'auto'].includes(defaultPreload) ? defaultPreload : 'metadata');
+
+    // Update branding color and control bar color when settings change
+    useEffect(() => {
+        const useCustomBranding = mediaData?.useCustomBranding;
+
+        // Brand color: if custom branding ON use media's own color (fallback to default, not global), otherwise use global
+        const brandColor = useCustomBranding
+            ? (mediaData?.brandingColor || '#DD1F13')
+            : (blockVars.defaultSettings?.brandColor || '#DD1F13');
+        setBrandingColor(brandColor);
+
+        // Control bar color: if custom branding ON use only the media's own color (empty = CSS default), otherwise use global
+        const controlBarColorValue = useCustomBranding
+            ? (mediaData?.controlBarColor || '')
+            : (blockVars.defaultSettings?.controlBarColor || '');
+        setControlBarColor(controlBarColorValue);
+    }, [mediaData?.useCustomBranding, mediaData?.brandingColor, mediaData?.controlBarColor]);
+
+    const formatVTTTime = (seconds) => {
+        const date = new Date(seconds * 1000);
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        const secs = date.getUTCSeconds().toString().padStart(2, '0');
+        const ms = date.getUTCMilliseconds().toString().padStart(3, '0');
+        return `${hours}:${minutes}:${secs}.${ms}`;
+    };
+
+    // Generate chapters VTT content
+    const generateChaptersVTT = () => {
+        if (!mediaData.chapters || !mediaData.chapters.length) return null;
+
+        let vtt = 'WEBVTT\nKind: chapters\nLanguage: en\n\n';
+        mediaData.chapters.forEach((chapter) => {
+            vtt += `${formatVTTTime(chapter.startTime)} --> ${formatVTTTime(chapter.endTime)}\n`;
+            vtt += `${chapter.title}\n\n`;
+        });
+
+        return 'data:text/vtt;base64,' + btoa(vtt);
+    };
+
+    // Compute aspect ratio
+    const getAspectRatio = () => {
+        if (!mediaData.aspectRatio || mediaData.aspectRatio === 'default') {
+            const defaultAspectRatio = blockVars.defaultSettings?.defaultAspectRatio || 'original';
+            if (defaultAspectRatio === 'original') {
+                return false;
+            }
+            // Convert format from '16:9' to '16 / 9'
+            return defaultAspectRatio.replace(':', ' / ');
+        } else if (mediaData.aspectRatio === 'original') {
+            return false; // Original aspect ratio @todo important skip aspect ratio style when its false
+        } else {
+            // Convert format from '16:9' to '16 / 9'
+            return mediaData.aspectRatio?.replace(':', ' / ') || '16 / 9';
+        }
+    };
+
+    const muxPlaybackToken = useMemo(
+        () => getMuxPlaybackTokenFromMedia(mediaData),
+        [
+            mediaData?.mux?.playback_token,
+            mediaData?.mux?.playback_policy,
+            mediaData?.settings?.mux?.playback_token,
+            mediaData?.settings?.mux?.playback_policy,
+        ]
+    );
+
+    const videoSrc = useMemo(() => {
+        let src = mediaData.provider === 'wordpress' ? (mediaData.url || mediaData.src) : mediaData.src;
+        if (!muxPlaybackToken) return src;
+        const useToken =
+            mediaData.provider === 'mux' ||
+            mediaData.provider === 'mux_stream' ||
+            (src && String(src).includes('stream.mux.com'));
+        if (useToken) return appendMuxTokenToUrl(src, muxPlaybackToken);
+        return src;
+    }, [mediaData.provider, mediaData.url, mediaData.src, muxPlaybackToken]);
+
+    const shouldUseCrossOrigin = useMemo(() => {
+        if (mediaData?.crossorigin !== undefined && mediaData?.crossorigin !== null) {
+            return !!mediaData.crossorigin;
+        }
+
+        const src = String(videoSrc || '');
+        const isYouTubeSource =
+            src.includes('youtube.com') ||
+            src.includes('youtu.be') ||
+            src.includes('youtube-nocookie.com');
+
+        // YouTube storyboard sprites do not expose ACAO headers. If we force crossorigin here,
+        // Vidstack inherits it onto hover thumbnail images and the browser blocks them.
+        return !isYouTubeSource;
+    }, [mediaData?.crossorigin, videoSrc]);
+
+    const posterSrcWithToken = useMemo(() => {
+        const p = getEditorPosterCandidate(mediaData);
+        if (!muxPlaybackToken || !p || !String(p).includes('image.mux.com')) return p;
+        return appendMuxTokenToUrl(p, muxPlaybackToken);
+    }, [mediaData?.posterSrc, mediaData?.settings?.posterSrc, muxPlaybackToken]);
+
+    const thumbnailsWithToken = useMemo(() => {
+        const th = mediaData.thumbnails ?? mediaData.settings?.thumbnails;
+        if (!muxPlaybackToken || !th || !String(th).includes('image.mux.com')) return th;
+        return appendMuxTokenToUrl(th, muxPlaybackToken);
+    }, [mediaData.thumbnails, mediaData.settings?.thumbnails, muxPlaybackToken]);
+
+    const subtitlesWithToken = useMemo(() => {
+        const subs = (mediaData.subtitles ?? mediaData.settings?.subtitles ?? []).filter(
+            (sub) => sub && typeof sub.url === 'string' && sub.url.trim() !== ''
+        );
+        if (!muxPlaybackToken) return subs;
+        return subs.map((sub) => {
+            const u = sub.url;
+            if (!u || !String(u).includes('stream.mux.com') || String(u).includes('token=')) {
+                return sub;
+            }
+            return { ...sub, url: appendMuxTokenToUrl(u, muxPlaybackToken) };
+        });
+    }, [mediaData.subtitles, mediaData.settings?.subtitles, muxPlaybackToken]);
+
+    useEffect(() => {
+        setTrackKey((prevKey) => prevKey + 1);
+    }, [mediaData.chapters]);
+
+    useEffect(() => {
+        const player = playerRef.current;
+        if (!player) return;
+
+        const provider = player.querySelector('media-provider');
+        if (!provider) return;
+
+        const existingTracks = provider.querySelectorAll('track[kind="subtitles"], track[kind="captions"]');
+        existingTracks.forEach((track) => track.remove());
+
+        if (!subtitlesWithToken.length) {
+            return;
+        }
+
+        const hasExplicitDefault = subtitlesWithToken.some((sub) => sub?.is_default === true);
+
+        subtitlesWithToken.forEach((sub, idx) => {
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.label = sub.label || sub.language || `Subtitle ${idx + 1}`;
+            track.src = sub.url;
+            track.srclang = sub.language || 'en';
+            track.setAttribute('type', sub.url?.toLowerCase().endsWith('.srt') ? 'srt' : 'vtt');
+
+            if (sub.is_default === true || (!hasExplicitDefault && idx === 0)) {
+                track.default = true;
+            }
+
+            provider.appendChild(track);
+        });
+    }, [subtitlesWithToken]);
+
+    // provider-change fires before setup() — configure provider before the iframe is built.
+    // HLS: use local hls.js instead of Vidstack's CDN load (slow/blocked in block editor).
+    // YouTube: Gutenberg API v3 renders the block canvas in an editor-canvas iframe (blob: URL).
+    //   YouTube's IFrame API fires error 153 and disables playVideo when its parent frame has a
+    //   blob: URL — it requires an https:// parent. Fix: redirect the .vds-youtube iframe through
+    //   a local bridge page (youtube-bridge.html, served from the plugin's https:// URL) so that
+    //   YouTube's parent is always an https:// frame. The bridge relays postMessages both ways.
+    useEffect(() => {
+        if (isPosterOnlyPreview) return;
+        if (!playerRef.current) return;
+        const player = playerRef.current;
+        let patched = false;
+
+        const patchProvider = (provider) => {
+            if (!provider) return;
+            if (patched) return;
+
+            if (provider.type === 'hls') {
+                provider.library = () => import('hls.js');
+            }
+            if (provider.type === 'youtube') {
+                patched = true;
+                const orig = provider.buildParams.bind(provider);
+                provider.buildParams = () => ({ ...orig(), origin: window.location.origin });
+
+                const editorWin = player.ownerDocument.defaultView;
+                const relayWin = (editorWin && editorWin !== window) ? editorWin : window;
+
+                // No nested iframe — Vidstack's own window listener handles everything.
+                if (relayWin === window) return;
+
+                // In FluentCommunity, skip the bridge + custom relay entirely.
+                // The extra iframe layer prevents user gesture propagation (YouTube auto-pauses).
+                // Vidstack handles YouTube directly — multiple videos work natively.
+                const isFluentCommunity = !!window.fluentPlayerBlockVars?.isFluentCommunity;
+
+                // Send commands from editor-canvas context so e.source = editor-canvas = window.parent.
+                // new relayWin.Function() creates a closure whose `window` is the editor-canvas window.
+                // Use a unique selector per player to support multiple YouTube videos.
+                const playerBlock = player.closest('[data-block]');
+                const blockId = playerBlock?.getAttribute('data-block') || '';
+                const ytSelector = blockId ? '[data-block="' + blockId + '"] .vds-youtube' : '.vds-youtube';
+
+                let editorCtxSend = null;
+                try {
+                    editorCtxSend = new relayWin.Function(
+                        'sel', 'data',
+                        'var f=document.querySelector(sel);if(f)f.contentWindow.postMessage(data,"*");'
+                    );
+                    provider.postMessage = (message) => {
+                        editorCtxSend(ytSelector, JSON.stringify(message));
+                    };
+                } catch (_) {
+                    // CSP blocked — fall back to Vidstack's default postMessage
+                }
+
+                // In FluentCommunity, skip the bridge — the extra iframe layer prevents
+                // user gesture propagation, causing YouTube to auto-pause.
+                const pluginUrl = window.fluentPlayerBlockVars?.pluginUrl || '';
+                const bridgeBase = isFluentCommunity ? '' : (pluginUrl ? pluginUrl + 'assets/youtube-bridge.html' : '');
+
+                if (bridgeBase && editorCtxSend) {
+                    const wrapWithBridge = (node) => {
+                        const src = node.getAttribute('src') || '';
+                        if (!src || src.includes('youtube-bridge.html')) return;
+                        node.setAttribute('src', bridgeBase + '?src=' + encodeURIComponent(src));
+                    };
+                    const bridgeObserver = new MutationObserver((mutations) => {
+                        for (const mut of mutations) {
+                            if (mut.type === 'childList') {
+                                for (const node of mut.addedNodes) {
+                                    if (node.nodeType !== 1) continue;
+                                    if (node.classList?.contains('vds-youtube')) {
+                                        wrapWithBridge(node);
+                                    } else {
+                                        const yt = node.querySelector?.('.vds-youtube');
+                                        if (yt) wrapWithBridge(yt);
+                                    }
+                                }
+                            } else if (mut.type === 'attributes' && mut.target.classList?.contains('vds-youtube')) {
+                                wrapWithBridge(mut.target);
+                            }
+                        }
+                    });
+                    // Also wrap any already-existing .vds-youtube iframe (rare but safe)
+                    const existing = relayWin.document.querySelector('.vds-youtube');
+                    if (existing) wrapWithBridge(existing);
+                    bridgeObserver.observe(relayWin.document.body, {
+                        childList: true, subtree: true, attributes: true, attributeFilter: ['src']
+                    });
+                    player._fpBridgeObserver = bridgeObserver;
+                }
+
+                // Relay incoming messages (YouTube → bridge → editor-canvas → here).
+                // With the bridge, messages arrive from the plugin's https:// origin, not YouTube's.
+                const bridgeOrigin = pluginUrl ? new URL(pluginUrl).origin : null;
+                let lastDeliveryInfo = null;
+                let canPlayFired = false;
+                // Find this player's YouTube/bridge iframe to filter messages per-player
+                const findMyFrame = () => {
+                    try {
+                        const frame = relayWin.document.querySelector(ytSelector);
+                        return frame ? frame.contentWindow : null;
+                    } catch(_) { return null; }
+                };
+                const relayHandler = (e) => {
+                    const isYouTube = e.origin.includes('youtube');
+                    const isBridge = !!bridgeOrigin && e.origin === bridgeOrigin;
+                    if (!isYouTube && !isBridge) return;
+                    // Only accept messages from THIS player's iframe (or its nested YouTube).
+                    // Reject when myFrame is null: the local YouTube iframe hasn't mounted yet,
+                    // so any message arriving now must be from a different player on the page.
+                    const myFrame = findMyFrame();
+                    if (!myFrame || e.source !== myFrame) {
+                        return;
+                    }
+                    let msg;
+                    try { msg = JSON.parse(e.data); } catch (_) { msg = e.data; }
+                    if (!msg || typeof msg !== 'object') return;
+
+                    // Clamp non-finite duration before it reaches Vidstack.
+                    if (msg.info && typeof msg.info === 'object') {
+                        if (typeof msg.info.duration === 'number' && !isFinite(msg.info.duration)) {
+                            msg = { ...msg, info: { ...msg.info, duration: 0 } };
+                        }
+                        lastDeliveryInfo = msg.info;
+                    }
+
+                    // YouTube's onReady sends info:null — Vidstack ignores it (returns early).
+                    // Inject playerState:5 (Cued) to trigger Vidstack's #onReady → can-play.
+                    // Also inject progressState so #onProgress runs unconditionally before
+                    // delegate.ready(), giving seekable a finite range (avoids Infinity duration).
+                    if (msg.event === 'onReady') {
+                        const dur = (lastDeliveryInfo?.duration > 0 && isFinite(lastDeliveryInfo.duration))
+                            ? lastDeliveryInfo.duration : 1;
+                        const info = {
+                            ...(lastDeliveryInfo || {}),
+                            progressState: { current: 0, seekableStart: 0, seekableEnd: dur, loaded: 0, duration: dur },
+                            videoLoadedFraction: 0,
+                            playerState: 5,
+                        };
+                        if (typeof info.duration !== 'number' || !isFinite(info.duration)) {
+                            info.duration = dur;
+                        }
+                        canPlayFired = true;
+                        provider.onMessage({ info }, e);
+                        return;
+                    }
+
+                    // Suppress playerState:-1 (Unstarted) after can-play — causes #playFail.
+                    if (canPlayFired && msg.info && typeof msg.info === 'object' && msg.info.playerState === -1) {
+                        return;
+                    }
+
+                    provider.onMessage(msg, e);
+                };
+                relayWin.addEventListener('message', relayHandler);
+                player._fpRelayHandler = { win: relayWin, fn: relayHandler };
+            }
+        };
+
+        const onProviderChange = (event) => patchProvider(event.detail);
+        player.addEventListener('provider-change', onProviderChange);
+
+        // In production builds, Vidstack resolves the provider synchronously during
+        // connectedCallback (before React's useEffect runs), so provider-change has
+        // already fired by the time we attach the listener above. Check for an
+        // already-resolved provider and patch it immediately.
+        if (player.provider) {
+            patchProvider(player.provider);
+        }
+
+        return () => {
+            player.removeEventListener('provider-change', onProviderChange);
+            if (player._fpBridgeObserver) {
+                player._fpBridgeObserver.disconnect();
+                delete player._fpBridgeObserver;
+            }
+            if (player._fpRelayHandler) {
+                player._fpRelayHandler.win.removeEventListener('message', player._fpRelayHandler.fn);
+                delete player._fpRelayHandler;
+            }
+        };
+    }, [mediaData?.provider, isPosterOnlyPreview]);
+
+    // Handle player initialization
+    useEffect(() => {
+        if (isPosterOnlyPreview) return;
+        if (!playerRef.current) return;
+
+        const player = playerRef.current;
+
+        if (typeof onPlayerReady === 'function' && !onPlayerReadyCalled.current) {
+            onPlayerReadyCalled.current = true;
+            onPlayerReady(player);
+        }
+
+
+        // Handle autoplay
+        const handleAutoplay = async () => {
+            player.muted = !!mediaData.mutedAutoplay;
+            if (mediaData.mutedAutoplay || mediaData.autoplay) {
+                try {
+                    await player?.play();
+                } catch (error) {
+                    console.warn('Autoplay failed:', error);
+                }
+            }
+        };
+
+        let unsubscribe = null;
+        if (typeof player?.subscribe === 'function') {
+            unsubscribe = player.subscribe((state) => {
+                if (typeof state !== 'object' || !mediaData) return;
+                if (!mediaData.title && state.title) {
+                    updateMediaSettings && updateMediaSettings('title', state.title);
+                }
+                if (!mediaData.duration && state.duration) {
+                    const duration = typeof state.duration === 'function' ? state.duration() : state.duration;
+                    if (duration > 0 && isFinite(duration)) {
+                        updateMediaSettings && updateMediaSettings('duration', Math.round(duration));
+                    }
+                }
+                if (!mediaData.posterSrc && state.inferredPoster) {
+                    updateMediaSettings && updateMediaSettings('posterSrc', state.inferredPoster);
+                }
+            });
+        }
+
+        // Named handlers for proper cleanup
+        let handleWaiting, handlePlaying;
+
+        let lastReportedSecond = -1;
+        const handleTimeUpdate = () => {
+            const sec = Math.floor(player.currentTime);
+            if (sec !== lastReportedSecond) {
+                lastReportedSecond = sec;
+                setCurrentTime(player.currentTime);
+            }
+        };
+
+        // For load="play": Show loader when user clicks play
+        if (loadStrategy === 'play') {
+            // Track if media has started loading
+            let hasStartedLoading = false;
+
+            // Show loader when user clicks play and media starts loading
+            player.addEventListener('play', () => {
+                if (!hasStartedLoading) {
+                    setIsLoading(true);
+                }
+            }, { once: true });
+
+            // Hide loader when ready to play
+            player.addEventListener('can-play', () => {
+                hasStartedLoading = true;
+                setIsLoading(false);
+                handleAutoplay();
+            }, { once: true });
+
+            // Show/hide loader during buffering (after initial load)
+            handleWaiting = () => {
+                if (hasStartedLoading) {
+                    setIsLoading(true);
+                }
+            };
+
+            handlePlaying = () => {
+                setIsLoading(false);
+            };
+
+            player.addEventListener('waiting', handleWaiting);
+            player.addEventListener('playing', handlePlaying);
+        } else {
+            // For other strategies: Hide loader when video is ready to play
+            const handleCanPlay = () => {
+                setIsLoading(false);
+                handleAutoplay();
+            };
+
+            player.addEventListener('can-play', handleCanPlay, { once: true });
+
+            // Also listen for loadeddata as fallback
+            player.addEventListener('loadeddata', () => {
+                setIsLoading(false);
+            }, { once: true });
+
+            // Show loader during buffering
+            handleWaiting = () => {
+                setIsLoading(true);
+            };
+
+            handlePlaying = () => {
+                setIsLoading(false);
+            };
+
+            player.addEventListener('waiting', handleWaiting);
+            player.addEventListener('playing', handlePlaying);
+        }
+
+        // Handle time-update event
+        player.addEventListener('time-update', handleTimeUpdate);
+
+        // Sync muted icon when volume is dragged to zero
+        const handleVolumeChange = () => {
+            if (player.volume <= 0.01 && !player.muted) {
+                player.muted = true;
+            }
+        };
+        player.addEventListener('volume-change', handleVolumeChange);
+
+        const handleError = (event) => {
+            const error = event.detail;
+            const src = player?.src || mediaData?.src || '';
+            const isBunnyStorageStream = typeof src === 'string' && src.includes('bunny/storage/stream');
+
+            if (isBunnyStorageStream) {
+                const delayMs = 2500;
+                const timeoutId = setTimeout(() => {
+                    setIsLoading(false);
+                    setVideoError(error);
+                }, delayMs);
+                const onCanPlay = () => {
+                    clearTimeout(timeoutId);
+                    player.removeEventListener('canplay', onCanPlay);
+                    player.removeEventListener('loadeddata', onLoadedData);
+                };
+                const onLoadedData = () => {
+                    clearTimeout(timeoutId);
+                    player.removeEventListener('canplay', onCanPlay);
+                    player.removeEventListener('loadeddata', onLoadedData);
+                };
+                player.addEventListener('canplay', onCanPlay, { once: true });
+                player.addEventListener('loadeddata', onLoadedData, { once: true });
+                return;
+            }
+
+            setIsLoading(false);
+            setVideoError(error);
+        };
+        player.addEventListener('error', handleError);
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+            player.removeEventListener('error', handleError);
+            player.removeEventListener('waiting', handleWaiting);
+            player.removeEventListener('playing', handlePlaying);
+            player.removeEventListener('time-update', handleTimeUpdate);
+            player.removeEventListener('volume-change', handleVolumeChange);
+        };
+    }, [playerRef, mediaData?.src, videoSrc, isPosterOnlyPreview]);
+
+    // Cover YouTube watermark on first play
+    useEffect(() => {
+        if (isPosterOnlyPreview) return;
+        const player = playerRef.current;
+        if (!player) return;
+        const src = (mediaData?.src || '').toLowerCase();
+        const isYouTube = src.includes('youtube.com') || src.includes('youtu.be') || src.includes('youtube-nocookie.com');
+        if (!isYouTube) return;
+
+        const handler = () => {
+            setYtCover(true);
+            setTimeout(() => setYtCover(false), 3500);
+        };
+        player.addEventListener('play', handler, { once: true });
+        return () => player.removeEventListener('play', handler);
+    }, [playerRef, mediaData?.src, videoSrc, isPosterOnlyPreview]);
+
+    const handleRetry = useCallback(() => {
+        setVideoError(null);
+        setIsLoading(true);
+
+        if (playerRef.current && videoSrc) {
+            const currentSrc = playerRef.current.src;
+            playerRef.current.src = '';
+            setTimeout(() => {
+                playerRef.current.src = currentSrc || videoSrc;
+            }, 100);
+        }
+    }, [videoSrc]);
+
+    const chaptersVTT = generateChaptersVTT();
+    const aspectRatio = getAspectRatio();
+    const skin = mediaData.skin || 'modern';
+    const isAudioLayout = mediaData.viewType === 'audio';
+    const shouldShowPosterPlayButton = !isAudioLayout && (skin === 'minimal' || !behaviors.hide_center_controls);
+
+    // Detect portrait aspect ratio (width < height)
+    const isPortrait = (() => {
+        const ratio = mediaData.aspectRatio;
+        if (!ratio || ratio === 'default' || ratio === 'original') return false;
+        const parts = ratio.split(':');
+        return parts.length === 2 && parseInt(parts[0]) < parseInt(parts[1]);
+    })();
+
+    const containerStyle = {
+        position: 'relative',
+        backgroundColor: '#212121',
+        overflow: 'hidden',
+        // Don't apply aspect ratio for audio layout
+        aspectRatio: !isPresetPreview && !isAudioLayout && aspectRatio,
+        ...(posterSrcWithToken && (!isAudioLayout || mediaData.settings?.show_poster !== false) && {
+            backgroundImage: `url(${posterSrcWithToken})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+        })
+    };
+
+    const captions = mediaData.settings?.styles?.captions ?? mediaData.styles?.captions;
+    const captionsEnabled = captions?.enabled !== false;
+    const captionStyle = {};
+    if (captionsEnabled) {
+        if (captions?.color) captionStyle['--media-cue-color'] = captions.color;
+        if (captions?.background) captionStyle['--media-cue-bg'] = captions.background;
+        if (captions?.font_size != null) captionStyle['--media-cue-font-size'] = `${captions.font_size}px`;
+    }
+
+    if (isPosterOnlyPreview) {
+        return (
+            <div className={`fluent-player-container${isPortrait ? ' fp-portrait' : ''}`} data-skin={skin} style={containerStyle}>
+                <media-player
+                    title={mediaData.title}
+                    load="play"
+                    poster={posterSrcWithToken || undefined}
+                    stream-type={mediaData.streamType || 'on-demand'}
+                    media-type={mediaData.mediaType || 'video'}
+                    view-type={mediaData.viewType || 'video'}
+                    style={{
+                        '--media-brand': brandingColor,
+                        '--fp-control-bar-bg': controlBarColor || undefined,
+                        aspectRatio: !isPresetPreview && !isAudioLayout && aspectRatio,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <media-provider>
+                        <media-poster
+                            src={posterSrcWithToken}
+                            alt={mediaData.title}
+                            {...(posterSrcWithToken ? { load: 'eager' } : {})}
+                        ></media-poster>
+                    </media-provider>
+                    {shouldShowPosterPlayButton && (
+                        <CenterControls skin={skin} alwaysVisible />
+                    )}
+                </media-player>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`fluent-player-container${isPortrait ? ' fp-portrait' : ''}${ytCover ? ' fp-yt-cover' : ''}`} data-skin={skin} style={containerStyle}>
+            <media-player
+                className={!captionsEnabled ? 'fp-captions-hidden' : undefined}
+                title={mediaData.title}
+                src={videoSrc}
+                poster={posterSrcWithToken || undefined}
+                crossorigin={shouldUseCrossOrigin ? true : undefined}
+                preload={preload}
+                autoplay={mediaData.autoplay || mediaData.mutedAutoplay ? true : undefined}
+                playsinline={mediaData.playsInline ? true : undefined}
+                muted={mediaData.muted || mediaData.mutedAutoplay ? true : undefined}
+                stream-type={mediaData.streamType || 'on-demand'}
+                media-type={mediaData.mediaType || 'video'}
+                view-type={mediaData.viewType || 'video'}
+                load={loadStrategy}
+                loop={mediaData.video_end_option === 'loop' ? true : undefined}
+                ref={playerRef}
+                style={{
+                    '--media-brand': brandingColor,
+                    '--fp-control-bar-bg': controlBarColor || undefined,
+                    // Don't apply aspect ratio for audio layout
+                    'aspectRatio': !isPresetPreview && !isAudioLayout && aspectRatio,
+                    ...captionStyle
+                }}
+            >
+                <media-provider>
+                    <media-poster
+                        src={posterSrcWithToken}
+                        alt={mediaData.title}
+                        {...(loadStrategy === 'play' && posterSrcWithToken ? { load: 'eager' } : {})}
+                    ></media-poster>
+
+                    {mediaData.chapters && mediaData.chapters.length > 0 && (
+                        <track
+                            key={trackKey}
+                            kind="chapters"
+                            label="Chapters"
+                            src={chaptersVTT}
+                            default
+                        />
+                    )}
+                </media-provider>
+                <VideoLayout
+                    playerRef={playerRef}
+                    currentTime={currentTime}
+                    settings={{ ...mediaData, thumbnails: thumbnailsWithToken, _hideCaptions: !captionsEnabled }}
+                    presetData={presetData}
+                    skin={skin}
+                />
+                {isPresetPreview && captionsEnabled && !subtitlesWithToken?.length && (
+                    <div
+                        className="fp-caption-style-preview"
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            pointerEvents: 'none',
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                            justifyContent: 'center',
+                            margin: 'var(--media-captions-padding, 1%)',
+                            bottom: '5%',
+                            zIndex: 2
+                        }}
+                    >
+                        <span
+                            style={{
+                                display: 'inline-block',
+                                padding: '0.2em 0.4em',
+                                borderRadius: 4,
+                                backdropFilter: 'blur(12px)',
+                                color: 'var(--media-cue-color, #fff)',
+                                backgroundColor: 'var(--media-cue-bg, rgba(0,0,0,0.8))',
+                                fontSize: 'var(--media-cue-font-size, 16px)',
+                                lineHeight: 1.2,
+                                whiteSpace: 'pre-wrap'
+                            }}
+                        >
+                            {__('Caption preview', 'fluent-player')}
+                        </span>
+                    </div>
+                )}
+            </media-player>
+
+            {isLoading && !videoError && (
+                <div className="fluent-player-loader">
+                    {posterSrcWithToken && (
+                        <img
+                            className="fluent-player-loader-poster"
+                            src={posterSrcWithToken}
+                            alt={mediaData.title || ''}
+                            loading="eager"
+                        />
+                    )}
+                    <div className="fluent-player-loader-overlay">
+                        <div className="fluent-player-loader-spinner"></div>
+                    </div>
+                </div>
+            )}
+
+            {videoError && (
+                <VideoErrorOverlay error={videoError} onRetry={handleRetry} />
+            )}
+        </div>
+    );
+};
+
+export default FluentPlayer;

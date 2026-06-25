@@ -1,0 +1,119 @@
+@use "colors" as *;
+
+:root {
+  // ============================================
+  // BRAND COLORS (Single source of truth)
+  // ============================================
+  --fp-brand-color: #{$fp-brand-color};
+  --fp-brand-color-dark: #{$fp-brand-color-dark};
+  --fp-brand-color-light: #{$fp-brand-color-light};
+  --fp-brand-color-alpha-16: rgba(221, 31, 19, 0.16);
+  --fp-brand-color-alpha-10: rgba(221, 31, 19, 0.10);
+
+  // ============================================
+  // TEXT COLORS
+  // ============================================
+  --fp-text-primary: #{$text-strong-950};
+  --fp-text-secondary: #{$text-sub-600};
+  --fp-text-muted: #{$text-soft-400};
+  --fp-text-white: #{$text-white-0};
+  --fp-text-color: #{$text-color};
+
+  // ============================================
+  // BACKGROUND COLORS
+  // ============================================
+  --fp-bg-primary: #{$bg-white-0};
+  --fp-bg-secondary: #F9FAFB;
+  --fp-bg-tertiary: #{$bg-soft-200};
+  --fp-bg-page: #{$body-bg-color};
+  --fp-bg-strong: #{$bg-strong-950};
+  --fp-bg-surface: #{$bg-surface-800};
+  --fp-bg-sub: #{$bg-sub-300};
+  --fp-bg-soft: #{$bg-soft-200};
+  --fp-bg-weak: #{$bg-weak-50};
+  --fp-bg-white: #{$bg-white-0};
+
+  // ============================================
+  // ALPHA COLORS
+  // ============================================
+  --fp-alpha-slate-16: rgba(153, 160, 174, 0.16);
+  --fp-focus-ring: 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16));
+  --fp-focus-ring-strong: 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-bg-strong, #0E121B);
+
+  // ============================================
+  // BORDER/STROKE COLORS
+  // ============================================
+  --fp-border-color: #{$border-color};
+  --fp-border-light: #{$stroke-soft-200};
+  --fp-border-medium: #{$stroke-sub-300};
+  --fp-border-strong: #{$stroke-strong-950};
+  --fp-border-hover: #C3C4C7;
+  --fp-border-width: 1px;
+  --fp-border-radius: 8px;
+
+  // ============================================
+  // ICON COLORS
+  // ============================================
+  --fp-icon-primary: #{$icon-strong-950};
+  --fp-icon-secondary: #{$icon-sub-600};
+  --fp-icon-muted: #{$icon-soft-400};
+
+  // ============================================
+  // STATE COLORS
+  // ============================================
+  --fp-state-error: #{$state-error-base};
+  --fp-state-error-light: #{$state-error-light};
+  --fp-state-success: #{$state-success-base};
+  --fp-state-warning: #{$state-warning-base};
+  --fp-state-info: #{$state-information-base};
+
+  // ============================================
+  // BUTTON COLORS
+  // ============================================
+  --fp-button-color: #{$button-color};
+  --fp-button-bg-color: #{$button-bg-color};
+  --fp-button-hover-bg-color: #{$button-hover-bg-color};
+
+  // ============================================
+  // LEGACY/GENERAL
+  // ============================================
+  --fp-primary-color: #{$primary-color};
+  --fp-primary-background-color: #{$primary-bg-color};
+  --fp-body-bg-color: #{$body-bg-color};
+  --fp-active-menu-bg-color: #{$active-menu-bg-color};
+
+  // ============================================
+  // PLAYLIST SPECIFIC
+  // ============================================
+  --fp-playlist-text-color: #{$playlist-text-color};
+  --fp-playlist-background-color: #{$playlist-background-color};
+  --fp-playlist-border-color: #{$playlist-border-color};
+  --fp-playlist-highlight-color: #{$playlist-highlight-color};
+  --fp-playlist-highlight-text-color: #{$playlist-highlight-text-color};
+  --fp-playlist-brand-color: #{$fp-brand-color};
+  --fp-playlist-border-radius: 8px;
+  --fp-playlist-border-width: 1px;
+  --fp-playlist-font-size: 14px;
+  --fp-playlist-media-gap: 10px;
+
+  // ============================================
+  // RADIUS TOKENS
+  // ============================================
+  --fp-radius-sm: 6px;
+  --fp-radius-md: 8px;
+  --fp-radius-lg: 12px;
+  --fp-radius-4: 4px;
+  --fp-radius-8: 8px;
+  --fp-radius-10: 10px;
+  --fp-radius-12: 12px;
+  --fp-radius-full: 999px;
+
+  // ============================================
+  // SPACING/LAYOUT
+  // ============================================
+  --fp-admin-sidebar-width: 272px;
+  --fp-playlist-admin-sidebar-width: 350px;
+  --fp-playlist-admin-sidebar-min: 300px;
+  --fp-playlist-admin-sidebar-max: 400px;
+  --fp-admin-gap: 16px;
+}

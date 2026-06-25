@@ -1,0 +1,100 @@
+@use "../../variables" as *;
+
+.#{$slug} {
+    &-admin-notices {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 0;
+    }
+
+    &-admin-notice {
+        &.el-alert {
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .el-alert__icon {
+            flex: none;
+            margin-right: 8px;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+
+        .el-alert__content {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 0;
+        }
+
+        &.el-alert--warning {
+            background-color: #FEF3DC;
+            border-color: #FCE3B0;
+
+            .el-alert__title,
+            .el-alert__content,
+            .el-alert__description {
+                color: var(--fp-text-primary);
+            }
+
+            .el-alert__icon {
+                color: #E69500;
+                font-size: 18px;
+            }
+        }
+
+        &.el-alert--error {
+            background-color: #FEEBEB;
+            border-color: #FCC6C6;
+
+            .el-alert__title,
+            .el-alert__content,
+            .el-alert__description {
+                color: var(--fp-text-primary);
+            }
+
+            .el-alert__icon {
+                color: #D14343;
+                font-size: 18px;
+            }
+        }
+
+        &.el-alert--success {
+            background-color: #E8F6EC;
+            border-color: #BFE3CB;
+
+            .el-alert__title,
+            .el-alert__content,
+            .el-alert__description {
+                color: var(--fp-text-primary);
+            }
+
+            .el-alert__icon {
+                color: #1F8641;
+                font-size: 18px;
+            }
+        }
+
+        :where(a) {
+            color: var(--fp-text-primary);
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        :where(a):hover,
+        :where(a):focus-visible {
+            color: var(--fp-text-primary);
+            text-decoration: none;
+            opacity: 0.7;
+        }
+    }
+}

@@ -1,0 +1,94 @@
+/*************************************************************************************************
+ * Tooltips
+ *************************************************************************************************/
+
+.fp-media-tooltip {
+  display: inline-block;
+  color: hsl(0, 0%, 80%);
+  background-color: black;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+  border-radius: 2px;
+  padding: 2px 8px;
+}
+
+.fp-media-tooltip {
+  --enter-transform: translateY(0px) scale(1);
+  --exit-transform: translateY(12px) scale(0.8);
+}
+
+.fp-media-tooltip[data-visible] {
+  animation: media-tooltip-enter 0.2s ease-in;
+  animation-fill-mode: forwards;
+}
+
+.fp-media-tooltip:not([data-visible]) {
+  animation: media-tooltip-exit 0.2s ease-out;
+}
+
+/* Bottom */
+.fp-media-tooltip[data-placement~='bottom'] {
+  --enter-transform: translateY(0) scale(1);
+  --exit-transform: translateY(-12px) scale(0.8);
+}
+
+@keyframes media-tooltip-enter {
+  from {
+    opacity: 0;
+    transform: var(--exit-transform);
+  }
+  to {
+    opacity: 1;
+    transform: var(--enter-transform);
+  }
+}
+
+@keyframes media-tooltip-exit {
+  from {
+    opacity: 1;
+    transform: var(--enter-transform);
+  }
+  to {
+    opacity: 0;
+    transform: var(--exit-transform);
+  }
+}
+
+media-player:not([data-paused]) .fp-media-play-tooltip-text,
+media-player[data-paused] .fp-media-pause-tooltip-text {
+  display: none;
+}
+
+media-player[data-pip] .fp-media-pip-enter-tooltip-text,
+media-player:not([data-pip]) .fp-media-pip-exit-tooltip-text {
+  display: none;
+}
+
+media-player[data-fullscreen] .fp-media-fs-enter-tooltip-text,
+media-player:not([data-fullscreen]) .fp-media-fs-exit-tooltip-text {
+  display: none;
+}
+
+media-player:not([data-captions]) .fp-media-cc-on-tooltip-text,
+media-player[data-captions] .fp-media-cc-off-tooltip-text {
+  display: none;
+}
+
+media-player:not([data-muted]) .fp-media-mute-tooltip-text,
+media-player[data-muted] .fp-media-unmute-tooltip-text {
+  display: none;
+}
+
+// No tool tip needed for center play buttons
+.fp-media-controls-center .fp-media-tooltip{
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  animation: none !important;
+}
+
+

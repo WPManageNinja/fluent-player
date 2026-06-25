@@ -1,0 +1,315 @@
+@use "../../../../scss/colors" as *;
+
+// Flex wrapper: input + suffix button (mirrors .url-input-wrapper pattern)
+.fp-input-with-suffix {
+	display: flex;
+	align-items: center;
+	border-radius: var(--fp-radius-8, 8px);
+	border: 1px solid $stroke-soft-200;
+	background: $bg-white-0;
+	height: 36px;
+	overflow: hidden;
+	transition: border-color 0.3s ease;
+
+	&:hover:not(:focus-within) {
+		border-color: $bg-sub-300;
+	}
+
+	&:focus-within {
+		border-color: $bg-strong-950;
+		box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+	}
+
+	&__input {
+		flex: 1;
+		min-width: 0;
+		padding: 4px 8px 4px 12px !important;
+		border: none !important;
+		outline: none !important;
+		box-shadow: none !important;
+		border-radius: 0 !important;
+		color: $text-strong-950;
+		background: transparent;
+
+		&::placeholder {
+			color: $text-soft-400;
+		}
+
+		&:focus {
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+		}
+	}
+
+	.fp-shortcode-inserter {
+		margin-right: 2px;
+	}
+
+	.fp-shortcode-inserter-btn.components-button {
+		padding: 4px !important;
+	}
+}
+
+// Label row with ShortcodeInserter (e.g. Overlay Text)
+.fp-label-with-inserter {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+}
+
+.fp-label-with-inserter-content {
+	display: flex;
+	gap: 4px;
+	align-items: baseline;
+}
+
+// Inserter suffix button — {{}} text
+.fp-shortcode-inserter-btn.components-button {
+	display: inline-flex;
+	height: 100% !important;
+	min-width: 0 !important;
+	padding: 2px;
+	border-radius: var(--fp-radius-8);
+	justify-content: center;
+	align-items: center;
+	font-size: 13px;
+	font-weight: 600;
+	color: $text-soft-400;
+	background: transparent;
+	flex-shrink: 0;
+	cursor: pointer;
+	border: 1px solid $stroke-soft-200 !important;
+
+	&:hover {
+		background: $bg-weak-50 !important;
+		color: $text-strong-950 !important;
+	}
+
+	&:focus {
+		background: $bg-weak-50 !important;
+		color: $text-strong-950 !important;
+		box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+		outline: none;
+	}
+}
+
+// Popover (renders outside iframe as a portal)
+.fp-shortcode-inserter-popover {
+	* { box-sizing: border-box; }
+
+	.components-popover__content {
+		width: min(500px, calc(100vw - 32px));
+		max-height: 420px;
+		overflow: hidden !important;
+		border: 1px solid $stroke-soft-200;
+		border-radius: 8px;
+		box-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.10);
+		padding: 0;
+	}
+
+	.fp-shortcode-inserter-content {
+		display: flex;
+		min-height: 0;
+		max-height: 400px;
+	}
+
+	// Left sidebar with vertical tabs
+	.fp-shortcode-inserter-sidebar {
+		width: 180px;
+		flex: none;
+		padding: 12px;
+		background: $bg-weak-50;
+		border-right: 1px solid $stroke-soft-200;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.fp-shortcode-inserter-tabs {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.fp-shortcode-inserter-tab {
+		display: block;
+		width: 100%;
+		padding: 9px 10px;
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 1.3;
+		color: $text-soft-400;
+		background: transparent;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		text-align: left;
+		white-space: nowrap;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $text-strong-950;
+		}
+
+		&.is-active {
+			color: $text-strong-950;
+		}
+	}
+
+	// Right body with search + items
+	.fp-shortcode-inserter-body {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.fp-shortcode-inserter-search {
+		padding: 12px 14px;
+		border-bottom: 1px solid $stroke-sub-300;
+		flex-shrink: 0;
+		background: $bg-white-0;
+
+		input {
+			width: 100%;
+			height: 36px;
+			padding: 6px 10px;
+			font-size: 13px;
+			border: 1px solid $stroke-soft-200;
+			border-radius: 6px;
+			background: $bg-white-0;
+			outline: none;
+			box-shadow: none;
+
+			&:hover {
+				border: 1px solid $stroke-sub-300;
+				outline: none;
+				box-shadow: none;
+			}
+
+			&:focus {
+				border: 1px solid $bg-strong-950;
+				outline: none;
+				box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+			}
+
+			&::placeholder {
+				color: $text-soft-400;
+			}
+		}
+	}
+
+	.fp-shortcode-inserter-items {
+		flex: 1;
+		overflow-y: auto;
+		padding: 0;
+	}
+
+	.fp-shortcode-inserter-item {
+		display: block;
+		width: 100%;
+		padding: 9px 14px;
+		border: none;
+		background: none;
+		text-align: left;
+		cursor: pointer;
+		border-bottom: 1px solid $stroke-sub-300;
+		transition: background-color 0.15s ease;
+		word-break: normal;
+
+		&:last-child {
+			border-bottom: none;
+		}
+		&:hover {
+			background: $bg-weak-50;
+		}
+	}
+
+	.fp-shortcode-inserter-item-label {
+		display: block;
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 1.4;
+		color: $text-strong-950;
+	}
+
+	.fp-shortcode-inserter-item-code {
+		display: block;
+		font-size: 12px;
+		color: $text-sub-600;
+		line-height: 1.3;
+		margin-top: 3px;
+		word-break: break-all;
+	}
+
+	.fp-shortcode-inserter-no-results,
+	.fp-shortcode-inserter-empty {
+		font-size: 13px;
+		color: $text-sub-600;
+		padding: 20px 14px;
+		text-align: center;
+	}
+
+	.fp-shortcode-inserter-loading {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 24px 16px;
+		color: $text-sub-600;
+		width: 100%;
+	}
+
+	.fp-shortcode-inserter-install {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		padding: 24px 16px;
+		color: $text-sub-600;
+		width: 100%;
+
+		p {
+			margin: 0 0 12px;
+			line-height: 1.5;
+			color: $text-sub-600;
+		}
+	}
+
+	// fp-btn-primary re-declared here because popover renders outside .fluent-player-block scope
+	.fp-btn-primary,
+	.fp-btn-primary.components-button {
+		display: flex;
+		padding: 8px 12px;
+		gap: 4px;
+		justify-content: center;
+		align-items: center;
+		border-radius: var(--fp-radius-8);
+		background: $bg-surface-800;
+		color: $text-white-0;
+		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+		transition: all 0.3s ease;
+		border: 1px solid $bg-strong-950;
+		cursor: pointer;
+		text-decoration: none;
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 1;
+
+		&:hover {
+			background: $bg-strong-950 !important;
+			color: $text-white-0 !important;
+			border: 1px solid $bg-strong-950;
+		}
+
+		&:focus {
+			border: 1px solid $bg-strong-950;
+			box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+			outline: none;
+		}
+	}
+}

@@ -1,0 +1,63 @@
+// ============================================
+// FLUENT PLAYER COLOR SYSTEM
+// ============================================
+
+// Brand Colors (matches Fluent Player logo)
+$fp-brand-color: #DD1F13;
+$fp-brand-color-dark: #B81A10;
+$fp-brand-color-light: #FF4136;
+
+// Primary Colors (used for UI elements)
+$primary-base: #335CFF;
+
+// Background Colors
+$bg-strong-950: #0E121B;
+$bg-surface-800: #222530;
+$bg-sub-300: #CACFD8;
+$bg-soft-200: #F2F5F8;
+$bg-weak-50: #F5F7FA;
+$bg-white-0: #FFFFFF;
+
+// Text Colors
+$text-strong-950: #0E121B;
+$text-sub-600: #525866;
+$text-soft-400: #99A0AE;
+$text-white-0: #FFFFFF;
+
+// Stroke/Border Colors
+$stroke-strong-950: #0E121B;
+$stroke-sub-300: #CACFD8;
+$stroke-soft-200: #E1E4EA;
+$stroke-fluent: #EAECF0;
+
+// Icon Colors
+$icon-strong-950: #0E121B;
+$icon-sub-600: #525866;
+$icon-soft-400: #99A0AE;
+
+// State Colors
+$state-faded-base: #717784;
+$state-information-base: #335CFF;
+$state-warning-base: #FA7319;
+$state-error-base: #FB3748;
+$state-error-light: #FFC0C5;
+$state-success-base: #1FC16B;
+
+// Legacy Variables (for backward compatibility)
+$primary-color: rgb(47, 41, 37);
+$primary-bg-color: #FFFFFF;
+$button-color: #FFFFFF;
+$button-bg-color: #222530;
+$button-hover-bg-color: #181B25;
+$active-menu-bg-color: #F2F5F8;
+$body-bg-color: #F3F5FA;
+$text-color: #525866;
+$border-color: #E1E4EA;
+
+// Playlist Colors
+$playlist-text-color: $text-color;
+$playlist-background-color: $primary-bg-color;
+$playlist-border-color: $border-color;
+$playlist-highlight-color: #2e92d9;
+$playlist-highlight-text-color: #fff;
+$playlist-brand-color: $fp-brand-color;

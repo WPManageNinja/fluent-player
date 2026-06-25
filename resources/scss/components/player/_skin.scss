@@ -1,0 +1,329 @@
+media-controls.fp-skin-modern {
+  &.fp-media-controls-bottom media-controls-group {
+    background: var(--fp-control-bar-bg, #171717A6);
+    padding: 0 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  // Progress slider
+  .fp-media-time-slider {
+    .fp-media-slider-track {
+      height: 4px;
+      border-radius: 2px;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .fp-media-slider-track-fill {
+      background: var(--media-brand, #DD1F13);
+      border-radius: 2px;
+    }
+
+    .fp-media-slider-thumb {
+      width: 12px;
+      height: 12px;
+      background: #FFFFFF;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .fp-media-slider-progress {
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+    }
+  }
+
+  // Volume slider
+  .fp-media-volume-slider {
+    .fp-media-slider-track {
+      height: 4px;
+      border-radius: 2px;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .fp-media-slider-track-fill {
+      background: var(--media-brand, #DD1F13);
+      border-radius: 2px;
+    }
+
+    .fp-media-slider-thumb {
+      width: 10px;
+      height: 10px;
+      background: var(--media-brand, #DD1F13);
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  // Time display
+  .fp-media-time {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  // Buttons - clean minimal look
+  &.fp-media-controls-bottom .fp-media-button {
+    background: transparent;
+    color: #FFFFFF;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.12);
+      }
+    }
+
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  // Menu buttons
+  .fp-media-menu-button {
+    color: #FFFFFF;
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.12);
+      }
+    }
+
+    &[aria-expanded="true"] {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  media-icon {
+    color: #FFFFFF;
+  }
+}
+
+/*************************************************************************************************
+ * Floating Skin - Inline Controls (Standard color scheme)
+ *************************************************************************************************/
+media-controls.fp-skin-floating {
+  &.fp-media-controls-bottom {
+    padding: 0 16px 16px 16px;
+    pointer-events: none;
+    .fp-floating-bar {
+      pointer-events: auto;
+      box-sizing: border-box;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .fp-floating-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      height: 52px;
+      background: var(--fp-control-bar-bg, rgba(14, 18, 27, 0.7));
+      backdrop-filter: blur(var(--fp-control-bar-blur, 6px));
+      -webkit-backdrop-filter: blur(var(--fp-control-bar-blur, 6px));
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s ease;
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background: var(--fp-control-bar-bg, rgba(14, 18, 27, 0.85));
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+        }
+      }
+    }
+
+    .fp-media-button {
+      background: transparent;
+      padding: 8px;
+      min-width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      transition: background-color 0.2s ease, transform 0.15s ease;
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+          transform: scale(1.05);
+        }
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    .fp-media-time {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: #FFFFFF;
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+
+    .fp-media-time-slider {
+      flex: 1;
+      min-width: 100px;
+      max-width: 300px;
+      margin: 0 8px;
+
+      .fp-media-slider-track {
+        height: 6px;
+        border-radius: 999px;
+        background-color: #E1E4EA;
+      }
+
+      .fp-media-slider-track-fill {
+        background-color: #FFFFFF;
+        border-radius: 999px;
+      }
+
+      .fp-media-slider-thumb {
+        width: 12px;
+        height: 12px;
+        background: #FFFFFF;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .fp-media-slider-progress {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+      }
+    }
+
+    .fp-media-volume-slider {
+      width: 56px;
+      max-width: 56px;
+      margin: 0 4px;
+
+      .fp-media-slider-track {
+        height: 6px;
+        border-radius: 999px;
+        background-color: #CACFD8;
+      }
+
+      .fp-media-slider-track-fill {
+        background-color: var(--media-brand, #DD1F13);
+        border-radius: 999px;
+      }
+
+      .fp-media-slider-thumb {
+        width: 10px;
+        height: 10px;
+        background: var(--media-brand, #DD1F13);
+        border: 2px solid #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .fp-media-menu-button {
+      background: transparent;
+      padding: 8px;
+      min-width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
+
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      &[aria-expanded="true"] {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    media-icon {
+      width: 24px;
+      height: 24px;
+      color: #FFFFFF;
+    }
+
+    .fp-media-tooltip {
+      bottom: calc(100% + 8px);
+      --enter-transform: translateY(0) scale(1) !important;
+      --exit-transform: translateY(0) scale(1) !important;
+      animation: none !important;
+      transition: opacity 0.15s ease;
+      height: auto !important;
+      max-height: 30px !important;
+      line-height: 1.2 !important;
+      display: inline-block !important;
+      overflow: hidden !important;
+
+      &[data-visible] {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      &:not([data-visible]) {
+        opacity: 0;
+        transform: translateY(0) scale(1);
+      }
+    }
+  }
+}
+
+// Responsive adjustments for modern skin - keep bottom controls inside player on narrow viewports
+@media (max-width: 480px) {
+  media-controls.fp-skin-modern {
+    &.fp-media-controls-bottom media-controls-group {
+      padding: 0 6px;
+      gap: 2px;
+    }
+
+    &.fp-media-controls-bottom .fp-media-button {
+      min-width: 32px;
+      padding: 6px;
+    }
+
+    &.fp-media-controls-bottom .fp-media-time-slider {
+      min-width: 0;
+    }
+  }
+}
+
+@media (max-width: 380px) {
+  media-controls.fp-skin-modern {
+    &.fp-media-controls-bottom media-controls-group {
+      padding: 0 4px;
+      gap: 0;
+    }
+
+    &.fp-media-controls-bottom .fp-media-button {
+      min-width: 28px;
+      padding: 4px;
+    }
+  }
+}
+
+// Responsive adjustments for floating skin
+@media (max-width: 480px) {
+  media-controls.fp-skin-floating {
+    &.fp-media-controls-bottom {
+      padding: 0 12px 12px 12px;
+
+      .fp-floating-bar {
+        padding: 6px 12px;
+        height: 44px;
+        gap: 2px;
+      }
+
+      .fp-media-volume-slider {
+        display: none;
+      }
+
+      .fp-media-time-slider {
+        min-width: 60px;
+      }
+    }
+  }
+}

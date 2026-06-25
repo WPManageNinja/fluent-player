@@ -1,0 +1,517 @@
+// Shared Preset Card Grid Styles
+// Used by both block editor (PresetStyles.scss) and admin settings (_settings.scss)
+
+.fplayer-preset-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	margin-bottom: 16px;
+
+	> * {
+		min-width: 0;
+	}
+}
+
+.fplayer-preset-card {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	background: #F5F7FA;
+	border-radius: 8px;
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: border-color 0.2s ease, background-color 0.2s ease;
+	overflow: hidden;
+	padding: 0;
+	text-align: left;
+	font: inherit;
+	width: 100%;
+
+	&:hover {
+		background: #EEF1F6;
+	}
+
+	&:focus-visible,
+	&:focus-within {
+		outline: none;
+		box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+	}
+
+	&.is-selected {
+		border: 2px solid #0E121B;
+		background: #EEF1F6;
+		position: relative;
+
+		&::after {
+			content: '';
+			position: absolute;
+			top: 6px;
+			right: 6px;
+			width: 18px;
+			height: 18px;
+			background: #0E121B;
+			border-radius: 50%;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: center;
+			background-size: 10px;
+			z-index: 1;
+		}
+	}
+
+	&.is-locked {
+		position: relative;
+
+		.fplayer-preset-preview {
+			opacity: 0.5;
+			filter: grayscale(0.4);
+		}
+	}
+
+	.fplayer-preset-lock-badge {
+		position: absolute;
+		top: 6px;
+		right: 6px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: #0E121B;
+		color: #fff;
+		z-index: 2;
+
+		svg {
+			width: 12px;
+			height: 12px;
+		}
+	}
+}
+
+.fplayer-preset-preview {
+	width: 100%;
+	height: 90px;
+	background: #1A1D26;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	border-radius: 7px 7px 0 0;
+
+	.fplayer-preset-video-area {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+
+		svg {
+			width: 8px;
+			height: 10px;
+			fill: #fff;
+			color: #fff;
+
+			path {
+				fill: #fff;
+			}
+		}
+
+		svg.fplayer-preset-muted-icon {
+			width: 36px;
+			height: 36px;
+		}
+	}
+
+	.fplayer-preset-controls {
+		width: 100%;
+		padding: 4px 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.fplayer-preset-progress {
+		height: 2px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 1px;
+		width: 100%;
+		position: relative;
+
+		&::before {
+			content: '';
+			position: absolute;
+			left: 0;
+			top: 0;
+			height: 100%;
+			width: 30%;
+			background: #fff;
+			border-radius: 1px;
+		}
+	}
+
+	.fplayer-preset-buttons {
+		display: flex;
+		gap: 3px;
+		justify-content: center;
+	}
+
+	.fplayer-preset-dot {
+		width: 4px;
+		height: 4px;
+		background: rgba(255, 255, 255, 0.5);
+		border-radius: 50%;
+	}
+}
+
+// Classic / Default skin
+.fplayer-preset-preview-classic {
+	background: #E1E4EA;
+
+	.fplayer-preset-video-area svg {
+		fill: #525866;
+		color: #525866;
+
+		path {
+			fill: #525866;
+		}
+	}
+
+	.fplayer-preset-controls-default {
+		background: transparent;
+		padding: 0;
+		gap: 0;
+	}
+
+	.fplayer-preset-progress {
+		background: rgba(255, 255, 255, 0.3);
+
+		&::before {
+			background: #fff;
+		}
+	}
+
+	.fplayer-preset-controls-default .fplayer-preset-progress {
+		height: 2px;
+		background: #CDD0D5;
+		border-radius: 0;
+
+		&::before {
+			background: #525866;
+			border-radius: 0;
+		}
+	}
+
+	.fplayer-preset-progress-row {
+		width: 100%;
+		padding: 0 6px;
+	}
+
+	.fplayer-preset-buttons-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 3px;
+		padding: 3px 6px;
+	}
+
+	.fplayer-preset-center-buttons {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+	}
+
+	.fplayer-preset-controls-default .fplayer-preset-buttons {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+	}
+
+	.fplayer-preset-controls-default .fplayer-preset-time {
+		width: 14px;
+		height: 2px;
+		background: #525866;
+		border-radius: 1px;
+		flex-shrink: 0;
+	}
+
+	.fplayer-preset-dot {
+		background: rgba(255, 255, 255, 0.6);
+	}
+
+	.fplayer-preset-controls-default .fplayer-preset-dot {
+		background: #525866;
+	}
+
+	.fplayer-preset-dot-sm {
+		width: 3px;
+		height: 3px;
+		background: #525866;
+		border-radius: 50%;
+	}
+}
+
+// Modern / Course skin
+.fplayer-preset-preview-modern {
+	background: #E1E4EA;
+
+	.fplayer-preset-video-area svg {
+		fill: #525866;
+		color: #525866;
+
+		path {
+			fill: #525866;
+		}
+	}
+
+	.fplayer-preset-controls-modern {
+		background: #525866;
+		padding: 4px 6px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 3px;
+
+		.fplayer-preset-progress {
+			flex: 1;
+			min-width: 0;
+		}
+
+		.fplayer-preset-time {
+			width: 14px;
+			height: 2px;
+			background: rgba(255, 255, 255, 0.5);
+			border-radius: 1px;
+			flex-shrink: 0;
+		}
+	}
+
+	.fplayer-preset-progress {
+		background: rgba(255, 255, 255, 0.3);
+
+		&::before {
+			background: #fff;
+		}
+	}
+
+	.fplayer-preset-dot {
+		background: rgba(255, 255, 255, 0.6);
+	}
+}
+
+// Simple skin
+.fplayer-preset-preview-simple {
+	background: #E1E4EA;
+
+	.fplayer-preset-video-area svg {
+		fill: #525866;
+		color: #525866;
+
+		path {
+			fill: #525866;
+		}
+	}
+
+	.fplayer-preset-controls-simple {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding: 5px;
+		gap: 5px;
+	}
+
+	.fplayer-preset-progress {
+		flex: 1;
+		min-width: 0;
+		height: 2px;
+		background: #CDD0D5;
+		border-radius: 1px;
+
+		&::before {
+			width: 35%;
+			background: #525866;
+			border-radius: 1px;
+		}
+	}
+
+	.fplayer-preset-dot {
+		width: 4px;
+		height: 4px;
+		background: #525866;
+		border-radius: 50%;
+	}
+}
+
+// Minimal skin
+.fplayer-preset-preview-minimal {
+	background: #E1E4EA;
+
+	.fplayer-preset-video-area svg {
+		width: 10px;
+		height: 12px;
+		fill: #525866;
+		color: #525866;
+
+		path {
+			fill: #525866;
+		}
+	}
+}
+
+// Standard skin
+.fplayer-preset-preview-standard {
+	background: #E1E4EA;
+
+	.fplayer-preset-video-area svg {
+		fill: #525866;
+		color: #525866;
+
+		path {
+			fill: #525866;
+		}
+	}
+
+	.fplayer-preset-controls-standard {
+		background: rgba(82, 88, 102, 0.85);
+		backdrop-filter: blur(4px);
+		padding: 5px 6px;
+		gap: 4px;
+	}
+
+	.fplayer-preset-progress-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		width: 100%;
+	}
+
+	.fplayer-preset-time {
+		width: 12px;
+		height: 2px;
+		background: rgba(255, 255, 255, 0.5);
+		border-radius: 1px;
+		flex-shrink: 0;
+	}
+
+	.fplayer-preset-progress {
+		background: rgba(255, 255, 255, 0.25);
+
+		&::before {
+			background: #fff;
+		}
+	}
+
+	.fplayer-preset-buttons-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+
+	.fplayer-preset-center-buttons {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+	}
+
+	.fplayer-preset-dot {
+		background: rgba(255, 255, 255, 0.6);
+	}
+
+	.fplayer-preset-dot-sm {
+		width: 3px;
+		height: 3px;
+		background: rgba(255, 255, 255, 0.4);
+		border-radius: 50%;
+	}
+}
+
+// Floating skin
+.fplayer-preset-preview-floating {
+	background: #E1E4EA;
+
+	.fplayer-preset-video-area svg {
+		fill: #525866;
+		color: #525866;
+
+		path {
+			fill: #525866;
+		}
+	}
+
+	.fplayer-preset-floating-wrapper {
+		width: 100%;
+		padding: 5px;
+	}
+
+	.fplayer-preset-controls-floating {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		width: 100%;
+		gap: 3px;
+		padding: 4px 6px;
+		background: rgba(82, 88, 102, 0.85);
+		backdrop-filter: blur(4px);
+		border-radius: 6px;
+
+		.fplayer-preset-progress {
+			flex: 1;
+			min-width: 0;
+		}
+
+		.fplayer-preset-time {
+			width: 14px;
+			height: 2px;
+			background: rgba(255, 255, 255, 0.5);
+			border-radius: 1px;
+			flex-shrink: 0;
+		}
+	}
+
+	.fplayer-preset-progress {
+		background: rgba(255, 255, 255, 0.25);
+
+		&::before {
+			background: #fff;
+		}
+	}
+
+	.fplayer-preset-dot {
+		background: rgba(255, 255, 255, 0.6);
+	}
+}
+
+// Card footer
+.fplayer-preset-card-footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 4px;
+	gap: 2px;
+}
+
+.fplayer-preset-name {
+	font-size: 12px;
+	font-weight: 500;
+	color: #0E121B;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	gap: 0;
+}
+
+.fplayer-preset-info-icon {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 3px;
+	color: #9CA3AF;
+	cursor: default;
+	vertical-align: middle;
+	flex-shrink: 0;
+}

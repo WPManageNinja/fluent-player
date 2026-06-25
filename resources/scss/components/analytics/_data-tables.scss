@@ -1,0 +1,76 @@
+@use '../../variables' as *;
+// Completion rate progress bar (Top Videos table)
+.#{$slug}-admin-page-analytics {
+    .#{$slug}-analytics-completion-progress {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .#{$slug}-analytics-completion-progress-bar {
+            flex: 1;
+            min-width: 60px;
+            height: 8px;
+            border-radius: 4px;
+            background: #F2F5F8;
+            overflow: hidden;
+        }
+
+        .#{$slug}-analytics-completion-progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .#{$slug}-analytics-completion-progress-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--fp-text-primary);
+            min-width: 32px;
+        }
+
+        .#{$slug}-analytics-completion-progress-fill {
+            background: #374151;
+        }
+    }
+
+    .#{$slug}-analytics-top-videos-video {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+        .#{$slug}-analytics-top-videos-play-icon {
+            flex-shrink: 0;
+            color: var(--el-color-primary);
+        }
+    }
+
+    .#{$slug}-list-table-container {
+        margin-top: 0;
+
+        .el-card__body {
+            padding: 0;
+        }
+
+        .#{$slug}-list-table {
+            cursor: unset;
+
+            .#{$slug}-table-title-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                color: inherit;
+                text-decoration: none;
+
+                &:hover {
+                    color: var(--fp-text-primary);
+                    text-decoration: underline;
+                }
+            }
+
+            .#{$slug}-list-table-watch-time {
+                color: #3b82f6;
+                font-weight: 500;
+            }
+        }
+    }
+}

@@ -1,0 +1,27 @@
+/*************************************************************************************************
+ * Poster
+ *************************************************************************************************/
+
+media-poster {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &[data-visible] {
+    opacity: 1;
+  }
+}
+
+/* For load="play", show poster even before video loads */
+media-player[load="play"]:not([data-can-play]) media-poster {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

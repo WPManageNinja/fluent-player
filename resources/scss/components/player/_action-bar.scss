@@ -1,0 +1,149 @@
+/* Action Bar Overlay Styles */
+.action-bar-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: var(--background-color, rgba(0, 0, 0, 0.8));
+  color: white;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+  box-sizing: border-box;
+
+  &.active {
+    display: flex;
+  }
+
+  &.action-bar-position-bottom {
+    bottom: 0;
+    border-radius: 0 0 var(--border-radius, 0) var(--border-radius, 0);
+  }
+
+  &.action-bar-position-top {
+    top: 0;
+    border-radius: var(--border-radius, 0) var(--border-radius, 0) 0 0;
+  }
+
+  .action-bar-content {
+    display: flex;
+    margin: 0 auto;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+  }
+
+  .action-bar-text {
+    font-size: 13px;
+  }
+
+  .action-bar-button {
+    padding: 4px 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    border-radius: var(--button-radius, 4px);
+    background-color: var(--button-color, #4e9cf6);
+    color: var(--button-text-color, #ffffff);
+    font-size: 14px;
+    line-height: 1.4;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: var(--media-focus-ring, var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))));
+    }
+  }
+
+  .action-bar-youtube-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #ff0000;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .subscriber-count {
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: 6px;
+      font-size: 12px;
+    }
+  }
+
+  .action-bar-close {
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .action-bar-overlay {
+    flex-direction: column;
+    padding: 8px 12px;
+
+    .action-bar-content {
+      flex-direction: column;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .action-bar-text {
+      margin-right: 0;
+      margin-bottom: 8px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .action-bar-button,
+    .action-bar-youtube-button {
+      width: 100%;
+      text-align: center;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .action-bar-youtube-button {
+      justify-content: center;
+    }
+  }
+}

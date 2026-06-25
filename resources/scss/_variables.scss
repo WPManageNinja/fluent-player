@@ -1,0 +1,21 @@
+$slug: 'fplayer';
+
+$bp-tablet: 1024px;
+$bp-mobile: 768px;
+$bp-mobile-sm: 480px;
+$bp-mobile-xs: 360px;
+
+$border-width: var(--fp-border-width);
+$border-radius: var(--fp-border-radius);
+$primary-color: var(--fp-primary-color);
+$primary-bg-color: var(--fp-primary-background-color);
+$active-menu-bg-color: var(--fp-bg-tertiary);
+$body-bg-color: var(--fp-body-bg-color);
+$text-color: var(--fp-text-color);
+$border-color: var(--fp-border-color);
+$playlist-text-color: var(--fp-playlist-text-color);
+$playlist-background-color: var(--fp-playlist-background-color);
+$playlist-border-color: var(--fp-playlist-border-color);
+$playlist-highlight-color: var(--fp-playlist-highlight-color);
+$playlist-highlight-text-color: var(--fp-playlist-highlight-text-color);
+$playlist-brand-color: var(--fp-playlist-brand-color);

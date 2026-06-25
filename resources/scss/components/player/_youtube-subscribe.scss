@@ -1,0 +1,63 @@
+/* YouTube Subscribe Button Overlay */
+.fluent-player-youtube-subscribe-overlay {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.fluent-youtube-subscribe-button {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ff0000;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  text-decoration: none !important;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  &:hover,
+  &:focus,
+  &:visited {
+    text-decoration: none !important;
+    color: white;
+  }
+  
+  &:hover {
+    background-color: #cc0000;
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: var(--media-focus-ring, var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))));
+  }
+}
+
+.fluent-youtube-subscribe-button .youtube-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+  
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+}
+
+.fluent-youtube-subscribe-button .youtube-text {
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  
+  &,
+  &:hover,
+  &:focus,
+  &:visited {
+    text-decoration: none;
+  }
+}

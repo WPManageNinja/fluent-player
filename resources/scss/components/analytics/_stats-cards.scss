@@ -1,0 +1,81 @@
+@use '../../variables' as *;
+// Stats cards styles - nested under analytics page for scoping
+.#{$slug}-admin-page-analytics {
+    .#{$slug}-analytics-stats-cards {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(4, 1fr);
+
+        @media (max-width: 1024px) {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 600px) {
+            grid-template-columns: 1fr;
+        }
+
+        .#{$slug}-analytics-kpi-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            gap: 8px;
+            padding: 24px 20px;
+            border-radius: var(--fp-radius-lg, 12px);
+            background: var(--fp-bg-primary);
+
+            &:hover {
+                box-shadow: 0 0 0 1px var(--fp-border-light);
+            }
+
+            .#{$slug}-analytics-kpi-title {
+                color: var(--fp-text-secondary);
+                font-size: 14px;
+                font-style: normal;
+                font-weight: 400;
+            }
+
+            .#{$slug}-analytics-kpi-value-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                flex-wrap: wrap;
+                width: 100%;
+                height: 20px;
+            }
+
+            .#{$slug}-analytics-kpi-value {
+                color: var(--fp-text-primary);
+                font-size: 18px;
+                font-style: normal;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                height: 100%;
+            }
+
+            .#{$slug}-analytics-kpi-trend {
+                display: flex;
+                padding: 2px 8px 2px 4px;
+                justify-content: center;
+                align-items: center;
+                gap: 2px;
+                border-radius: var(--fp-radius-sm);
+                color: var(--fp-text-secondary);
+                font-size: 14px;
+                font-style: normal;
+                font-weight: 500;
+                height: 100%;
+
+                &.#{$slug}-analytics-kpi-trend--positive {
+                    background: var(--fp-success-light);
+                }
+
+                &.#{$slug}-analytics-kpi-trend--negative {
+                    background: var(--fp-error-light);
+                }
+            }
+        }
+    }
+}

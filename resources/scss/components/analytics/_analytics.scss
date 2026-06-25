@@ -1,0 +1,240 @@
+@use '../../variables' as *;
+
+// ---------------------------------------------------------------------------
+// Analytics page: container and layout
+// ---------------------------------------------------------------------------
+.#{$slug}-admin-page.#{$slug}-admin-page-analytics {
+    min-height: calc(100vh - 120px);
+}
+
+.#{$slug}-admin-page-analytics {
+    // Page header
+    .#{$slug}-admin-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+        min-width: 0;
+
+        @media (max-width: 480px) {
+            flex-wrap: wrap;
+
+            h1 {
+                flex: 1 1 100%;
+                width: 100%;
+                margin-bottom: 0;
+            }
+
+            .#{$slug}-date-range-picker {
+                flex: 1 1 100%;
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        .#{$slug}-analytics-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 0 1 auto;
+            //max-width: 600px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .#{$slug}-analytics-user-title,
+        .#{$slug}-analytics-video-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .#{$slug}-analytics-user-title-link,
+        .#{$slug}-analytics-video-title-link {
+            display: inline;
+            color: inherit;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+
+        .#{$slug}-date-range-picker {
+            flex-shrink: 0;
+        }
+
+        .back-button .el-button.#{$slug}-secondary-btn {
+            padding: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--fp-radius-md);
+        }
+    }
+
+    .#{$slug}-analytics-not-found {
+        padding: 48px 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+    }
+
+    // Content area
+    .#{$slug}-analytics-content {
+        padding: 0;
+    }
+
+    // Date range picker
+    .#{$slug}-date-range-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+        .el-range-editor.el-input__wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            max-width: 240px;
+            height: 36px;
+            border: 1px solid var(--fp-border-light);
+            border-radius: var(--fp-radius-md);
+            background: var(--fp-bg-primary);
+            box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+
+            &:hover,
+            &.is-active {
+                border-color: var(--fp-border-hover);
+            }
+            .el-range-separator {
+                flex: unset;
+                padding: 0;
+            }
+            .el-range__close-icon--hidden {
+                position: absolute;
+            }
+        }
+
+        .#{$slug}-date-range-picker-refresh {
+            padding: 8px;
+            height: 36px;
+            border-radius: var(--fp-radius-md);
+
+            &.#{$slug}-date-range-picker-refresh--loading {
+                pointer-events: none;
+            }
+        }
+    }
+
+    // Cards
+    .#{$slug}-analytics-card {
+        border: none;
+        border-radius: var(--fp-radius-md);
+        box-shadow: none;
+
+        .el-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            height: 56px;
+            border-bottom: 1px solid var(--fp-border-light);
+
+            h3 {
+                font-size: 16px;
+                font-weight: 500;
+                font-style: normal;
+                color: var(--fp-text-primary);
+                margin: 0;
+            }
+
+            .#{$slug}-analytics-card-title {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                min-width: 0;
+            }
+
+            .#{$slug}-analytics-card-title-text {
+                line-height: 1.3;
+            }
+
+            .#{$slug}-analytics-card-title-help {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 20px;
+                height: 20px;
+                padding: 0;
+                border: 0;
+                border-radius: 50%;
+                background: transparent;
+                color: var(--fp-text-muted);
+                cursor: pointer;
+                transition: color 0.2s ease, background-color 0.2s ease;
+
+                &:hover,
+                &:focus-visible {
+                    color: var(--fp-text-primary);
+                    background: var(--fp-bg-secondary);
+                    outline: none;
+                    box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+                }
+
+                .el-icon {
+                    font-size: 14px;
+                }
+            }
+
+            .el-select {
+                width: 192px;
+
+                .el-select__wrapper {
+                    border: 1px solid var(--fp-border-light);
+                    border-radius: var(--fp-radius-md);
+                    background: var(--fp-bg-primary);
+                    box-shadow: none;
+
+                    &.is-hovering,
+                    &.is-focused {
+                        box-shadow: none;
+                        border-color: var(--fp-border-hover);
+                    }
+                }
+            }
+        }
+
+        &.#{$slug}-no-data .el-card__body {
+            padding: 0;
+        }
+    }
+}
+
+.#{$slug}-analytics-row {
+    margin-bottom: 24px;
+    @media (max-width: 992px) {
+        .el-col {
+            margin-bottom: 20px;
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+    }
+}
+
+// Date picker dropdown panel
+.fplayer-date-picker-panel {
+    --el-color-primary: var(--fp-button-bg-color);
+    --el-color-primary-light-3: color-mix(in srgb, var(--fp-button-bg-color) 70%, white);
+    --el-color-primary-light-5: color-mix(in srgb, var(--fp-button-bg-color) 50%, white);
+    --el-color-primary-light-9: color-mix(in srgb, var(--fp-button-bg-color) 10%, white);
+}
