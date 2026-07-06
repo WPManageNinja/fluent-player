@@ -15,6 +15,9 @@ class LayerRenderer
      */
     public static function renderLayersData($settings, $media_id)
     {
+        // Covers FC render paths that bypass prepareMediaForFrontend (e.g. FC's video-content endpoint).
+        $settings = LayerService::filterLayersForRenderContext($settings);
+
         if (empty($settings['layers'])) {
             return '';
         }
@@ -108,6 +111,10 @@ class LayerRenderer
         $button_bg_color = Arr::get($layer, 'email_capture.button_bg_color', '');
         $button_color = Arr::get($layer, 'email_capture.button_color', '');
         $bottom_text = Arr::get($layer, 'email_capture.bottom_text', '');
+        $confirmation_message = Arr::get($layer, 'email_capture.confirmation_message', '');
+        $confirmation_countdown = (int) Arr::get($layer, 'email_capture.confirmation_countdown', 10);
+        // Keep the raw value (may be empty); the frontend applies the "Continue" fallback only when it renders a button.
+        $confirmation_dismiss_text = Arr::get($layer, 'email_capture.confirmation_dismiss_text', '');
         $layerId = Arr::get($layer, 'id', '');
         $nonceAction = \FluentPlayer\App\Services\EmailCollectionService::getNonceAction(
             'layer',
@@ -120,7 +127,7 @@ class LayerRenderer
         ob_start();
         ?>
         <div class="fluent-player-layer-cta-email-content" style="background-color: <?php echo esc_attr($bg_color); ?>;">
-          <div class="media-email-capture-overlay active" style="--email-capture-border-radius: <?php echo esc_attr($border_radius); ?>px;">
+          <div class="media-email-capture-overlay active" style="--email-capture-border-radius: <?php echo esc_attr($border_radius); ?>px;" data-confirmation-message="<?php echo esc_attr($confirmation_message); ?>" data-confirmation-countdown="<?php echo esc_attr(max(0, $confirmation_countdown)); ?>" data-confirmation-dismiss-text="<?php echo esc_attr($confirmation_dismiss_text); ?>">
             <div class="email-capture-container">
               <h2 class="email-capture-headline"><?php echo esc_html($headline); ?></h2>
 
