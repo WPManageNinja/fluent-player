@@ -221,6 +221,7 @@ media-player[data-view-type='audio'] {
     width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
+    flex-wrap: wrap;
 
     &::-webkit-scrollbar {
       display: none;

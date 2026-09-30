@@ -434,6 +434,50 @@
                 justify-content: flex-end;
             }
         }
+        &.#{$slug}-integration-config-page {
+            // convention rows (toggle left, label + help below): no divider,
+            // tight rhythm, help text breathes instead of wrapping at 300px
+            .#{$slug}-form-item--switch {
+                border-bottom: none;
+                gap: 16px;
+                padding: 0 0 8px;
+
+                .#{$slug}-form-label-wrapper {
+                    width: auto;
+                    max-width: 640px;
+                }
+            }
+
+            .#{$slug}-integration-section-title {
+                margin-bottom: 12px;
+            }
+
+            .#{$slug}-form-sub-items {
+                padding-top: 8px;
+
+                .#{$slug}-form-group {
+                    margin-bottom: 16px;
+
+                    &:first-child {
+                        margin-top: 4px;
+                    }
+                }
+
+                .#{$slug}-form-group-label {
+                    margin-bottom: 6px;
+                }
+
+                .#{$slug}-form-notice {
+                    margin: 0 0 16px;
+                }
+
+                // a notice right after a group explains that group's choice —
+                // pull it snug (margins collapse: 16 + -8 = 8px gap)
+                .#{$slug}-form-group + .#{$slug}-form-notice {
+                    margin-top: -8px;
+                }
+            }
+        }
         &.#{$slug}-email-capture-settings-page {
             .export-format-options {
                 margin-bottom: 16px;
@@ -521,6 +565,35 @@
             padding-left: 40px;
             .#{$slug}-form-item {
                 padding:0;
+            }
+        }
+
+        &-notice {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            border-radius: var(--fp-radius-md);
+            font-size: 13px;
+            line-height: 1.5;
+            background: var(--fp-bg-secondary);
+            color: var(--fp-text-secondary);
+
+            &.is-warning {
+                background: var(--el-color-warning-light-9, #fdf6ec);
+                color: var(--el-color-warning-dark-2, #b88230);
+            }
+
+            &-link {
+                display: inline-flex;
+                align-items: center;
+                color: inherit;
+                flex-shrink: 0;
+
+                &:hover {
+                    opacity: .7;
+                }
             }
         }
 
@@ -878,4 +951,17 @@
 
 .fplayer-migration-skeleton {
     padding: 8px 0;
+}
+
+// MediaSelect dropdowns teleport to body, so the form-level token override
+// cannot reach them — restyle the popper directly (same pattern as the
+// bulk-action dropdown)
+.#{$slug}-media-select-popper {
+    --el-color-primary: var(--fp-text-primary);
+
+    .el-select-dropdown__item.selected,
+    .el-select-dropdown__item.is-selected {
+        color: var(--fp-text-primary);
+        font-weight: 600;
+    }
 }

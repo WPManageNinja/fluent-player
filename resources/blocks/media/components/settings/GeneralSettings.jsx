@@ -1,6 +1,7 @@
 const {__} = wp.i18n;
 const {Button, TextControl, SelectControl, BaseControl} = wp.components;
-const {MediaUpload, MediaUploadCheck} = wp.blockEditor || wp.editor;
+const {MediaUpload} = wp.blockEditor || wp.editor;
+import MediaUploadCheck from '../common/BuilderMediaUploadCheck.jsx';
 import CustomToggle from '../common/CustomToggle.jsx';
 import {DeleteIconSVG, LockIconSVG} from '../common/Icons.jsx';
 import CustomRadioGroup from '../common/CustomRadioGroup.jsx';
@@ -37,11 +38,12 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
     const effectiveResume = hasOwnResume ? !!mediaData.settings.save_play_position : globalResumeDefault;
 
     const onSelectPoster = (media) => {
-        updateMediaSettings('posterSrc', media.url);
+        // Mark as a user-picked poster so audio shows it instead of the default note.
+        setMediaData({ ...mediaData, settings: { ...mediaData.settings, posterSrc: media.url, poster_is_custom: true } });
     };
 
     const removePoster = () => {
-        updateMediaSettings('posterSrc', '');
+        setMediaData({ ...mediaData, settings: { ...mediaData.settings, posterSrc: '', poster_is_custom: false } });
     };
 
     const handleAutoplayChange = (value) => {

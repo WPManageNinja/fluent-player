@@ -495,6 +495,53 @@
     }
 }
 
+// Page-builder canvas (Divi / Elementor) only: the block editor mounts inside a constrained
+// wrapper where the standard sidebar's flex-stretch height chain doesn't resolve, so its
+// absolutely-positioned header / items / add-section collapse — the header overlaps the first
+// item and the list can't scroll. Lay the sidebar out as a bounded flex column there so the
+// header stays in flow and the item list scrolls. Frontend + native Gutenberg keep the
+// absolute layout (they aren't wrapped in .fp-pb-playlist-editor).
+.fp-pb-playlist-editor {
+    // The frontend spaces the playlist via the outer `.fluent-playlist` wrapper's 8px margin,
+    // but the block-editor markup in the builder canvas has no such wrapper — the block-scss
+    // rule puts the 8px on `.fluent-playlist-container` instead, which reads as extra padding
+    // in the Elementor/Divi canvas. Zero it here (canvas only; frontend is unaffected).
+    .fluent-playlist-container {
+        margin: 0 !important;
+    }
+
+    .fluent-playlist-sidebar,
+    .playlist-sidebar {
+        display: flex !important;
+        flex-direction: column !important;
+        max-height: clamp(280px, 70vh, 720px);
+
+        // !important is required: the frontend rules position these absolutely from a deeply
+        // nested selector (.playlist-standard .fluent-playlist-container.playlist-right …) that
+        // out-specifies this one. Statically-flowed header + scrollable items is the robust
+        // authoring layout for the constrained builder mount.
+        .fp-playlist-header {
+            position: static !important;
+            flex: 0 0 auto !important;
+        }
+
+        .playlist-items {
+            position: static !important;
+            inset: auto !important;
+            margin: 0 !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+        }
+
+        .fp-playlist-add-section {
+            position: static !important;
+            flex: 0 0 auto !important;
+        }
+    }
+}
+
 .wp-block-fluent-player-playlist .fluent-playlist-container {
     display: flex;
     flex-direction: row;
@@ -506,7 +553,10 @@
     box-shadow: var(--fp-playlist-box-shadow, none);
     padding: 0;
     margin: 8px;
-    gap: var(--fp-playlist-divider-gap, 0);
+    // Container gap = the separator "space" size PLUS the explicit Container Gap control,
+    // so both act independently (either may be 0). --fp-playlist-gap was previously emitted
+    // but unconsumed.
+    gap: calc(var(--fp-playlist-divider-gap, 0px) + var(--fp-playlist-gap, 0px));
 
     &.playlist-left {
         flex-direction: row-reverse;
@@ -1134,8 +1184,15 @@
         background: $bg-soft-200;
     }
 
-    &__item-title {
+    &__item-titlewrap {
         flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    &__item-title {
         min-width: 0;
         font-size: 13px;
         font-weight: 500;
@@ -1144,6 +1201,22 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    &__item-status {
+        align-self: flex-start;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.4;
+        padding: 0 6px;
+        border-radius: 9999px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+
+        &--private {
+            color: #9a3412;
+            background: #ffedd5;
+        }
     }
 
     &__item-provider {
@@ -1189,6 +1262,48 @@
         padding: 60px;
         color: $text-sub-600;
         font-size: 14px;
+    }
+
+    &__load-more-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 16px 4px;
+    }
+
+    &__error {
+        color: #b91c1c;
+        font-size: 12px;
+        text-align: center;
+    }
+
+    // Override the WP components-button blue hover/focus with the plugin palette.
+    &__load-more.components-button {
+        justify-content: center;
+        height: auto;
+        padding: 6px 16px;
+        border: 1px solid $stroke-soft-200;
+        border-radius: var(--fp-radius-8);
+        background: $bg-white-0;
+        color: $text-strong-950;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 20px;
+        transition: background 0.2s ease, border-color 0.2s ease;
+
+        &:hover:not(:disabled) {
+            background: $bg-weak-50 !important;
+            border-color: $stroke-sub-300;
+            color: $text-strong-950 !important;
+        }
+
+        &:focus:not(:disabled) {
+            color: $text-strong-950 !important;
+            border-color: $stroke-sub-300;
+            box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))) !important;
+            outline: none;
+        }
     }
 
     &__footer {
@@ -1384,6 +1499,87 @@
     font-weight: var(--fp-playlist-font-weight, 400);
     line-height: var(--fp-playlist-line-height, 1.4);
     color: var(--fp-playlist-text-color, $text-sub-600);
+}
+
+.fp-grid-search--editor {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .fp-grid-search-icon {
+        position: absolute;
+        left: 10px;
+        color: color-mix(in srgb, var(--fp-playlist-text-color, $text-strong-950) 55%, var(--fp-playlist-background-color, $bg-white-0));
+        pointer-events: none;
+    }
+
+    // input.class inside the wrapper outranks theme/admin `input[type="search"]` rules
+    input.fp-grid-search-input {
+        box-sizing: border-box;
+        width: 170px;
+        height: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 6px 30px 6px 32px;
+        appearance: none;
+        -webkit-appearance: none;
+        font-family: inherit;
+        font-size: var(--fp-playlist-font-size, 14px);
+        line-height: var(--fp-playlist-line-height, 1.4);
+        color: var(--fp-playlist-text-color, $text-strong-950);
+        background: color-mix(in srgb, var(--fp-playlist-text-color, $text-strong-950) 8%, var(--fp-playlist-background-color, $bg-white-0));
+        border: 1px solid var(--fp-playlist-border-color, #E1E4EA);
+        border-radius: var(--fp-playlist-border-radius, var(--fp-radius-8));
+        outline: none;
+        box-shadow: none;
+
+        &::placeholder {
+            color: color-mix(in srgb, var(--fp-playlist-text-color, $text-strong-950) 55%, var(--fp-playlist-background-color, $bg-white-0));
+            opacity: 1;
+        }
+
+        &::-webkit-search-cancel-button {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+    }
+
+    button.fp-grid-search-clear {
+        position: absolute;
+        right: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        margin: 0;
+        padding: 0;
+        color: color-mix(in srgb, var(--fp-playlist-text-color, $text-strong-950) 55%, var(--fp-playlist-background-color, $bg-white-0));
+        background: transparent;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--fp-playlist-text-color, $text-strong-950);
+            background: color-mix(in srgb, var(--fp-playlist-text-color, $text-strong-950) 8%, var(--fp-playlist-background-color, $bg-white-0));
+        }
+    }
+}
+
+.fp-grid-search-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 16px;
+    background: var(--fp-playlist-background-color, $bg-white-0);
+    color: color-mix(in srgb, var(--fp-playlist-text-color, $text-strong-950) 70%, var(--fp-playlist-background-color, $bg-white-0));
+
+    p {
+        margin: 0;
+        font-size: var(--fp-playlist-font-size, 14px);
+    }
 }
 
 .fp-grid-navigation {
@@ -2664,6 +2860,12 @@
     box-shadow: 0px -1px 2px 0px rgba(10, 13, 20, 0.03);
 }
 
+// Item Spacing applies to the standard stacked list too (previously only the thumbnail grid
+// consumed the var, so the control had no effect on the default layout).
+.playlist-items {
+    gap: var(--fp-playlist-item-spacing, 8px);
+}
+
 // Thumbnail Grid Mode
 .playlist-items.playlist-thumbnail-grid {
     display: grid;
@@ -2823,7 +3025,9 @@
     .fp-layout-card {
         display: flex;
         align-items: flex-start;
-        height: 64px;
+        // min-height, not a fixed height: in a narrow panel (e.g. Divi) the description wraps
+        // to two lines and a fixed 64px clipped the second line ("…layout").
+        min-height: 64px;
         gap: 12px;
         padding: 16px 12px;
         background: $bg-white-0;

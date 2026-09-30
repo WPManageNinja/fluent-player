@@ -9,27 +9,36 @@
  * @param {object} options { presetSlug, untitledLabel, assetType: 'vod'|'live' }
  * @returns {object} { title, settings }
  */
+import { detectStreamAudioHint } from './detectStreamAudioHint.js';
+
 export function buildGumletMediaData(asset = {}, options = {}) {
     const {
         presetSlug = 'course',
         untitledLabel = 'Untitled Gumlet Video',
         assetType = 'vod',
+        isAudio: isAudioOverride,
     } = options;
 
     const isLive = assetType === 'live';
     const title = (asset.title && String(asset.title).trim()) || untitledLabel;
     const duration = Number(asset.duration) || 0;
     const thumbnail = asset.thumbnail || '';
+    const provider = isLive ? 'gumlet_live' : 'gumlet';
+    // Prefer the source MIME captured at upload (Gumlet transcodes audio into an
+    // extension-less HLS stream, so the src alone can't tell); fall back to the asset.
+    const isAudio = (typeof isAudioOverride !== 'undefined')
+        ? !!isAudioOverride
+        : detectStreamAudioHint(provider, asset);
 
     return {
         title,
         settings: {
-            provider: isLive ? 'gumlet_live' : 'gumlet',
+            provider,
             src: asset.playback_url || '',
             posterSrc: thumbnail,
             title,
-            post_status: 'publish',
-            viewType: 'video',
+            post_status: options.postStatus || 'publish',
+            viewType: isAudio ? 'audio' : 'video',
             playsInline: true,
             mutedAutoplay: false,
             autoplay: false,
@@ -44,9 +53,10 @@ export function buildGumletMediaData(asset = {}, options = {}) {
                 duration,
                 status: asset.status || 'ready',
                 is_private: !!asset.is_private,
+                is_audio: isAudio,
             },
             streamType: isLive ? 'live' : 'on-demand',
-            mediaType: 'video',
+            mediaType: isAudio ? 'audio' : 'video',
             duration,
         },
     };

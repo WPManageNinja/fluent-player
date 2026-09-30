@@ -1,0 +1,64 @@
+// Divi 5 dark-mode fix for the reused settings panels — the shared page-builder
+// dark-panel mixin fed Divi's own colour tokens (which flip with the mode);
+// elevated surfaces derive from --app-background via color-mix. Scoped to Divi
+// dark mode + our mounts only. Doubled mount class => decisive specificity over
+// the baked `.fluent-player-block-panel` !important rules. Applied to the sidebar
+// mount AND the body-level popover host (colour picker, shortcode inserter, delete
+// confirm) so both track the colour mode.
+@use 'page-builder-dark-panels' as pb;
+
+@mixin fp-divi-dark {
+    @include pb.fp-page-builder-dark-panels(
+        $bg:          var(--app-background, #1f2124),
+        $field:       color-mix(in srgb, var(--app-background, #1f2124), #fff 7%),
+        $raised:      color-mix(in srgb, var(--app-background, #1f2124), #fff 13%),
+        $txt:         var(--dark-gray, #d5d8dc),
+        $txt-strong:  var(--dark-gray, #fff),
+        $txt-muted:   var(--gray, #9da5ae),
+        $border:      var(--light-gray, #4a4d52),
+        $border-bold: color-mix(in srgb, var(--light-gray, #4a4d52), #fff 8%),
+        $brand:       var(--fp-brand-color, #DD1F13)
+    );
+}
+
+html[data-app-color-mode="dark"] {
+    .fluent-player-d5-settings.fluent-player-d5-settings {
+        @include fp-divi-dark;
+    }
+    #fp-divi-popover-host.fluent-player-block-panel {
+        @include fp-divi-dark;
+    }
+}
+
+// Divi LIGHT mode: the panel is light, so button labels + icons must read BLACK (mirror of
+// the white dark-mode treatment above). Made explicit on our mounts so it's guaranteed and
+// symmetric. The primary button is a dark-filled CTA, so its label stays white — black on a
+// dark fill would be invisible.
+@mixin fp-divi-light {
+    // SVG icons are filled via --icon-* tokens; pin them to the panel's dark text.
+    --icon-strong-950: #0E121B;
+    --icon-sub-500: #525866;
+    --icon-soft-400: #868C98;
+    --icon-disabled-300: #868C98;
+
+    .fp-btn-secondary,
+    .fp-shortcode-inserter-btn,
+    .fp-icon-btn,
+    .fp-icon-btn--secondary {
+        color: #0E121B !important;
+    }
+
+    .fp-icon-btn:not(.fp-icon-btn--danger) svg path,
+    .fp-icon-btn--secondary svg path {
+        fill: #0E121B !important;
+    }
+}
+
+html[data-app-color-mode="light"] {
+    .fluent-player-d5-settings.fluent-player-d5-settings {
+        @include fp-divi-light;
+    }
+    #fp-divi-popover-host.fluent-player-block-panel {
+        @include fp-divi-light;
+    }
+}

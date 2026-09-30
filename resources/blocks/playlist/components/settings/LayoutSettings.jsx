@@ -186,6 +186,30 @@ const LayoutSettings = ({ playlistData, updatePlaylistData }) => {
                     />
                 </div>
 
+                {/* Spacing — applies to all layouts. Stored as {value, unit} so the
+                    getAppearanceStyles CSS vars (--fp-playlist-gap / --fp-playlist-item-spacing)
+                    carry a unit. */}
+                <div className="fluent-player-form-row">
+                    <CustomRangeSlider
+                        label={__('Container Gap', 'fluent-player')}
+                        value={layout.containerGap?.value ?? 16}
+                        onChange={(value) => updateLayout('containerGap', { value, unit: 'px' })}
+                        min={0}
+                        max={64}
+                        unit="px"
+                    />
+                </div>
+                <div className="fluent-player-form-row">
+                    <CustomRangeSlider
+                        label={__('Item Spacing', 'fluent-player')}
+                        value={layout.itemSpacing?.value ?? 8}
+                        onChange={(value) => updateLayout('itemSpacing', { value, unit: 'px' })}
+                        min={0}
+                        max={48}
+                        unit="px"
+                    />
+                </div>
+
                 {/* Standard Layout Options */}
                 {(layout.type === 'standard' || !layout.type) && (
                     <div className="fp-layout-options-panel">
@@ -339,10 +363,18 @@ const LayoutSettings = ({ playlistData, updatePlaylistData }) => {
                             step={3}
                         />
 
+                        <CustomToggle
+                            label={__('Enable Search', 'fluent-player')}
+                            help={__('Show a search box above the grid so viewers can find a video by title. Hidden automatically for very small playlists.', 'fluent-player')}
+                            checked={grid.enableSearch !== false}
+                            onChange={(value) => updateGrid('enableSearch', value)}
+                        />
+
                         {grid.displayMode === 'modal' && (
                             <div className="fluent-player-form-row">
                                 <SelectControl
                                     label={__('Modal Layout', 'fluent-player')}
+                                    help={__('Applies when a video opens in the modal on the live page — not previewed in the editor.', 'fluent-player')}
                                     value={grid.modalLayout || 'centered'}
                                     options={[
                                         { label: __('Centered', 'fluent-player'), value: 'centered' },

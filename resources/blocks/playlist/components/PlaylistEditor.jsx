@@ -4,6 +4,7 @@ const { Button, Spinner, Modal } = wp.components;
 const { apiFetch } = wp;
 import { NoMediaIconSVG, PlaylistDragHandleSVG, PlaylistPlayIconSVG, PlaylistTrashIconSVG, PlaylistEditIconSVG, PlaylistAddIconSVG, SearchIconSVG } from '../../media/components/common/Icons.jsx';
 import { resolveAspectRatioValue, toCssAspectRatio } from '../utils/ratio.js';
+import { PROVIDER_LABELS } from '../../common/providerLabels.js';
 
 /**
  * Provider icon component - matches icons from admin ListTable (IconYoutube, IconVimeo, IconBunnyCDN, IconUploaded)
@@ -46,14 +47,7 @@ const ProviderIcon = ({ provider, size = 14 }) => {
  */
 const getProviderLabel = (provider) => {
     const p = (provider || '').toLowerCase();
-    const labels = {
-        youtube: 'YouTube',
-        vimeo: 'Vimeo',
-        bunny: 'Bunny Stream',
-        bunny_storage: 'BunnyCDN Storage',
-        wordpress: 'Uploaded',
-    };
-    return labels[p] || provider || 'Video';
+    return PROVIDER_LABELS[p] || provider || 'Video';
 };
 
 /**
@@ -85,37 +79,55 @@ const formatSearchDuration = (seconds) => {
 /**
  * Media search component for adding media to playlist
  */
+const MEDIA_SEARCH_PAGE_SIZE = 20;
+
 const MediaSearch = ({ onAdd, existingMediaIds, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
     const [selectedItems, setSelectedItems] = useState([]);
+    const requestIdRef = useRef(0);
 
-    const searchMedia = async (query) => {
-        setLoading(true);
+    const searchMedia = async (query, offset = 0) => {
+        const append = offset > 0;
+        const requestId = ++requestIdRef.current;
+        append ? setLoadingMore(true) : setLoading(true);
         try {
             const response = await apiFetch({
-                path: `/fluent-player/v2/media/search?q=${encodeURIComponent(query)}&status=publish&limit=20`
+                path: `/fluent-player/v2/media/search?q=${encodeURIComponent(query)}&status=${encodeURIComponent('publish,private')}&limit=${MEDIA_SEARCH_PAGE_SIZE}&offset=${offset}`
             });
 
-            if (Array.isArray(response)) {
-                setResults(response);
-            } else if (response?.data) {
-                setResults(response.data);
-            } else {
-                setResults([]);
-            }
+            // A newer request superseded this one — drop its (stale) response.
+            if (requestId !== requestIdRef.current) return;
+
+            const batch = Array.isArray(response)
+                ? response
+                : Array.isArray(response?.data) ? response.data : [];
+
+            setResults(prev => (append ? [...prev, ...batch] : batch));
+            setHasMore(batch.length === MEDIA_SEARCH_PAGE_SIZE);
         } catch (err) {
+            if (requestId !== requestIdRef.current) return;
             console.error('Error searching media:', err);
-            setResults([]);
+            if (!append) {
+                setResults([]);
+                setHasMore(false);
+            }
         } finally {
-            setLoading(false);
+            append ? setLoadingMore(false) : setLoading(false);
         }
+    };
+
+    const handleLoadMore = () => {
+        if (loadingMore || !hasMore) return;
+        searchMedia(searchQuery, results.length);
     };
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            searchMedia(searchQuery);
+            searchMedia(searchQuery, 0);
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
@@ -151,7 +163,7 @@ const MediaSearch = ({ onAdd, existingMediaIds, onClose }) => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="fp-media-search__input"
-                        autocomplete="off"
+                        autoComplete="off"
                         aria-label={__('Search media', 'fluent-player')}
                     />
                 </div>
@@ -193,8 +205,15 @@ const MediaSearch = ({ onAdd, existingMediaIds, onClose }) => {
                                         <span className="fp-media-search__item-duration">{duration}</span>
                                     )}
                                 </div>
-                                <span className="fp-media-search__item-title">
-                                    {media.post_title || media.settings?.title}
+                                <span className="fp-media-search__item-titlewrap">
+                                    <span className="fp-media-search__item-title">
+                                        {media.post_title || media.settings?.title}
+                                    </span>
+                                    {media.post_status === 'private' && (
+                                        <span className="fp-media-search__item-status fp-media-search__item-status--private">
+                                            {__('Private', 'fluent-player')}
+                                        </span>
+                                    )}
                                 </span>
                                 <span className="fp-media-search__item-provider">
                                     <ProviderIcon provider={provider} size={14} />
@@ -218,6 +237,18 @@ const MediaSearch = ({ onAdd, existingMediaIds, onClose }) => {
                     {results.length === 0 && !loading && (
                         <div className="fp-media-search__no-results">
                             {__('No media found', 'fluent-player')}
+                        </div>
+                    )}
+                    {hasMore && (
+                        <div className="fp-media-search__load-more-wrap">
+                            <Button
+                                className="fp-media-search__load-more"
+                                onClick={handleLoadMore}
+                                isBusy={loadingMore}
+                                disabled={loadingMore}
+                            >
+                                {loadingMore ? __('Loading…', 'fluent-player') : __('Load more', 'fluent-player')}
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -419,6 +450,11 @@ const formatDuration = (seconds) => {
     return `${h}:${pad(m)}:${pad(s)}`;
 };
 
+const normalizeSearchText = (str) => String(str ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
 /**
  * Main PlaylistEditor component
  */
@@ -439,6 +475,7 @@ const PlaylistEditor = ({
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showAddMedia, setShowAddMedia] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [gridSearchQuery, setGridSearchQuery] = useState('');
     const sortableRef = useRef(null);
     const gridSortableRef = useRef(null);
     const currentIndexRef = useRef(currentIndex);
@@ -522,6 +559,8 @@ const PlaylistEditor = ({
     useEffect(() => {
         if (layoutType !== 'grid') return;
         if (!gridSortableRef.current || !window.jQuery) return;
+        // Reordering a filtered subset would map to wrong indices — sorting pauses while searching
+        if (gridSearchQuery) return;
 
         const runGridSortable = () => {
             const $grid = window.jQuery(gridSortableRef.current);
@@ -581,7 +620,7 @@ const PlaylistEditor = ({
                 }
             }
         };
-    }, [medias.length, layoutType]);
+    }, [medias.length, layoutType, gridSearchQuery]);
 
     const handleRemove = (mediaId, index) => {
         removeMedia(mediaId);
@@ -898,10 +937,16 @@ const PlaylistEditor = ({
         const shouldShowPlayer = displayMode === 'inline' && showPlayerOnTop;
         const columns = playlistData?.settings?.grid?.columns || 3;
         const itemsPerPage = playlistData?.settings?.grid?.itemsPerPage || 12;
-        const totalPages = Math.ceil(medias.length / itemsPerPage);
-        const startIndex = (currentPage - 1) * itemsPerPage;
+        // 9 mirrors GridPlaylistLayout::SEARCH_MIN_ITEMS in fluent-player-pro
+        const enableGridSearch = playlistData?.settings?.grid?.enableSearch !== false && medias.length >= 9;
+        const gridQuery = enableGridSearch ? normalizeSearchText(gridSearchQuery.trim()) : '';
+        const searchedMedias = gridQuery
+            ? medias.filter(m => normalizeSearchText(m.post_title || m.settings?.title || '').includes(gridQuery))
+            : medias;
+        const totalPages = Math.ceil(searchedMedias.length / itemsPerPage);
+        const startIndex = (Math.min(currentPage, Math.max(totalPages, 1)) - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
-        const visibleMedias = medias.slice(startIndex, endIndex);
+        const visibleMedias = searchedMedias.slice(startIndex, endIndex);
         const gridShowThumbnailInfo = playlistData?.settings?.behavior?.showThumbnailInfo !== false;
         const gridTitlePosition = playlistData?.settings?.behavior?.titlePosition || 'below';
 
@@ -947,18 +992,61 @@ const PlaylistEditor = ({
                             {playlistData?.settings?.title || playlistData?.post_title || __('Auto Draft', 'fluent-player')}
                         </h4>
                         <div className="fp-grid-header-right">
-                            <span className="fp-grid-header-count">
-                                {medias.length} {medias.length === 1 ? __('Video', 'fluent-player') : __('Videos', 'fluent-player')}
+                            {enableGridSearch && (
+                                <div className="fp-grid-search--editor">
+                                    <svg className="fp-grid-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
+                                        <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
+                                    <input
+                                        type="search"
+                                        className="fp-grid-search-input"
+                                        placeholder={__('Search videos…', 'fluent-player')}
+                                        aria-label={__('Search videos by title', 'fluent-player')}
+                                        value={gridSearchQuery}
+                                        onChange={(e) => {
+                                            setGridSearchQuery(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                    {gridSearchQuery !== '' && (
+                                        <button
+                                            type="button"
+                                            className="fp-grid-search-clear"
+                                            aria-label={__('Clear search', 'fluent-player')}
+                                            onClick={() => setGridSearchQuery('')}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            <span className="fp-grid-header-count" role="status">
+                                {gridQuery
+                                    ? `${searchedMedias.length} ${__('of', 'fluent-player')} ${medias.length} ${__('Videos', 'fluent-player')}`
+                                    : `${medias.length} ${medias.length === 1 ? __('Video', 'fluent-player') : __('Videos', 'fluent-player')}`}
                             </span>
                         </div>
                     </div>
 
+                    {gridQuery && searchedMedias.length === 0 && (
+                        <div className="fp-grid-search-empty">
+                            <p>{__('No videos found', 'fluent-player')}</p>
+                            <button type="button" className="fp-button-dark" onClick={() => setGridSearchQuery('')}>
+                                {__('Clear search', 'fluent-player')}
+                            </button>
+                        </div>
+                    )}
                     <div className="fp-grid-content" style={gridStyle} ref={gridSortableRef}>
-                        {visibleMedias.map((media, index) => (
+                        {visibleMedias.map((media) => {
+                            const mediaIndex = medias.findIndex(m => m.ID === media.ID);
+                            return (
                             <div
                                 key={media.ID}
-                                className={`fp-grid-item ${index === currentIndex ? 'fp-grid-item--active' : ''}`}
-                                onClick={() => setCurrentIndex(index)}
+                                className={`fp-grid-item ${mediaIndex === currentIndex ? 'fp-grid-item--active' : ''}`}
+                                onClick={() => setCurrentIndex(mediaIndex)}
                             >
                                 <div className="fp-grid-item-thumb">
                                     {media.settings?.posterSrc ? (
@@ -976,18 +1064,20 @@ const PlaylistEditor = ({
                                     )}
                                     {allowMediaManagement && (
                                         <div className="fp-grid-item-actions">
-                                            <div
-                                                className="fp-grid-item-action fp-grid-item-drag"
-                                                aria-label={__('Drag', 'fluent-player')}
-                                            >
-                                                <PlaylistDragHandleSVG />
-                                            </div>
+                                            {!gridSearchQuery && (
+                                                <div
+                                                    className="fp-grid-item-action fp-grid-item-drag"
+                                                    aria-label={__('Drag', 'fluent-player')}
+                                                >
+                                                    <PlaylistDragHandleSVG />
+                                                </div>
+                                            )}
                                             <button
                                                 type="button"
                                                 className="fp-grid-item-action"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleRemove(media.ID, index);
+                                                    handleRemove(media.ID, mediaIndex);
                                                 }}
                                                 aria-label={__('Remove', 'fluent-player')}
                                             >
@@ -1003,7 +1093,8 @@ const PlaylistEditor = ({
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="fp-grid-footer">
@@ -1032,7 +1123,7 @@ const PlaylistEditor = ({
                                     <span>{__('Previous', 'fluent-player')}</span>
                                 </button>
                                 <span className="fp-grid-pagination-info">
-                                    <strong>{currentPage}</strong> {__('of', 'fluent-player')} <strong>{totalPages}</strong>
+                                    <strong>{Math.min(currentPage, totalPages)}</strong> {__('of', 'fluent-player')} <strong>{totalPages}</strong>
                                 </span>
                                 <button
                                     type="button"

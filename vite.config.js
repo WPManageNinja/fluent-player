@@ -9,6 +9,21 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import replace from '@rollup/plugin-replace'
 
+// mux-embed's timing/random helpers deref `global.default.performance` /
+// `global.default.crypto`; when the interop'd global package resolves to an
+// undefined `.default` at runtime the deref throws before mux's own Date.now()
+// fallback runs. Null-safe every `<ident>.default.<member>` so it falls through.
+const muxGlobalGuard = () => ({
+    name: 'fluent-player-mux-global-guard',
+    renderChunk(code) {
+        const guarded = code.replace(
+            /([A-Za-z_$][\w$]*)\.default\.(performance|crypto|timing)\b/g,
+            '($1.default||{}).$2'
+        );
+        return guarded === code ? null : { code: guarded, map: null };
+    },
+});
+
 // Define all possible inputs
 const allInputs = {
     admin: {
@@ -26,6 +41,21 @@ const allInputs = {
     'gutenberg': {
         'fluent-player-block': 'resources/blocks/media/fluent-player-block.jsx',
         'fluent-player-block-css': 'resources/scss/fluent-player-block.scss',
+    },
+    'elementor': {
+        'fluent-player-elementor-settings': 'resources/blocks/media/elementor/editor.jsx',
+    },
+    'elementor-canvas': {
+        'fluent-player-elementor-canvas': 'resources/blocks/media/elementor/canvas.jsx',
+    },
+    'elementor-playlist-canvas': {
+        'fluent-player-elementor-playlist-canvas': 'resources/blocks/media/elementor/playlistCanvas.jsx',
+    },
+    'divi-vb': {
+        'fluent-player-divi-vb': 'resources/blocks/media/divi/index.jsx',
+    },
+    'divi-playlist': {
+        'fluent-player-divi-playlist-vb': 'resources/blocks/playlist/divi/index.jsx',
     },
     'vidstack-loader': {
         'vidstack-loader': 'resources/blocks/media/vidstack-loader.js',
@@ -82,11 +112,12 @@ export default defineConfig(({ mode, command }) => {
             },
             preventAssignment: true,
             include: ['**/*'],
-        })
+        }),
+        muxGlobalGuard()
     );
 
     // Vue-specific plugins for non-Gutenberg builds
-    const isGutenbergBuild = buildType.startsWith('gutenberg');
+    const isGutenbergBuild = buildType.startsWith('gutenberg') || buildType === 'elementor' || buildType === 'elementor-canvas' || buildType === 'elementor-playlist-canvas' || buildType === 'divi-vb' || buildType === 'divi-playlist';
     if (!isGutenbergBuild) {
         plugins.push(
             vue({
@@ -138,7 +169,17 @@ export default defineConfig(({ mode, command }) => {
                 output: {
                     chunkFileNames: 'fp-[name].js',
                     entryFileNames: '[name].js',
-                    assetFileNames: '[name].[ext]',
+                    // The divi-vb / elementor-canvas entries emit a generic CSS
+                    // chunk name that would clobber other builds; give each a
+                    // unique, build-scoped name.
+                    assetFileNames: (assetInfo) => {
+                        const isCss = (assetInfo.name || '').endsWith('.css');
+                        if (isCss && buildType === 'divi-vb') return 'fluent-player-divi-vb.css';
+                        if (isCss && buildType === 'divi-playlist') return 'fluent-player-divi-playlist-vb.css';
+                        if (isCss && buildType === 'elementor-canvas') return 'fluent-player-elementor-canvas.css';
+                        if (isCss && buildType === 'elementor-playlist-canvas') return 'fluent-player-elementor-playlist-canvas.css';
+                        return '[name].[ext]';
+                    },
                     manualChunks(id) {
                         // The admin SPA is route-code-split: let Rollup give each
                         // dynamic import (and its heavy deps, e.g. echarts) its own

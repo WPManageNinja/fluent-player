@@ -8,6 +8,7 @@ import { formatDuration as formatDurationUtil } from './utils/formatDuration';
 import { audioContainerState } from './utils/playlistAudioState';
 import { submitEmailCapture, showEmailConfirmation } from './utils/emailCapture.js';
 import { enablePlayerControlsDOM, disablePlayerControlsDOM } from './utils/playerControls';
+import { resolveArmedMilestones, resolveArmedLayers, mediaHasEmailCapture } from './behavior/arming.js';
 
 const escapeHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -33,6 +34,7 @@ class FluentPlaylist {
         this.medias = options?.medias || [];
         this.currentMediaIndex = 0;
         this.currentMedia = this.medias[0] || null;
+        this._isDestroyed = false;
 
         this.player = this.container.querySelector('media-player');
         this.playlistItems = this.container.querySelectorAll('.playlist-item');
@@ -835,6 +837,7 @@ class FluentPlaylist {
     }
 
     destroy() {
+        this._isDestroyed = true;
         this.destroyPerVideoFeatures();
 
         // Remove all tracked event listeners
@@ -1463,6 +1466,8 @@ class FluentPlaylist {
             visibleFeatures.querySelectorAll('.fp-media-custom-overlay.active:not(.fp-media-logo-overlay)').forEach(el => el.classList.remove('active'));
         }
 
+        this.teardownMilestoneTracking();
+
         this._perVideoListeners.forEach(({ target, event, handler, options }) => {
             target.removeEventListener(event, handler, options);
         });
@@ -1558,7 +1563,53 @@ class FluentPlaylist {
     }
 
     /** Bind feature event handlers for the currently active video's container. */
+    async setupMilestoneTracking(currentMedia) {
+        const mediaId = currentMedia?.ID;
+        const config = window.fluent_player?.crm_behavior;
+        if (!mediaId || !this.player || !config || !config.active) return;
+
+        const armed = resolveArmedMilestones(config, mediaId);
+        if (!armed) return;
+
+        const [{ default: MediaWatchTracker }, { default: MilestoneReporter }] = await Promise.all([
+            import('./MediaWatchTracker.js'),
+            import('./behavior/MilestoneReporter.js'),
+        ]);
+        if (this._isDestroyed || this.currentMedia?.ID !== mediaId || this._milestoneReporter) return;
+
+        this._milestoneTracker = new MediaWatchTracker(this.player, {
+            completionThreshold: 100,
+            mediaId,
+            segmentUpdateInterVal: 5,
+        });
+        this._milestoneReporter = new MilestoneReporter(this._milestoneTracker, {
+            mediaId,
+            nonce: config.nonce,
+            armed,
+            isLoggedIn: !!config.identity?.isLoggedIn,
+            hasContact: !!config.identity?.hasContact,
+            hasEmailCapture: mediaHasEmailCapture(currentMedia.settings),
+        });
+    }
+
+    teardownMilestoneTracking() {
+        if (this._milestoneReporter) {
+            this._milestoneReporter.destroy();
+            this._milestoneReporter = null;
+        }
+        if (this._milestoneTracker) {
+            this._milestoneTracker.destroy();
+            this._milestoneTracker = null;
+        }
+        if (this._layerReporter) {
+            this._layerReporter.destroy();
+            this._layerReporter = null;
+        }
+    }
+
     initPerVideoFeatures(currentMedia) {
+        this.setupMilestoneTracking(currentMedia);
+
         const targetId = this.getActiveFeatureMediaId(currentMedia);
         if (!targetId) return;
 
@@ -1878,6 +1929,32 @@ class FluentPlaylist {
             this.player, containerEl, mediaId, settings, this,
             { preserveDOM: true, initialLayerStates: savedLayerStates || null }
         );
+
+        this.setupLayerTracking(settings, mediaId);
+    }
+
+    async setupLayerTracking(settings, mediaId) {
+        const config = window.fluent_player?.crm_behavior;
+        if (!mediaId || !this.layersManager || !config || !config.active) return;
+
+        if (this._layerReporter) {
+            this._layerReporter.destroy();
+            this._layerReporter = null;
+        }
+
+        const armed = resolveArmedLayers(config, mediaId, settings?.layers || []);
+        if (!armed) return;
+
+        const { default: LayerReporter } = await import('./behavior/LayerReporter.js');
+        if (this._isDestroyed || !this.layersManager || this.layersManager.mediaId !== mediaId) return;
+        this._layerReporter = new LayerReporter(this.layersManager, {
+            mediaId,
+            nonce: config.nonce,
+            armed,
+            isLoggedIn: !!config.identity?.isLoggedIn,
+            hasContact: !!config.identity?.hasContact,
+            hasEmailCapture: mediaHasEmailCapture(settings),
+        });
     }
 
     disablePlayerControls() {

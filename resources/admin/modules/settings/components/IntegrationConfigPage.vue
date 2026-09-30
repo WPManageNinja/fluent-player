@@ -31,6 +31,9 @@ const currentItemFields = ref([]);
 const instructionsVisible = ref(false);
 const currentInstructions = ref(null);
 
+// FluentCRM-side facts (Event Tracking state, automation count, deep links)
+const crmBehavior = ref(null);
+
 const showSetupInstructions = (instructions) => {
 	currentInstructions.value = instructions;
 	instructionsVisible.value = true;
@@ -85,10 +88,18 @@ const fetchData = async () => {
 
 		settings.value = mergedSettings;
 		configName.value = mergedFields[integrationKey.value]?.name || integrationKey.value;
+		crmBehavior.value = (emailProviders?.providers_meta || {})[integrationKey.value]?.crm_behavior || null;
 
 		// Redirect on invalid key
 		if (!mergedFields[integrationKey.value]) {
 			router.replace({ name: 'settings.integrations' });
+			return;
+		}
+
+		// no FluentCRM (connected forced false) → don't render a saveable timeline form
+		if (integrationKey.value === 'fluentcrm' && !mergedSettings.fluentcrm?.connected) {
+			router.replace({ name: 'settings.integrations' });
+			return;
 		}
 	} catch (error) {
 		Notify.error('Failed to load integration data');
@@ -257,18 +268,10 @@ const formatHeaderName = (item, field) => {
 };
 
 onMounted(() => {
-	if (integrationKey.value === 'fluentcrm') {
-		router.replace({ name: 'settings.integrations' });
-		return;
-	}
 	fetchData();
 });
 
-watch(integrationKey, (newKey) => {
-	if (newKey === 'fluentcrm') {
-		router.replace({ name: 'settings.integrations' });
-		return;
-	}
+watch(integrationKey, () => {
 	fetchData();
 });
 
@@ -281,6 +284,32 @@ defineExpose({ save, configName, loading });
 			<el-skeleton :rows="6" animated />
 		</template>
 		<template v-else-if="currentConfig.name">
+			<div v-if="crmBehavior" class="fplayer-integration-info-card">
+				<div class="fplayer-integration-info-card-head">
+					<h3>{{ $t('Automation Triggers') }}</h3>
+					<el-tooltip :content="$t('Open Automation Editor')" placement="top">
+						<a
+							:href="crmBehavior.automation_editor_url"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="fplayer-integration-info-card-link"
+							:aria-label="$t('Open Automation Editor')"
+						>
+							<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+						</a>
+					</el-tooltip>
+				</div>
+				<p class="fplayer-integration-info-card-body">
+					{{ $t('Media milestones and layer interactions are available as triggers and goals in FluentCRM automations. Target media from the automation editor.') }}
+				</p>
+				<p class="fplayer-integration-info-card-status" :class="{ 'is-active': crmBehavior.automation_count > 0 }">
+					<span class="status-dot" aria-hidden="true"></span>
+					{{ crmBehavior.automation_count_text }}
+				</p>
+			</div>
+
+			<h3 v-if="crmBehavior" class="fplayer-integration-section-title">{{ $t('Contact Timeline') }}</h3>
+
 			<ConfigFormFields
 				:fields="currentConfig.fields || []"
 				:get-value="getValue"
@@ -290,6 +319,7 @@ defineExpose({ save, configName, loading });
 				:is-password-visible="isPasswordVisible"
 				:validation-errors="validationErrors"
 				:provider-key="integrationKey"
+				:hide-enable-toggle="integrationKey === 'fluentcrm'"
 				@show-setup-instructions="showSetupInstructions"
 			>
 				<template #complex-array="{ field }">

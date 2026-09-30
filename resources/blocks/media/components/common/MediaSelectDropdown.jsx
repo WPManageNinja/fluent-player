@@ -1,6 +1,9 @@
 import { SearchIconSVG } from './Icons.jsx';
-const { __ } = wp.i18n;
-const { useState, useEffect, useRef } = wp.element;
+import { PROVIDER_LABELS } from '../../../common/providerLabels.js';
+import { shouldServerSearch, mergeItemsById, SEARCH_MIN_CHARS } from './mediaSearch.js';
+const { __, sprintf } = wp.i18n;
+const { useState, useEffect, useRef, useCallback } = wp.element;
+const { Button } = wp.components;
 
 /* ── Provider icons (inline SVG, same artwork as the Vue admin) ── */
 export const ProviderIcon = ({ provider }) => {
@@ -33,14 +36,7 @@ export const ProviderIcon = ({ provider }) => {
     );
 };
 
-export const getProviderLabel = (provider) => {
-    const labels = {
-        youtube: 'YouTube', vimeo: 'Vimeo',
-        bunnycdn: 'Bunny Stream', bunny: 'Bunny Stream', bunny_storage: 'BunnyCDN Storage',
-        audio: 'Audio',
-    };
-    return labels[provider] || 'Uploaded';
-};
+export const getProviderLabel = (provider) => PROVIDER_LABELS[provider] || 'Uploaded';
 
 /**
  * Format duration in seconds to a compact string (e.g. "3:45" or "1:02:30").
@@ -56,9 +52,12 @@ const formatDuration = (seconds) => {
 
 /**
  * Custom searchable select dropdown for media/playlist items.
+ * items shape: { value, title, provider?, posterSrc?, duration? }.
  *
- * items shape: { value, title, provider?, posterSrc?, duration? }
- * When provider is falsy, the provider icon and label are hidden.
+ * Client mode (default): filters `items` in-memory. Server mode: pass
+ * `loadPage({ query, page }) => Promise<{ items, hasMore }>` to fetch bounded pages (searching
+ * once the query is >= minSearchChars) with a "Load more" button; `items` still resolves the
+ * selected option's label.
  */
 const MediaSelectDropdown = ({
     items,
@@ -68,12 +67,65 @@ const MediaSelectDropdown = ({
     searchPlaceholder,
     emptyText,
     showThumb = true,
+    loadPage,
+    minSearchChars = SEARCH_MIN_CHARS,
 }) => {
+    const isServer = typeof loadPage === 'function';
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const ref = useRef(null);
     const searchRef = useRef(null);
-    const selected = items.find(i => String(i.value) === String(value)) || null;
+
+    // Server-mode state.
+    const [remoteItems, setRemoteItems] = useState([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [error, setError] = useState(false);
+    const reqIdRef = useRef(0);
+    const debounceRef = useRef(null);
+    // Keep runSearch stable + unmount-safe regardless of how the caller memoizes loadPage.
+    const loadPageRef = useRef(loadPage);
+    loadPageRef.current = loadPage;
+    const mountedRef = useRef(true);
+    // Set true in the body too: under StrictMode the effect runs mount→unmount→mount, and the
+    // cleanup would otherwise leave mountedRef false on a still-mounted component.
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
+
+    const baseItems = items || [];
+    const selected = baseItems.find(i => String(i.value) === String(value))
+        || remoteItems.find(i => String(i.value) === String(value))
+        || null;
+
+    // reqId guards against a slow earlier request resolving last and overwriting fresher results;
+    // mountedRef guards against setState after the dropdown unmounts mid-request.
+    const runSearch = useCallback((query, pageNum, append) => {
+        const load = loadPageRef.current;
+        if (typeof load !== 'function') return;
+        const reqId = ++reqIdRef.current;
+        const alive = () => mountedRef.current && reqId === reqIdRef.current;
+        setError(false);
+        if (append) setLoadingMore(true); else setLoading(true);
+        load({ query, page: pageNum })
+            .then(({ items: rows, hasMore: more }) => {
+                if (!alive()) return;
+                setRemoteItems(prev => (append ? mergeItemsById(prev, rows) : (rows || [])));
+                setHasMore(!!more);
+                setPage(pageNum);
+            })
+            .catch(() => {
+                if (!alive()) return;
+                setError(true);
+                // A failed page-1 search must not keep the previous query's rows on screen; a
+                // failed "load more" keeps what's already loaded and lets the button retry.
+                if (!append) { setRemoteItems([]); setHasMore(false); }
+            })
+            .finally(() => { if (alive()) { setLoading(false); setLoadingMore(false); } });
+    }, []);
 
     useEffect(() => {
         const handler = (e) => {
@@ -91,8 +143,33 @@ const MediaSelectDropdown = ({
         }
     }, [open]);
 
-    const reversed = [...items].sort((a, b) => Number(b.value) - Number(a.value));
-    const filtered = search.trim()
+    // Fetch page 1 on open and whenever the query becomes searchable; a 1-2 char fragment is
+    // left alone (the list keeps its results and a hint asks the user to keep typing).
+    useEffect(() => {
+        if (!isServer || !open) return undefined;
+        const q = search.trim();
+        if (!shouldServerSearch(q, minSearchChars)) return undefined;
+        // Invalidate any in-flight request (including a load-more) NOW, not only when the new
+        // runSearch fires after the debounce — otherwise a load-more resolving inside the
+        // debounce window would still pass the reqId guard, merge stale rows, and clear this
+        // query's loading state.
+        reqIdRef.current += 1;
+        // Reflect the pending search immediately: the previous query's rows must not stay
+        // visible (or selectable) during the debounce window, presented as if they matched
+        // the new query. The loading state replaces them until the fresh page resolves.
+        setLoading(true);
+        setLoadingMore(false);
+        setError(false);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        const delay = q === '' ? 0 : 300;
+        debounceRef.current = setTimeout(() => runSearch(q, 1, false), delay);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [open, search, isServer, minSearchChars, runSearch]);
+
+    const handleLoadMore = () => runSearch(search.trim(), page + 1, true);
+
+    const reversed = [...baseItems].sort((a, b) => Number(b.value) - Number(a.value));
+    const clientFiltered = search.trim()
         ? reversed.filter(i => {
             const q = search.toLowerCase();
             return (
@@ -103,6 +180,9 @@ const MediaSelectDropdown = ({
             );
         })
         : reversed;
+
+    const belowThreshold = isServer && search.trim().length > 0 && search.trim().length < minSearchChars;
+    const filtered = isServer ? remoteItems : clientFiltered;
 
     return (
         <div className="fp-media-select" ref={ref}>
@@ -167,7 +247,24 @@ const MediaSelectDropdown = ({
                         </div>
                     </div>
                     <ul className="fp-media-select-list" role="listbox">
-                        {filtered.length === 0 ? (
+                        {belowThreshold ? (
+                            <li className="fp-media-select-empty">
+                                {sprintf(
+                                    /* translators: %d: minimum number of characters to search */
+                                    __('Type at least %d characters to search…', 'fluent-player'),
+                                    minSearchChars
+                                )}
+                            </li>
+                        ) : (isServer && loading) ? (
+                            <li className="fp-media-select-empty">{__('Loading…', 'fluent-player')}</li>
+                        ) : (isServer && error && filtered.length === 0) ? (
+                            <li className="fp-media-select-empty fp-media-select-error" role="alert">
+                                {__('Couldn’t load results.', 'fluent-player')}{' '}
+                                <Button variant="link" className="fp-media-select-retry" onClick={() => runSearch(search.trim(), 1, false)}>
+                                    {__('Retry', 'fluent-player')}
+                                </Button>
+                            </li>
+                        ) : filtered.length === 0 ? (
                             <li className="fp-media-select-empty">
                                 {emptyText || __('No results found', 'fluent-player')}
                             </li>
@@ -175,9 +272,17 @@ const MediaSelectDropdown = ({
                             <li
                                 key={item.value}
                                 role="option"
+                                tabIndex={0}
                                 aria-selected={String(item.value) === String(value)}
                                 className={`fp-media-select-option${String(item.value) === String(value) ? ' is-selected' : ''}`}
                                 onClick={() => { onChange(item.value); setOpen(false); }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onChange(item.value);
+                                        setOpen(false);
+                                    }
+                                }}
                             >
                                 {showThumb && (
                                     <span className="fp-media-select-thumb-wrap">
@@ -207,6 +312,25 @@ const MediaSelectDropdown = ({
                             </li>
                         ))}
                     </ul>
+                    {isServer && (hasMore || (error && filtered.length > 0)) && !loading && !belowThreshold && (
+                        <div className="fp-media-search__load-more-wrap">
+                            {error && filtered.length > 0 && (
+                                <span className="fp-media-search__error" role="alert">
+                                    {__('Couldn’t load more.', 'fluent-player')}
+                                </span>
+                            )}
+                            <Button
+                                className="fp-media-search__load-more"
+                                onClick={handleLoadMore}
+                                isBusy={loadingMore}
+                                disabled={loadingMore}
+                            >
+                                {loadingMore
+                                    ? __('Loading…', 'fluent-player')
+                                    : (error && filtered.length > 0 ? __('Retry', 'fluent-player') : __('Load more', 'fluent-player'))}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

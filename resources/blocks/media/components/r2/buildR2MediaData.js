@@ -24,7 +24,7 @@ export function buildR2MediaData(object = {}, options = {}) {
             src,
             posterSrc: '',
             title,
-            post_status: 'publish',
+            post_status: options.postStatus || 'publish',
             viewType: 'video',
             playsInline: true,
             mutedAutoplay: false,

@@ -1,6 +1,21 @@
 import FluentPlayer from './FluentPlayer';
 import './BrowserStorage';
 import { delegateMediaUnlockForms } from './utils/unlock';
+import { computeBrandingVars } from './utils/brandingVars.js';
+
+// Live branding preview: a page-builder settings panel emits `fluentPlayer/settingsPreview`
+// when a colour changes. Apply the vars inline on every element carrying that media id (inline
+// beats the server-printed `[data-media-id]{…}` <style>), so the change is immediate. Runs at
+// the document level — no FluentPlayer instance required (the editor preview may not create one).
+function applyLivePreviewBranding(detail) {
+    if (!detail || !detail.settings) return;
+    const target = String(detail.mediaId);
+    const vars = computeBrandingVars(detail.settings, detail.defaultSettings || {});
+    document.querySelectorAll('[data-media-id]').forEach((el) => {
+        if (String(el.getAttribute('data-media-id')) !== target) return;
+        Object.keys(vars).forEach((key) => el.style.setProperty(key, vars[key]));
+    });
+}
 
 // Track initialized players — Map<playerId, { instance, container, varName }>
 const playerInstances = new Map();
@@ -62,6 +77,19 @@ async function initFluentPlayers(force = false) {
         if (!playerData) continue;
         window[varName] = playerData;
 
+        // Apply this player's branding inline from its config so it beats any STALE page-level
+        // branding <style> — e.g. a page-builder canvas re-render swaps in fresh markup but the
+        // enqueued footer CSS still holds the old colours, and inline vars override a selector.
+        const cfgSettings = playerData && playerData.media && playerData.media.settings;
+        if (cfgSettings) {
+            const mid = (container.querySelector('[data-media-id]') || {}).getAttribute
+                ? container.querySelector('[data-media-id]').getAttribute('data-media-id')
+                : (playerData.media && playerData.media.ID);
+            if (mid) {
+                applyLivePreviewBranding({ mediaId: String(mid), settings: cfgSettings, defaultSettings: playerData.default_settings });
+            }
+        }
+
         // Destroy previous instance before creating a new one
         if (playerId && playerInstances.has(playerId)) {
             destroyInstance(playerInstances.get(playerId));
@@ -104,13 +132,16 @@ async function initFluentPlayer(event) {
 async function fetchMediaData(container) {
     try {
         // Extract media ID from container (prefer data-media-id which holds the real numeric ID)
-        const mediaId = container.querySelector('[data-media-id]')?.dataset.mediaId ||
-                       container.dataset.mediaId;
+        const mediaIdEl = container.querySelector('[data-media-id]');
+        const mediaId = mediaIdEl?.dataset.mediaId || container.dataset.mediaId;
 
         if (!mediaId) {
             console.warn('FluentPlayer: No media ID found for container', container);
             return null;
         }
+
+        // Private media require the render-issued access key to be fetchable.
+        const accessKey = mediaIdEl?.dataset.accessKey || container.dataset.accessKey || '';
 
         // Get AJAX configuration
         const config = window.fluent_player || window.fluentCommunityPortalVars?.fluent_player || {};
@@ -127,6 +158,7 @@ async function fetchMediaData(container) {
                 action: 'fluent_player_get_media_data',
                 media_id: mediaId,
                 nonce: nonce,
+                access_key: accessKey,
                 context: config.context || 'frontend'
             })
         });
@@ -155,23 +187,29 @@ async function fetchMediaData(container) {
     }
 }
 
-delegateMediaUnlockForms();
+// The versioned enqueue URL (fluent-player.js?ver=x) and the bare URL that
+// Vite-generated chunks import (./fluent-player.js) are different modules to
+// the browser, so this entry can evaluate twice on one page. A second
+// bootstrap would create a duplicate player per container and every tracker
+// (analytics, milestones, layers) would report each event twice.
+if (!window.__fluentPlayerBootstrapped) {
+    window.__fluentPlayerBootstrapped = true;
 
-// Auto-initialize on DOM ready
-function bootFluentPlayers() {
-    initFluentPlayers();
+    delegateMediaUnlockForms();
+
+    // Auto-initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => initFluentPlayers());
+    } else {
+        initFluentPlayers();
+    }
+
+    document.addEventListener('FComMediaReady', function(_) {
+        initFluentPlayers(true);
+    });
+    document.addEventListener('InitSingleFluentPlayer', initFluentPlayer);
+    document.addEventListener('fluentPlayer/settingsPreview', (e) => applyLivePreviewBranding(e.detail));
+
+    // Export for manual initialization
+    window.FluentPlayer = FluentPlayer;
 }
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootFluentPlayers);
-} else {
-    bootFluentPlayers();
-}
-
-document.addEventListener('FComMediaReady', function(_) {
-    initFluentPlayers(true);
-});
-document.addEventListener('InitSingleFluentPlayer', initFluentPlayer);
-
-// Export for manual initialization
-window.FluentPlayer = FluentPlayer;

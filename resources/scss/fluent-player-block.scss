@@ -29,6 +29,19 @@
 @use './components/settings-section-card' as section-card;
 @use './blocks/bunny';
 
+// Settings-panel component styles are normally imported via JSX (bundled into the
+// JS entry's CSS), so the production block CSS has them. But hosts that load this
+// SCSS entry directly for the sidebar (the Divi/Elementor "Player Settings" field,
+// and the dev server) miss them, leaving the Title input suffix, preset cards,
+// interactive layers and time-slider unstyled. Pull them into the entry so the
+// settings sidebar is styled everywhere.
+@use '../blocks/media/components/common/ShortcodeInserterStyles';
+@use '../blocks/media/components/PresetStyles';
+@use '../blocks/media/components/layers/LayersStyles';
+@use '../blocks/media/components/common/VideoTimeSliderStyle';
+@use 'divi-dark-mode';
+@use 'elementor-dark-mode';
+
 @mixin fp-compact-media-card {
 	background: $bg-white-0;
 	border: 1px solid $stroke-soft-200;
@@ -503,6 +516,12 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	
 	.fluent-player-full-width-input {
 		width: 100%;
+
+		input {
+			border-radius: var(--fp-radius-8);
+			border-color: $stroke-soft-200;
+			min-height: 36px;
+		}
 	}
 	
 	.fluent-player-form-actions {
@@ -518,6 +537,19 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 
 	.fluent-player-url-paste {
 		width: 100%;
+
+		.fluent-player-url-detection {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: $spacing-md;
+			margin-top: $spacing-sm;
+
+			span {
+				font-size: 12px;
+				color: $text-sub-600;
+			}
+		}
 	}
 
 	.fluent-player-media-separator {
@@ -546,6 +578,31 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		flex-wrap: wrap;
 		gap: $spacing-sm;
 		margin-top: $spacing-md;
+
+		.fluent-player-provider-status {
+			display: inline-flex;
+			align-items: center;
+			margin-left: 6px;
+			opacity: 0.55;
+
+			svg {
+				width: 13px;
+				height: 13px;
+			}
+		}
+
+		.fluent-player-more-sources {
+			align-self: center;
+			padding: 9px 8px;
+			color: $primary-base;
+			font-weight: 600;
+			text-decoration: none;
+			box-shadow: none;
+
+			&:hover {
+				text-decoration: underline;
+			}
+		}
 	}
 	
 	.fluent-player-top-save-button {
@@ -1588,6 +1645,20 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		@include fp-compact-media-card;
 	}
 	
+	.subtitle-default-badge {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 8px;
+		padding: 1px 8px;
+		border-radius: 999px;
+		font-size: 11px;
+		font-weight: 500;
+		line-height: 18px;
+		color: $text-strong-950;
+		background: $bg-weak-50;
+		border: 1px solid $stroke-soft-200;
+	}
+
 	.subtitle-edit-form {
 		background: $bg-white-0;
 		border: 1px solid $stroke-soft-200;
@@ -2716,9 +2787,15 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 }
 
 /* Confirm Popover - renders to body via portal; must be at root to match */
-.fp-confirm-popover.components-popover {
-	z-index: 100001;
+.fp-confirm-popover.components-popover,
+.fp-color-picker-popover.components-popover {
+	// Above Divi's Visual Builder app root (z-index ~110000). These popovers portal
+	// to <body>, so without this they stack behind the whole builder + its settings
+	// panel. Still below the block editor's own full-screen modals (1000000).
+	z-index: 999999;
+}
 
+.fp-confirm-popover.components-popover {
 	.components-popover__content {
 		width: 280px;
 		min-width: 280px;
@@ -8421,4 +8498,56 @@ body.fluent-player-block-selected {
 			width: $fp-editor-sidebar-width !important;
 		}
 	}
+}
+
+// Load-more control for the server-searched media dropdown (the media block loads only this
+// stylesheet; the playlist block ships the same rules in its own).
+.fp-media-search {
+	&__load-more-wrap {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		padding: 12px 16px 4px;
+	}
+
+	&__error {
+		color: #b91c1c;
+		font-size: 12px;
+		text-align: center;
+	}
+
+	&__load-more.components-button {
+		justify-content: center;
+		height: auto;
+		padding: 6px 16px;
+		border: 1px solid $stroke-soft-200;
+		border-radius: var(--fp-radius-8);
+		background: $bg-white-0;
+		color: $text-strong-950;
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 20px;
+		transition: background 0.2s ease, border-color 0.2s ease;
+
+		&:hover:not(:disabled) {
+			background: $bg-weak-50 !important;
+			border-color: $stroke-sub-300;
+			color: $text-strong-950 !important;
+		}
+
+		&:focus:not(:disabled) {
+			color: $text-strong-950 !important;
+			border-color: $stroke-sub-300;
+			box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))) !important;
+			outline: none;
+		}
+	}
+}
+
+// Keyboard focus for the searchable dropdown options (tabbable + Enter/Space selectable).
+.fp-media-select-option:focus-visible {
+	background: $bg-soft-200;
+	outline: 2px solid $stroke-sub-300;
+	outline-offset: -2px;
 }

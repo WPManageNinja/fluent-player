@@ -15,9 +15,14 @@ media-time {
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.025em;
+  // Fixed-width digits so the readout (and the seek bar after it) don't shift as the time ticks.
+  font-variant-numeric: tabular-nums;
 }
 
 .fp-media-time-divider {
   margin: 0 2.5px;
   color: #e0e0e0;
+  // Match the numbers — without this the divider inherits a larger font and the slash looks oversized.
+  font-size: 14px;
+  line-height: 1;
 }

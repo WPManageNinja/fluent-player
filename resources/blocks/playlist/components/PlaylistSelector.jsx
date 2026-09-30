@@ -1,8 +1,10 @@
 const { __ } = wp.i18n;
-const { useState } = wp.element;
+const { useState, useCallback } = wp.element;
 const { Button, Placeholder, TextControl } = wp.components;
+const apiFetch = wp.apiFetch;
 import { FluentPlayerBlockIconSVG, BackArrowSmallSVG, PlusIconSVG, TagIconSVG } from '../../media/components/common/Icons';
 import MediaSelectDropdown from '../../media/components/common/MediaSelectDropdown';
+import { playlistLoadPage } from '../../media/components/common/mediaSearch.js';
 import TagsPanel from './TagsPanel.jsx';
 import useTags from '../../hooks/useTags.js';
 
@@ -23,6 +25,9 @@ const PlaylistSelector = ({
     const [isSelectingTags, setIsSelectingTags] = useState(isTagMode);
     const [draftTags, setDraftTags] = useState(tags);
     const { availableTags, tagsLoading, tagsError, retryTags } = useTags({ enabled: isSelectingTags });
+
+    // Server-side, paged playlist search for the dropdown.
+    const loadPlaylistPage = useCallback(({ query, page }) => playlistLoadPage(apiFetch, { query, page }), []);
 
     const handleCreate = () => {
         if (newTitle.trim()) {
@@ -157,6 +162,7 @@ const PlaylistSelector = ({
                                 items={playlists}
                                 value={selectedPlaylist || ''}
                                 onChange={onSelect}
+                                loadPage={loadPlaylistPage}
                                 placeholder={__('Select a playlist', 'fluent-player')}
                                 searchPlaceholder={__('Search playlists…', 'fluent-player')}
                                 emptyText={__('No playlist found', 'fluent-player')}

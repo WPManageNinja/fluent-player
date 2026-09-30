@@ -33,6 +33,7 @@ const statusFilters = [
 	{ key: 'bunny', label: 'BunnyCDN' },
 	{ key: 'mux', label: 'Mux' },
 	{ key: 'gumlet', label: 'Gumlet' },
+	{ key: 'cloudflare', label: 'Cloudflare' },
 ];
 
 const availableStorages = computed(() => {
@@ -54,6 +55,9 @@ const filteredStorages = computed(() => {
 	}
 	if (activeFilter.value === 'gumlet') {
 		list = list.filter(item => item.key === 'gumlet');
+	}
+	if (activeFilter.value === 'cloudflare') {
+		list = list.filter(item => ['cloudflare_r2', 'cloudflare_stream'].includes(item.key));
 	}
 	if (searchQuery.value) {
 		const q = searchQuery.value.toLowerCase();

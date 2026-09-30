@@ -1,5 +1,5 @@
 const { __, sprintf } = wp.i18n;
-const { Button, BaseControl } = wp.components;
+const { Button, BaseControl, SelectControl } = wp.components;
 const { useState, useEffect, useImperativeHandle, forwardRef, useRef } = wp.element;
 const { MediaUpload, MediaUploadCheck } = wp.blockEditor;
 
@@ -11,6 +11,8 @@ import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
 import CustomToggle from '../common/CustomToggle.jsx';
 import ColorPickerInput from '../common/ColorPickerInput.jsx';
 import ConditionSettings from '../common/ConditionSettings.jsx';
+import InfoIcon from '../common/InfoIcon.jsx';
+import ShortcodeInserter from '../common/ShortcodeInserter.jsx';
 import SettingsSectionCard from '../common/SettingsSectionCard.jsx';
 import useAccordionState from '../common/useAccordionState.js';
 import { applyConditionStateKey } from '../../../hooks/conditionStateKey.js';
@@ -33,6 +35,10 @@ const AdLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editingL
 		media_url: '',
 		media_id: '',
 		media_type: '',
+		click_url: '',
+		open_in_new_tab: true,
+		badge_text: '',
+		sound_mode: 'inherit',
 		skip_offset: 0,
 		duration: 5,
 		fill_bar_color: '#000000',
@@ -42,6 +48,8 @@ const AdLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editingL
 	});
 	const isTimeInputChangeRef = useRef(false);
 	const lastSyncedTimeRef = useRef(initialTime);
+	const clickUrlRef = useRef(null);
+	const badgeTextRef = useRef(null);
 
 	useEffect(() => {
 		if (editingLayer) {
@@ -268,6 +276,64 @@ const AdLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editingL
 						/>
 					</MediaUploadCheck>
 				</div>
+
+				{settings.media_url && (
+					<>
+						<div className="fluent-player-form-row">
+							<label className="components-base-control__label">{__('Click-through URL', 'fluent-player')}</label>
+							<div className="fp-input-with-suffix">
+								<input
+									ref={clickUrlRef}
+									type="text"
+									className="fp-input-with-suffix__input"
+									value={settings.click_url || ''}
+									onChange={(e) => updateSetting('click_url', e.target.value)}
+									placeholder="https://"
+								/>
+								<ShortcodeInserter
+									inputRef={clickUrlRef}
+									onInsert={(value) => updateSetting('click_url', value)}
+								/>
+							</div>
+							<p className="components-base-control__help">{__('Where viewers go when they click the ad. Leave empty for a non-clickable ad.', 'fluent-player')}</p>
+						</div>
+
+						{settings.click_url && (
+							<div className="fluent-player-form-row">
+								<CustomToggle
+									checked={settings.open_in_new_tab !== false}
+									onChange={(value) => updateSetting('open_in_new_tab', value)}
+									label={__('Open in new tab', 'fluent-player')}
+									name="open_in_new_tab"
+								/>
+							</div>
+						)}
+
+						<div className="fluent-player-form-row">
+							<label className="components-base-control__label">
+								{__('Badge text', 'fluent-player')}
+								<InfoIcon
+									label={__('About the ad badge', 'fluent-player')}
+									tooltip={__("Shows a small disclosure label over the ad, e.g. 'Ad' or 'Sponsored'. Leave empty to hide it.", 'fluent-player')}
+								/>
+							</label>
+							<div className="fp-input-with-suffix">
+								<input
+									ref={badgeTextRef}
+									type="text"
+									className="fp-input-with-suffix__input"
+									value={settings.badge_text || ''}
+									onChange={(e) => updateSetting('badge_text', e.target.value)}
+									placeholder={__('Ad', 'fluent-player')}
+								/>
+								<ShortcodeInserter
+									inputRef={badgeTextRef}
+									onInsert={(value) => updateSetting('badge_text', value)}
+								/>
+							</div>
+						</div>
+					</>
+				)}
 			</SettingsSectionCard>
 
 			<SettingsSectionCard
@@ -296,6 +362,27 @@ const AdLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editingL
 							onChange={(value) => updateSetting('skip_offset', value)}
 							label={__('Skip Offset (seconds)', 'fluent-player')}
 							helpText={__('Time in seconds after which the skip button will appear', 'fluent-player')}
+						/>
+					</div>
+				)}
+
+				{settings.media_type === 'video' && (
+					<div className="fluent-player-form-row">
+						<label className="components-base-control__label">
+							{__('Ad sound', 'fluent-player')}
+							<InfoIcon
+								label={__('About ad sound', 'fluent-player')}
+								tooltip={__("How the ad's audio starts. 'Sound on' falls back to muted if the browser blocks autoplay with sound.", 'fluent-player')}
+							/>
+						</label>
+						<SelectControl
+							value={settings.sound_mode || 'inherit'}
+							options={[
+								{ label: __('Match player', 'fluent-player'), value: 'inherit' },
+								{ label: __('Start muted', 'fluent-player'), value: 'muted' },
+								{ label: __('Sound on', 'fluent-player'), value: 'on' },
+							]}
+							onChange={(value) => updateSetting('sound_mode', value)}
 						/>
 					</div>
 				)}

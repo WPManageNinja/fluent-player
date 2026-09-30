@@ -30,7 +30,7 @@ export function buildStreamMediaData(video = {}, options = {}) {
             src: hls,
             posterSrc: video.thumbnail || '',
             title,
-            post_status: 'publish',
+            post_status: options.postStatus || 'publish',
             viewType: 'video',
             playsInline: true,
             mutedAutoplay: false,

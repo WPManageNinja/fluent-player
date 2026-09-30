@@ -88,7 +88,15 @@ media-player.fp-hide-bottom-controls .vds-controls-group[data-controls-group="bo
 
     // Border/radius/shadow moved to the .fluent-playlist wrapper above.
     padding: 0;
-    gap: var(--fp-playlist-divider-gap, 0);
+    // Container gap = the separator "space" size PLUS the explicit Container Gap control
+    // (matches the editor preview). Both vars must be lengths for calc() — the emitters use
+    // 0px, never a unitless 0.
+    gap: calc(var(--fp-playlist-divider-gap, 0px) + var(--fp-playlist-gap, 0px));
+}
+
+// Item Spacing between playlist items on the frontend (matches the editor).
+[id^="fluent_playlist_"] .playlist-items {
+    gap: var(--fp-playlist-item-spacing, 8px);
 }
 
 [id^="fluent_playlist_"].fp-playlist-audio,

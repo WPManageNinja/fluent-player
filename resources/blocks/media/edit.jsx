@@ -119,6 +119,7 @@ import LayersSettings from './components/settings/LayersSettings.jsx';
 import TagSettings from './components/settings/TagSettings.jsx';
 import { NotificationProvider } from './components/common/NotificationContext.jsx';
 import NotificationContainer from './components/common/NotificationContainer.jsx';
+import { defaultPostStatus } from '@share/helper.js';
 import {
     BrandingIconSVG,
     GeneralSettingsIconSVG,
@@ -135,7 +136,6 @@ import {
 import { useNotification } from './components/common/useNotification.js';
 import TimedContentManager from './components/TimedContentManager.jsx';
 import QuickLinks from './components/QuickLinks.jsx';
-import { extractYouTubeId } from '@share/helper.js';
 
 /**
  * Custom hooks for state management
@@ -381,35 +381,13 @@ const EditInner = (props) => {
         return url;
     };
 
-    const checkImageExists = (imageUrl) => {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(img.width > 120);
-            img.onerror = () => resolve(false);
-            img.src = imageUrl;
-        });
-    };
-
     const fetchMediaMetaData = async (mediaUrl) => {
         try {
             const response = await apiFetch({
                 path: `${apiRequestPath}/media/metadata?url=${encodeURIComponent(mediaUrl)}`
             });
             if (response && response.metaData) {
-                const metaData = response.metaData;
-                const videoId = extractYouTubeId(mediaUrl);
-                if (videoId && metaData.thumbnail_url) {
-                    const maxResThumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-                    const hqThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                    try {
-                        const hasMaxRes = await checkImageExists(maxResThumb);
-                        metaData.thumbnail_url = hasMaxRes ? maxResThumb : hqThumb;
-                    } catch {
-                        metaData.thumbnail_url = hqThumb;
-                    }
-                }
-
-                return metaData;
+                return response.metaData;
             }
             throw new Error(response?.message || 'Failed to fetch media metadata');
         } catch (error) {
@@ -422,8 +400,10 @@ const EditInner = (props) => {
      *
      * @returns {Promise<void>}
      */
-    const processAndLoadVideoFromUrl = async () => {
+    const processAndLoadVideoFromUrl = async (sourceOverride) => {
         if (!mediaUrlInput.url) return;
+
+        const source = typeof sourceOverride === 'string' ? sourceOverride : mediaState.source;
 
         const isYouTubeShort = /youtube\.com\/shorts\//.test(mediaUrlInput.url);
         const normalizedUrl = normalizeVideoUrl(mediaUrlInput.url);
@@ -431,14 +411,25 @@ const EditInner = (props) => {
         try {
             const metaData = await fetchMediaMetaData(normalizedUrl);
             if (metaData) {
+                const isUrlSource = source === 'url';
+                const detectedProvider = !isUrlSource ? source
+                    : metaData.provider ? metaData.provider
+                    : metaData.provider_name === 'YouTube' ? 'youtube'
+                    : metaData.provider_name === 'Vimeo' ? 'vimeo'
+                    : 'external';
+                const isAudio = isUrlSource && (metaData.media_type || metaData.type) === 'audio';
                 const externalMediaToSave = {
-                    title: metaData.title || __(`Untitled ${mediaState.source} media`, 'fluent-player'),
+                    title: metaData.title || (isUrlSource
+                        ? __('Untitled media', 'fluent-player')
+                        : __(`Untitled ${source} media`, 'fluent-player')),
                     src: metaData.url,
-                    provider: mediaState.source,
+                    provider: detectedProvider,
+                    ...(metaData.attachment_id ? { attachment_id: metaData.attachment_id } : {}),
                     posterSrc: metaData.thumbnail_url || '',
-                    viewType: 'video',
+                    viewType: isAudio ? 'audio' : 'video',
                     settings: {
                         duration: metaData.duration || 0,
+                        ...(isAudio ? { mediaType: 'audio' } : {}),
                         ...(isYouTubeShort ? { is_short: true, aspectRatio: '9:16' } : {}),
                     }
                 };
@@ -538,7 +529,7 @@ const EditInner = (props) => {
                     apiRequestData = {
                         settings: {
                             title: currentMediaToSave.title || __('Untitled Media', 'fluent-player'),
-                            post_status: appState.isDedicatedPlayer ? 'draft' : 'publish',
+                            post_status: defaultPostStatus(appState.isDedicatedPlayer),
                             src: currentMediaToSave.src,
                             provider: currentMediaToSave.provider,
                             posterSrc: currentMediaToSave.posterSrc || '',
@@ -567,14 +558,18 @@ const EditInner = (props) => {
                         aspectRatio: currentMediaData.settings.aspectRatio || 'default'
                     };
 
-                    // Sync post_status so visibility changes persist.
-                    // On CPT page: read from editor store (has the user's latest toggle choice).
-                    // On non-CPT pages: preserve the media's existing status (editor store
-                    // reflects the HOST page's status, not the media item's).
+                    // Status travels only from the CPT editor; omitted statuses are
+                    // preserved server-side from the live post row.
                     if (appState.isDedicatedPlayer) {
-                        settings.post_status = wp.data.select('core/editor').getEditedPostAttribute('status') || 'publish';
-                    } else if (currentMediaData.settings.post_status) {
-                        settings.post_status = currentMediaData.settings.post_status;
+                        // future/pending would 422 the REST validation — omit to keep the schedule.
+                        const editorStatus = wp.data.select('core/editor').getEditedPostAttribute('status') || 'publish';
+                        if (['publish', 'private', 'draft'].includes(editorStatus)) {
+                            settings.post_status = editorStatus;
+                        } else {
+                            delete settings.post_status;
+                        }
+                    } else {
+                        delete settings.post_status;
                     }
 
                     apiRequestData = {

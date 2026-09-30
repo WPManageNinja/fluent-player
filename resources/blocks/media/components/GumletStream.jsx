@@ -6,6 +6,7 @@ import ConfirmPopover from './common/ConfirmPopover.jsx';
 import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG } from './common/Icons.jsx';
 import { buildGumletMediaData } from './common/buildGumletMediaData.js';
+import { defaultPostStatus } from '@share/helper.js';
 
 const CopyIconSVG = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -109,7 +110,7 @@ const GumletStream = ({
                 duration: 0,
                 is_private: false,
             },
-            { presetSlug, assetType: 'live', untitledLabel: __('Gumlet Live', 'fluent-player') }
+            { presetSlug, assetType: 'live', untitledLabel: __('Gumlet Live', 'fluent-player'), postStatus: defaultPostStatus() }
         );
         try {
             // Persist first — only reflect the selection in the block once the

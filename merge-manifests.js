@@ -9,9 +9,22 @@ const assetsDir = path.join(__dirname, 'assets');
 const outputManifestPath = path.join(assetsDir, 'manifest.json');
 
 function mergeManifests() {
+    // Seed from the existing combined manifest so a PARTIAL rebuild (e.g. `npm run
+    // frontend`, which only emits a few per-mode manifests) updates just those entries
+    // instead of clobbering every other mode's entries. Starting from {} was silently
+    // dropping the page-builder / admin / gutenberg keys whenever a partial build ran
+    // after a full one, which 404s those assets in production.
     let combinedManifest = {};
+    if (fs.existsSync(outputManifestPath)) {
+        try {
+            combinedManifest = JSON.parse(fs.readFileSync(outputManifestPath, 'utf8'));
+        } catch (e) {
+            console.warn(`Could not parse existing manifest.json; starting fresh: ${e.message}`);
+            combinedManifest = {};
+        }
+    }
 
-    const manifestFiles = ['manifest.fluent-player.json', 'manifest.fluent-playlist.json', 'manifest.playlist.json', 'manifest.admin.json', 'manifest.gutenberg.json', 'manifest.vidstack-loader.json', 'manifest.gutenberg-playlist.json', 'manifest.timed-content.json', 'manifest.media-toolbar.json'];
+    const manifestFiles = ['manifest.fluent-player.json', 'manifest.fluent-playlist.json', 'manifest.playlist.json', 'manifest.admin.json', 'manifest.gutenberg.json', 'manifest.elementor.json', 'manifest.elementor-canvas.json', 'manifest.elementor-playlist-canvas.json', 'manifest.divi-vb.json', 'manifest.divi-playlist.json', 'manifest.vidstack-loader.json', 'manifest.gutenberg-playlist.json', 'manifest.timed-content.json', 'manifest.media-toolbar.json'];
 
     manifestFiles.forEach(file => {
         const manifestPath = path.join(assetsDir, file);

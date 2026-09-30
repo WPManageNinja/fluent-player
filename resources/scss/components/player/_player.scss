@@ -19,6 +19,17 @@
   margin-right: auto;
 }
 
+/* Cover the frame so a 16:9 thumbnail fills a 9:16 Short instead of letterboxing to a strip.
+   Absolute-fill because Vidstack's poster img is display:inline, where height:100% collapses. */
+.fluent-player.fp-portrait media-poster img,
+.fluent-player.fp-short media-poster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 media-player[data-view-type='video'] {
   position: relative;
   width: 100%;

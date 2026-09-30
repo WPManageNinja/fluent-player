@@ -7,6 +7,7 @@ import useNotification from './common/useNotification.js';
 import ConfirmPopover from './common/ConfirmPopover.jsx';
 import { BackArrowSmallSVG, UploadIconSVG, DirectoryIconSVG, SearchIconSVG, DeleteIconSVG, EditIconSVG, PlusIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { buildR2MediaData } from './r2/buildR2MediaData.js';
+import { defaultPostStatus } from '@share/helper.js';
 
 const restBase = () => {
     const rest = window.fluentPlayerBlockVars?.rest || {};
@@ -134,7 +135,7 @@ const R2 = ({
 
             const updatedMediaData = buildR2MediaData(
                 { ...file, duration },
-                { presetSlug, untitledLabel: __('Untitled R2 Video', 'fluent-player') }
+                { presetSlug, untitledLabel: __('Untitled R2 Video', 'fluent-player'), postStatus: defaultPostStatus() }
             );
 
             if (typeof saveMediaToServer === 'function') {
@@ -225,7 +226,7 @@ const R2 = ({
             title: __('Select or Upload Video', 'fluent-player'),
             button: { text: __('Use this video', 'fluent-player') },
             multiple: false,
-            library: { type: 'video' }
+            library: { type: ['video', 'audio'] }
         });
         uploader.on('select', () => {
             const attachment = uploader.state().get('selection').first().toJSON();

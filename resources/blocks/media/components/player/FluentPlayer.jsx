@@ -12,6 +12,8 @@ import VideoLayout from './VideoLayout';
 import CenterControls from './CenterControls';
 import VideoErrorOverlay from '../common/VideoErrorOverlay';
 import { resolveCrossOrigin } from './crossOrigin.js';
+import { isAudioMediaData } from '../../../../js/utils/videoSrc.js';
+import { createMediaErrorGuard } from './mediaErrorGuard.js';
 import '../PresetStyles.scss';
 
 const {useRef, useEffect, useState, useCallback, useMemo} = wp.element;
@@ -121,7 +123,11 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
             vtt += `${chapter.title}\n\n`;
         });
 
-        return 'data:text/vtt;base64,' + btoa(vtt);
+        // btoa mangles non-Latin-1; encode to UTF-8 bytes first
+        let binary = '';
+        new TextEncoder().encode(vtt).forEach((byte) => { binary += String.fromCharCode(byte); });
+
+        return 'data:text/vtt;base64,' + btoa(binary);
     };
 
     // Compute aspect ratio
@@ -548,42 +554,35 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         };
         player.addEventListener('volume-change', handleVolumeChange);
 
-        const handleError = (event) => {
-            const error = event.detail;
-            const src = player?.src || mediaData?.src || '';
-            const isBunnyStorageStream = typeof src === 'string' && src.includes('bunny/storage/stream');
-
-            if (isBunnyStorageStream) {
-                const delayMs = 2500;
-                const timeoutId = setTimeout(() => {
-                    setIsLoading(false);
-                    setVideoError(error);
-                }, delayMs);
-                const onCanPlay = () => {
-                    clearTimeout(timeoutId);
-                    player.removeEventListener('canplay', onCanPlay);
-                    player.removeEventListener('loadeddata', onLoadedData);
-                };
-                const onLoadedData = () => {
-                    clearTimeout(timeoutId);
-                    player.removeEventListener('canplay', onCanPlay);
-                    player.removeEventListener('loadeddata', onLoadedData);
-                };
-                player.addEventListener('canplay', onCanPlay, { once: true });
-                player.addEventListener('loadeddata', onLoadedData, { once: true });
-                return;
-            }
-
-            setIsLoading(false);
-            setVideoError(error);
-        };
+        // Debounce error surfacing: streaming sources (HLS via hls.js, Bunny/Mux/Gumlet
+        // CDN) fire a transient error before the loader attaches and recovers. Only show
+        // the error overlay if the player has not become playable within a grace window —
+        // otherwise the overlay flashes on the first editor load even though playback works.
+        const errorGuard = createMediaErrorGuard({
+            delayMs: 2500,
+            onFail: (error) => {
+                setIsLoading(false);
+                setVideoError(error);
+            },
+        });
+        const handleError = (event) => errorGuard.onError(event.detail);
+        const handleRecovered = () => errorGuard.onRecovered();
         player.addEventListener('error', handleError);
+        player.addEventListener('canplay', handleRecovered);
+        player.addEventListener('loadeddata', handleRecovered);
+        player.addEventListener('can-play', handleRecovered);
 
         return () => {
+            // Cancel any pending error-grace timer so it can't fire setState after the
+            // source changes or the component unmounts.
+            errorGuard.onRecovered();
             if (typeof unsubscribe === 'function') {
                 unsubscribe();
             }
             player.removeEventListener('error', handleError);
+            player.removeEventListener('canplay', handleRecovered);
+            player.removeEventListener('loadeddata', handleRecovered);
+            player.removeEventListener('can-play', handleRecovered);
             player.removeEventListener('waiting', handleWaiting);
             player.removeEventListener('playing', handlePlaying);
             player.removeEventListener('seeked', handleSeeked);
@@ -617,8 +616,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         const player = playerRef.current;
         if (!player) return;
         const provider = mediaData?.provider || mediaData?.settings?.provider;
-        const viewType = mediaData?.viewType || mediaData?.settings?.viewType;
-        if (provider === 'youtube' || viewType === 'audio') return;
+        if (provider === 'youtube' || isAudioMediaData(mediaData, videoSrc)) return;
         const dismiss = () => setPosterDismissed(true);
         if (player.currentTime > 0) { dismiss(); return; }
         player.addEventListener('seeked', dismiss, { once: true });
@@ -641,7 +639,10 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
     const chaptersVTT = generateChaptersVTT();
     const aspectRatio = getAspectRatio();
     const skin = mediaData.skin || 'modern';
-    const isAudioLayout = mediaData.viewType === 'audio';
+    // Render-time audio detection: CDN providers hardcode viewType=video, so an
+    // audio file/stream through them must still render the audio layout here to
+    // match the frontend (Helper::isAudioSource). Mirrors resources/js/utils/videoSrc.js.
+    const isAudioLayout = isAudioMediaData(mediaData, videoSrc);
     const shouldShowPosterPlayButton = !isAudioLayout && (skin === 'minimal' || !behaviors.hide_center_controls);
 
     // Detect portrait aspect ratio (width < height)
@@ -658,7 +659,9 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         overflow: 'hidden',
         // Don't apply aspect ratio for audio layout
         aspectRatio: !isPresetPreview && !isAudioLayout && aspectRatio,
-        ...(posterSrcWithToken && (!isAudioLayout || mediaData.settings?.show_poster !== false) && {
+        // Video uses the poster as a container backdrop; audio does not (the audio
+        // layout renders its own poster block / default music note).
+        ...(posterSrcWithToken && !isAudioLayout && {
             backgroundImage: `url(${posterSrcWithToken})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
@@ -682,8 +685,8 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                     load="play"
                     poster={posterSrcWithToken || undefined}
                     stream-type={mediaData.streamType || 'on-demand'}
-                    media-type={mediaData.mediaType || 'video'}
-                    view-type={mediaData.viewType || 'video'}
+                    media-type={isAudioLayout ? 'audio' : (mediaData.mediaType || 'video')}
+                    view-type={isAudioLayout ? 'audio' : (mediaData.viewType || 'video')}
                     style={{
                         '--media-brand': brandingColor,
                         '--fp-control-bar-bg': controlBarColor || undefined,
@@ -721,8 +724,8 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                 playsinline={mediaData.playsInline ? true : undefined}
                 muted={mediaData.muted || mediaData.mutedAutoplay ? true : undefined}
                 stream-type={mediaData.streamType || 'on-demand'}
-                media-type={mediaData.mediaType || 'video'}
-                view-type={mediaData.viewType || 'video'}
+                media-type={isAudioLayout ? 'audio' : (mediaData.mediaType || 'video')}
+                view-type={isAudioLayout ? 'audio' : (mediaData.viewType || 'video')}
                 load={loadStrategy}
                 loop={mediaData.video_end_option === 'loop' ? true : undefined}
                 ref={playerRef}
@@ -759,6 +762,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                     playerRef={playerRef}
                     currentTime={currentTime}
                     settings={{ ...mediaData, thumbnails: thumbnailsWithToken, _hideCaptions: !captionsEnabled }}
+                    isAudio={isAudioLayout}
                     presetData={presetData}
                     skin={skin}
                 />

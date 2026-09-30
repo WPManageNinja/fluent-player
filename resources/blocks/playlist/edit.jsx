@@ -20,6 +20,7 @@ const { useDispatch } = wp.data;
  */
 import PlaylistSelector from './components/PlaylistSelector.jsx';
 import PlaylistEditor from './components/PlaylistEditor.jsx';
+import { defaultPostStatus } from '@share/helper.js';
 import GeneralSettings from './components/settings/GeneralSettings.jsx';
 import LayoutSettings from './components/settings/LayoutSettings.jsx';
 import AppearanceSettings from './components/settings/AppearanceSettings.jsx';
@@ -30,87 +31,7 @@ import { NotificationProvider } from '../media/components/common/NotificationCon
 import NotificationContainer from '../media/components/common/NotificationContainer.jsx';
 import { useNotification } from '../media/components/common/useNotification.js';
 import { resolveAspectRatioValue, toCssAspectRatio } from './utils/ratio.js';
-
-/**
- * Default playlist settings
- */
-const DEFAULT_PLAYLIST_SETTINGS = {
-    title: '',
-    medias: [],
-    appearance: {
-        backgroundColor: '#ffffff',
-        textColor: '#333333',
-        brandColor: {
-            mode: 'auto',
-            value: '#DD1F13'
-        },
-        borderRadius: { value: 8, unit: 'px' },
-        borderColor: '#e1e5e9',
-        borderWidth: { value: 0, unit: 'px' },
-        separator: { type: 'line', size: { value: 1, unit: 'px' } },
-        boxShadow: {
-            enabled: false,
-            horizontal: 0,
-            vertical: 4,
-            blur: 10,
-            spread: 0,
-            color: 'rgba(0, 0, 0, 0.1)',
-            position: 'outline'
-        }
-    },
-    layout: {
-        type: 'standard',
-        position: 'right',
-        showHeader: true,
-        headerPosition: 'top',
-        sidebarWidth: 40
-    },
-    typography: {
-        enabled: false,
-        fontSize: { value: 14, unit: 'px' },
-        fontWeight: '400',
-        lineHeight: 1.4
-    },
-    behavior: {
-        autoplay: false,
-        continuousPlay: true,
-        loop: false,
-        showThumbnails: true,
-        thumbnailGridLayout: false,
-        showThumbnailInfo: true,
-        titlePosition: 'overlay',
-        showNavButtons: true,
-        showPlaylistMenuToggle: true
-    },
-    learning: {
-        enableProgress: true,
-        enableChapters: true,
-        completionThreshold: 80,
-        showLockedContent: true
-    },
-    grid: {
-        columns: 3,
-        itemsPerPage: 12,
-        displayMode: 'inline',
-        showPlayerOnTop: true,
-        enableSearch: true,
-        enableFilters: true,
-        lazyLoad: true,
-        modalLayout: 'centered',
-        modalShowInfo: true
-    }
-};
-
-const mergePlaylistSettings = (settings = {}) => ({
-    ...DEFAULT_PLAYLIST_SETTINGS,
-    ...settings,
-    appearance: { ...DEFAULT_PLAYLIST_SETTINGS.appearance, ...settings?.appearance },
-    layout: { ...DEFAULT_PLAYLIST_SETTINGS.layout, ...settings?.layout },
-    typography: { ...DEFAULT_PLAYLIST_SETTINGS.typography, ...settings?.typography },
-    behavior: { ...DEFAULT_PLAYLIST_SETTINGS.behavior, ...settings?.behavior },
-    learning: { ...DEFAULT_PLAYLIST_SETTINGS.learning, ...settings?.learning },
-    grid: { ...DEFAULT_PLAYLIST_SETTINGS.grid, ...settings?.grid }
-});
+import { DEFAULT_PLAYLIST_SETTINGS, mergePlaylistSettings } from './utils/settings.js';
 
 /**
  * Custom hook for playlist state management
@@ -268,8 +189,11 @@ const getAppearanceStyles = (settings, getBrandColor, medias = []) => {
     // Separator between player and playlist: a line (border) or whitespace (gap).
     const separator = appearance.separator || { type: 'line', size: { value: 1, unit: 'px' } };
     const separatorSize = formatCssValue(separator.size || { value: 1, unit: 'px' });
-    styles['--fp-playlist-divider-width'] = separator.type === 'line' ? separatorSize : '0';
-    styles['--fp-playlist-divider-gap'] = separator.type === 'space' ? separatorSize : '0';
+    styles['--fp-playlist-divider-width'] = separator.type === 'line' ? separatorSize : '0px';
+    // Must be a LENGTH (0px, not 0): the container gap is `calc(divider-gap + container-gap)`,
+    // and calc() rejects a unitless 0 added to a px value (the whole gap then falls back to
+    // `normal` — no gap at all).
+    styles['--fp-playlist-divider-gap'] = separator.type === 'space' ? separatorSize : '0px';
 
     // Box shadow - always set (defaults to 'none' if disabled)
     styles['--fp-playlist-box-shadow'] = getBoxShadowValue(appearance.boxShadow);
@@ -518,13 +442,19 @@ const EditInner = (props) => {
             const playlistId = playlistState.data?.ID;
             const isNew = !playlistId;
 
+            const requestData = {
+                id: playlistId,
+                settings: JSON.stringify(playlistState.data.settings)
+            };
+            // Create-only: updates never touch status.
+            if (isNew) {
+                requestData.post_status = defaultPostStatus();
+            }
+
             const response = await apiFetch({
                 path: `${apiRequestPath}/playlist${playlistId ? '/' + playlistId : ''}`,
                 method: playlistId ? 'PUT' : 'POST',
-                data: {
-                    id: playlistId,
-                    settings: JSON.stringify(playlistState.data.settings)
-                }
+                data: requestData
             });
 
             if (response?.playlist && (isNew || committedPlaylistIdRef.current === playlistId)) {
@@ -769,6 +699,29 @@ const EditInner = (props) => {
         }
     }, [isTagMode, attributes.playlistId]);
 
+    // Live settings preview: a separate settings surface (the Divi sidebar app) edits the same
+    // playlist in its own React tree. Apply its settings to this canvas immediately so a change
+    // reflects without the debounced save + full remount (the Divi "latency"). Updates display
+    // state only — no isDirty, so it never triggers this block's own save.
+    useEffect(() => {
+        if (isTagMode) return undefined;
+        const onLivePreview = (e) => {
+            const detail = e.detail || {};
+            if (!detail.settings) return;
+            if (detail.playlistId && String(detail.playlistId) !== String(attributes.playlistId)) return;
+            const base = playlistDataRef.current;
+            if (!base) return;
+            // Apply the settings-panel changes but KEEP the canvas's own media list — media
+            // add/remove/reorder is managed here, not in the settings app, whose snapshot may be
+            // stale.
+            const merged = mergePlaylistSettings(detail.settings);
+            merged.medias = base.settings?.medias || merged.medias;
+            updatePlaylistState({ data: { ...base, settings: merged } });
+        };
+        document.addEventListener('fluentPlayer/playlistLivePreview', onLivePreview);
+        return () => document.removeEventListener('fluentPlayer/playlistLivePreview', onLivePreview);
+    }, [isTagMode, attributes.playlistId, updatePlaylistState]);
+
     useEffect(() => {
         let cancelled = false;
         const requestId = ++tagMediasRequestIdRef.current;
@@ -835,7 +788,7 @@ const EditInner = (props) => {
                 });
                 if (response?.data) {
                     const items = response.data.map(item => ({
-                        label: `${item.post_title || 'Playlist'} (#${item.ID})`,
+                        label: `${item.post_title || 'Playlist'} (#${item.ID})${item.post_status === 'private' ? ` — ${__('Private', 'fluent-player')}` : ''}`,
                         value: item.ID,
                         title: item.post_title || 'Playlist',
                         posterSrc: item.poster_src || '',
@@ -855,7 +808,18 @@ const EditInner = (props) => {
         if (playlistState.isDirty && wp.data?.dispatch('core/editor')) {
             wp.data.dispatch('core/editor').editPost({ meta: { _fluent_playlist_changed: Date.now() } });
         }
-    }, [isTagMode, playlistState.isDirty, playlistState.data?.settings?.medias]);
+        // Broadcast media changes so a separate settings surface (the Divi sidebar app) keeps its
+        // media snapshot fresh — otherwise its next settings save would overwrite canvas media
+        // edits with a stale list.
+        if (attributes.playlistId) {
+            document.dispatchEvent(new CustomEvent('fluentPlayer/playlistMediasChanged', {
+                detail: {
+                    playlistId: String(attributes.playlistId),
+                    medias: playlistState.data?.settings?.medias || [],
+                },
+            }));
+        }
+    }, [isTagMode, playlistState.isDirty, playlistState.data?.settings?.medias, attributes.playlistId]);
 
     useEffect(() => {
         if (isTagMode || !wp.data?.subscribe) return;

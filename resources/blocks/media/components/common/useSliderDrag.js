@@ -48,12 +48,16 @@ export const useSliderDrag = (sliderRef, { min, max, step = 1, onChange }) => {
 			setIsDragging(false);
 		};
 
-		document.addEventListener('mousemove', handleMouseMove, { passive: false });
-		document.addEventListener('mouseup', handleMouseUp);
+		// Attach to the slider's OWN document: in a builder panel (Divi's iframe) it lives in a
+		// different document than the bundle's global `document`, so global listeners only fired
+		// once the cursor left the control — dragging appeared to work only outside it.
+		const doc = (sliderRef.current && sliderRef.current.ownerDocument) || document;
+		doc.addEventListener('mousemove', handleMouseMove, { passive: false });
+		doc.addEventListener('mouseup', handleMouseUp);
 
 		return () => {
-			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('mouseup', handleMouseUp);
+			doc.removeEventListener('mousemove', handleMouseMove);
+			doc.removeEventListener('mouseup', handleMouseUp);
 		};
 	}, [isDragging, calculateValue, onChange]);
 

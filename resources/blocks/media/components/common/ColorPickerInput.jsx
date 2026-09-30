@@ -1,7 +1,8 @@
-const { useState, useRef } = wp.element;
+const { useState, useRef, useEffect } = wp.element;
 const { useInstanceId } = wp.compose;
 const { useSelect } = wp.data;
 const { BaseControl, ColorPalette, Popover } = wp.components;
+import { isClickOutsideColorPopover } from './colorPickerOutsideClick.js';
 
 const ColorPickerInput = ({
 	value,
@@ -16,6 +17,18 @@ const ColorPickerInput = ({
 	const [isOpen, setIsOpen] = useState(false);
 	const triggerRef = useRef(null);
 	const helpId = useInstanceId(ColorPickerInput, 'fp-color-picker-help');
+
+	// WP Popover's focus-outside dismiss is swallowed in the Divi builder, so add a
+	// capture-phase outside-click listener on the picker's own document instead.
+	useEffect(() => {
+		if (!isOpen) return undefined;
+		const doc = (triggerRef.current && triggerRef.current.ownerDocument) || document;
+		const onDown = (e) => {
+			if (isClickOutsideColorPopover(e.target, triggerRef.current)) setIsOpen(false);
+		};
+		doc.addEventListener('mousedown', onDown, true);
+		return () => doc.removeEventListener('mousedown', onDown, true);
+	}, [isOpen]);
 
 	const colors = useSelect((select) => {
 		try {

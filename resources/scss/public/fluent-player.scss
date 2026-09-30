@@ -78,3 +78,17 @@
     .fp-unlock-row { display: flex; gap: .5em; justify-content: center; flex-wrap: wrap; align-items: center; }
     .fp-unlock-error { color: #c0392b; margin: .75em 0 0; font-size: 13px; }
 }
+
+// Page-builder editors (Elementor) render the player after the runtime's DOM-ready boot
+// and re-render it on edit, so the FluentPlayer JS wrapper that dismisses the loading
+// overlay may never (re)attach — leaving the black loader over a playing video (audio +
+// moving seeker, black frame). In the editor, dismiss the loader from the player's own
+// ready state so the frame is visible regardless of the JS wrapper. Scoped to the
+// Elementor editor preview (body.elementor-editor-active) so the front-end loading /
+// buffering UX is completely unaffected.
+.elementor-editor-active {
+    media-player[data-can-play] ~ .fluent-player-loader {
+        opacity: 0;
+        pointer-events: none;
+    }
+}

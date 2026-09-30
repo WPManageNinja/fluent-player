@@ -7,6 +7,7 @@ import Skeleton from './common/Skeleton.jsx';
 import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, SearchIconSVG, EditIconSVG, DeleteIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { buildGumletMediaData } from './common/buildGumletMediaData.js';
+import { defaultPostStatus } from '@share/helper.js';
 import { gumletDeleteErrorMessage } from './common/gumletMessages.js';
 
 const GumletProvider = ({
@@ -29,6 +30,7 @@ const GumletProvider = ({
     const [currentPage, setCurrentPage] = useState(1);
     const pollIntervalRef = useRef(null);
     const selectingRef = useRef(false);
+    const audioByAssetId = useRef({});
 
     // Edit modal state
     const [assetToEdit, setAssetToEdit] = useState(null);
@@ -102,6 +104,10 @@ const GumletProvider = ({
         const data = buildGumletMediaData(asset, {
             presetSlug,
             untitledLabel: __('Untitled Gumlet Video', 'fluent-player'),
+            postStatus: defaultPostStatus(),
+            isAudio: (typeof audioByAssetId.current[asset.id] !== 'undefined')
+                ? audioByAssetId.current[asset.id]
+                : asset.is_audio,
         });
 
         try {
@@ -127,7 +133,7 @@ const GumletProvider = ({
         const frame = wp.media({
             title: __('Select or upload a video for Gumlet', 'fluent-player'),
             button: { text: __('Use this video', 'fluent-player') },
-            library: { type: 'video' },
+            library: { type: ['video', 'audio'] },
             multiple: false,
         });
         frame.on('select', () => {
@@ -210,6 +216,10 @@ const GumletProvider = ({
                 setIsUploading(false);
                 return;
             }
+
+            audioByAssetId.current[created.id] = (typeof created.is_audio !== 'undefined')
+                ? !!created.is_audio
+                : (attachment.type === 'audio' || String(attachment.mime || attachment.subtype || '').startsWith('audio'));
 
             // Bytes are in Gumlet's storage — poll transcode status.
             updateNotification(notifId, {

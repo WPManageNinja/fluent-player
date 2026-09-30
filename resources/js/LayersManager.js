@@ -20,6 +20,7 @@ class LayersManager {
         // Initialize tracking properties before early return so destroy() always works
         this.layerStates = new Map();
         this.persistedConditionStates = new Map();
+        this._layerEventSubscribers = new Set();
         this.currentDisplayedLayers = new Set();
         this.eventListeners = new Map();
         this._layerDomListeners = new Map();
@@ -507,6 +508,65 @@ class LayersManager {
     }
 
     /**
+     * Text for the "Skip in Ns" countdown shown before the skip button appears.
+     */
+    _skipCountdownLabel(remaining) {
+        return `${$t('Skip in')} ${remaining}s`;
+    }
+
+    /**
+     * Create the "Skip in Ns" countdown element for an ad layer.
+     */
+    createAdSkipCountdown(layer) {
+        const el = document.createElement('div');
+        el.className = 'fluent-player-ad-skip-countdown';
+        el.textContent = this._skipCountdownLabel(Math.ceil(Number(layer.skip_offset) || 0));
+        return el;
+    }
+
+    /**
+     * Mute/unmute toggle for a video ad. Reflects the video's muted state with an
+     * icon + state-updating aria-label, and shows a "Tap for sound" hint while muted.
+     * Returns { button, update, cleanup }.
+     */
+    createAdMuteToggle(adVideo) {
+        const mutedIcon = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63m2.5 0c0 .94-.2 1.83-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71M4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73zM12 4 9.91 6.09 12 8.18z"/></svg>';
+        const soundIcon = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77"/></svg>';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'fluent-player-ad-mute-toggle';
+
+        const update = () => {
+            const muted = adVideo.muted || adVideo.volume === 0;
+            btn.classList.toggle('is-muted', muted);
+            btn.setAttribute('aria-label', muted ? $t('Unmute ad') : $t('Mute ad'));
+            btn.innerHTML = muted
+                ? `${mutedIcon}<span class="fluent-player-ad-mute-toggle__hint">${$t('Tap for sound')}</span>`
+                : soundIcon;
+        };
+
+        const onClick = () => {
+            adVideo.muted = !adVideo.muted;
+            update();
+        };
+
+        btn.addEventListener('click', onClick);
+        adVideo.addEventListener('volumechange', update);
+        update();
+
+        return {
+            button: btn,
+            update,
+            cleanup: () => {
+                btn.removeEventListener('click', onClick);
+                adVideo.removeEventListener('volumechange', update);
+                if (btn.parentNode) btn.remove();
+            }
+        };
+    }
+
+    /**
      * Setup skip button for ad layer. Returns { button, cleanup }
      */
     setupAdSkipButton(layer) {
@@ -515,14 +575,30 @@ class LayersManager {
         const skipOffset = Number(layer.skip_offset) || 0;
         let button = null;
         let timeoutId = null;
+        let countdownEl = null;
+        let countdownIntervalId = null;
+
+        const removeCountdown = () => {
+            if (countdownIntervalId !== null) { clearInterval(countdownIntervalId); countdownIntervalId = null; }
+            if (countdownEl && countdownEl.parentNode) { countdownEl.remove(); }
+            countdownEl = null;
+        };
 
         const addButton = () => {
             if (button) return;
+            removeCountdown();
             button = this.createAdSkipButton(layer);
             layerEl.appendChild(button);
         };
 
         if (skipOffset > 0) {
+            countdownEl = this.createAdSkipCountdown(layer);
+            layerEl.appendChild(countdownEl);
+            const startTime = Date.now();
+            countdownIntervalId = setInterval(() => {
+                const remaining = Math.max(0, Math.ceil(skipOffset - (Date.now() - startTime) / 1000));
+                if (countdownEl) countdownEl.textContent = this._skipCountdownLabel(remaining);
+            }, 250);
             timeoutId = setTimeout(addButton, skipOffset * 1000);
         } else {
             addButton();
@@ -532,6 +608,7 @@ class LayersManager {
             button,
             cleanup: () => {
                 if (timeoutId !== null) clearTimeout(timeoutId);
+                removeCountdown();
                 if (button && button.parentNode) button.remove();
             }
         };
@@ -548,6 +625,7 @@ class LayersManager {
         if (adVideo) {
             const skipOffset = Number(layer.skip_offset) || 0;
             let adSkipButtonRef = null;
+            let videoSkipCountdownEl = null;
             const timeRemainingBarTrack = layerEl.querySelector('.fluent-player-layer-ad-time-remaining-bar');
             const timeRemainingBarFill = layerEl.querySelector('.fluent-player-layer-ad-time-remaining-bar-fill');
             if (layer.fill_bar_color) {
@@ -556,6 +634,19 @@ class LayersManager {
                 if (trackColor && timeRemainingBarTrack) timeRemainingBarTrack.style.backgroundColor = trackColor;
             }
 
+            const soundMode = layer.sound_mode || 'inherit';
+            if (soundMode === 'inherit') {
+                adVideo.muted = this.player ? !!this.player.muted : true;
+                if (this.player && typeof this.player.volume === 'number') adVideo.volume = this.player.volume;
+            } else if (soundMode === 'on') {
+                adVideo.muted = false;
+            } else {
+                adVideo.muted = true;
+            }
+
+            const muteToggle = this.createAdMuteToggle(adVideo);
+            layerEl.appendChild(muteToggle.button);
+
             const handleTimeUpdate = () => {
                 const timeRemainingBar = layerEl.querySelector('.fluent-player-layer-ad-time-remaining-bar-fill');
                 if (timeRemainingBar) {
@@ -563,10 +654,21 @@ class LayersManager {
                     const percent = (remainingTime / adVideo.duration) * 100;
                     timeRemainingBar.style.width = `${percent}%`;
                 }
-                if (layer.allow_skip && skipOffset > 0 && !adSkipButtonRef && adVideo.currentTime >= skipOffset) {
-                    const btn = this.createAdSkipButton(layer);
-                    layerEl.appendChild(btn);
-                    adSkipButtonRef = { button: btn, cleanup: () => { if (btn.parentNode) btn.remove(); } };
+                if (layer.allow_skip && skipOffset > 0 && !adSkipButtonRef) {
+                    if (adVideo.currentTime >= skipOffset) {
+                        if (videoSkipCountdownEl && videoSkipCountdownEl.parentNode) videoSkipCountdownEl.remove();
+                        videoSkipCountdownEl = null;
+                        const btn = this.createAdSkipButton(layer);
+                        layerEl.appendChild(btn);
+                        adSkipButtonRef = { button: btn, cleanup: () => { if (btn.parentNode) btn.remove(); } };
+                    } else {
+                        if (!videoSkipCountdownEl) {
+                            videoSkipCountdownEl = this.createAdSkipCountdown(layer);
+                            layerEl.appendChild(videoSkipCountdownEl);
+                        }
+                        const remaining = Math.max(0, Math.ceil(skipOffset - adVideo.currentTime));
+                        videoSkipCountdownEl.textContent = this._skipCountdownLabel(remaining);
+                    }
                 }
             };
 
@@ -586,19 +688,32 @@ class LayersManager {
                 adVideo.removeEventListener('ended', handleVideoEnd);
                 adVideo.removeEventListener('timeupdate', handleTimeUpdate);
                 if (adSkipButtonRef) adSkipButtonRef.cleanup();
+                if (videoSkipCountdownEl && videoSkipCountdownEl.parentNode) videoSkipCountdownEl.remove();
+                muteToggle.cleanup();
             });
+
+            const showPlayAdFallback = () => {
+                const playButton = document.createElement('button');
+                playButton.className = 'fluent-player-play-button';
+                playButton.textContent = $t('Play Ad');
+                playButton.addEventListener('click', () => {
+                    adVideo.play();
+                    playButton.remove();
+                });
+                layerEl.appendChild(playButton);
+            };
 
             const playPromise = adVideo.play();
             if (playPromise !== undefined) {
-                playPromise.then(() => {}).catch(() => {
-                    const playButton = document.createElement('button');
-                    playButton.className = 'fluent-player-play-button';
-                    playButton.textContent = $t('Play Ad');
-                    playButton.addEventListener('click', () => {
-                        adVideo.play();
-                        playButton.remove();
-                    });
-                    layerEl.appendChild(playButton);
+                playPromise.catch(() => {
+                    if (!adVideo.muted) {
+                        adVideo.muted = true;
+                        muteToggle.update();
+                        const retry = adVideo.play();
+                        if (retry !== undefined) retry.catch(showPlayAdFallback);
+                    } else {
+                        showPlayAdFallback();
+                    }
                 });
             }
             return;
@@ -841,14 +956,33 @@ class LayersManager {
         });
     }
 
+    subscribeLayerEvents(callback) {
+        this._layerEventSubscribers.add(callback);
+        return () => this._layerEventSubscribers.delete(callback);
+    }
+
+    _emitLayerEvent(layerId, event) {
+        for (const callback of this._layerEventSubscribers) {
+            try {
+                callback(layerId, event);
+            } catch (e) {
+                console.error('FluentPlayer: layer event subscriber failed:', e);
+            }
+        }
+    }
+
     /**
      * Mark layer as seen
      */
     markLayerAsSeen(layerId) {
         const layerState = this.layerStates.get(layerId);
         if (layerState) {
+            const first = !layerState.seen;
             layerState.seen = true;
             this.persistConditionState(layerId, { seen: true });
+            if (first) {
+                this._emitLayerEvent(layerId, 'seen');
+            }
         }
     }
 
@@ -861,7 +995,11 @@ class LayersManager {
         }
         const layerState = this.layerStates.get(layer.id);
         if (layerState) {
+            const first = !layerState.skipped;
             layerState.skipped = true;
+            if (first) {
+                this._emitLayerEvent(layer.id, 'skipped');
+            }
         }
         this.hideLayer(layer);
     }
@@ -879,8 +1017,12 @@ class LayersManager {
     handleLayerComplete(layer, { skipResume = false } = {}) {
         const layerState = this.layerStates.get(layer.id);
         if (layerState) {
+            const first = !layerState.completed;
             layerState.completed = true;
             this.persistConditionState(layer.id, { completed: true });
+            if (first) {
+                this._emitLayerEvent(layer.id, 'completed');
+            }
         }
         this.hideLayer(layer, { skipResume });
     }

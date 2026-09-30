@@ -1,0 +1,16 @@
+export const PROVIDER_LABELS = {
+    youtube: 'YouTube',
+    vimeo: 'Vimeo',
+    bunnycdn: 'Bunny Stream',
+    bunny: 'Bunny Stream',
+    bunny_storage: 'BunnyCDN Storage',
+    mux: 'Mux',
+    mux_stream: 'Mux Live',
+    gumlet: 'Gumlet',
+    gumlet_live: 'Gumlet Live',
+    cloudflare_r2: 'Cloudflare R2',
+    cloudflare_stream: 'Cloudflare Stream',
+    external: 'External URL',
+    audio: 'Audio',
+    wordpress: 'Uploaded',
+};

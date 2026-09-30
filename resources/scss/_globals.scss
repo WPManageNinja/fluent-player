@@ -61,6 +61,12 @@ body {
         }
     }
 
+    &-btn-hint-icon {
+        margin-left: 5px;
+        font-size: 13px;
+        opacity: 0.65;
+    }
+
     &-secondary-btn {
         display: inline-flex;
         align-items: center;

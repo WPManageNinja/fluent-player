@@ -6,6 +6,9 @@ import ConfirmPopover from './common/ConfirmPopover.jsx';
 import Skeleton from './common/Skeleton.jsx';
 import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, SearchIconSVG, EditIconSVG, DeleteIconSVG, CloseIconSVG } from './common/Icons.jsx';
+import { detectStreamAudioHint } from './common/detectStreamAudioHint.js';
+import { defaultPostStatus } from '@share/helper.js';
+import { createUploadProgressSimulator } from './common/simulatedProgress.js';
 
 const MuxProvider = ({
     attributes,
@@ -26,6 +29,7 @@ const MuxProvider = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
     const pollIntervalRef = wp.element.useRef(null);
+    const audioByAssetId = wp.element.useRef({});
 
     // Edit modal state
     const [assetToEdit, setAssetToEdit] = useState(null);
@@ -109,12 +113,18 @@ const MuxProvider = ({
                                   defaultSettings?.preset_slug ||
                                   'course';
 
+        // Mux keeps audio-only assets audio-only, so the asset's tracks are a reliable
+        // fallback when the upload-time MIME isn't known (browse-existing).
+        const isAudio = (typeof audioByAssetId.current[asset.id] !== 'undefined')
+            ? audioByAssetId.current[asset.id]
+            : detectStreamAudioHint('mux', asset);
         const muxSettings = {
             asset_id: asset.id || '',
             playback_id: playbackId,
             thumbnail: posterSrc,
             duration: asset.duration || 0,
             status: asset.status || 'ready',
+            is_audio: isAudio,
         };
 
         // Signed-only: persist policy; Pro filterPlayerSettings signs stream/poster on load (no client JWT).
@@ -133,8 +143,8 @@ const MuxProvider = ({
                 src: videoSrc,
                 posterSrc: posterSrc,
                 title: assetTitle,
-                post_status: 'publish',
-                viewType: 'video',
+                post_status: defaultPostStatus(),
+                viewType: isAudio ? 'audio' : 'video',
                 playsInline: true,
                 mutedAutoplay: false,
                 autoplay: false,
@@ -143,7 +153,7 @@ const MuxProvider = ({
                 preset_slug: defaultPresetSlug,
                 mux: muxSettings,
                 streamType: 'on-demand',
-                mediaType: 'video',
+                mediaType: isAudio ? 'audio' : 'video',
                 duration: asset.duration || 0,
             }
         };
@@ -268,74 +278,69 @@ const MuxProvider = ({
 
     const handleDirectUpload = async () => {
         try {
-            // Step 1: Open file picker and preload upchunk in parallel
-            const [upchunkModule, file] = await Promise.all([
-                import('@mux/upchunk'),
-                new Promise((resolve) => {
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = 'video/*';
-                    fileInput.addEventListener('cancel', () => resolve(null));
-                    fileInput.onchange = (e) => resolve(e.target.files?.[0] || null);
-                    fileInput.click();
-                }),
-            ]);
+            const attachment = await new Promise((resolve) => {
+                const frame = wp.media({
+                    title: __('Select or upload media for Mux', 'fluent-player'),
+                    button: { text: __('Use this media', 'fluent-player') },
+                    library: { type: ['video', 'audio'] },
+                    multiple: false,
+                });
+                frame.on('select', () => resolve(frame.state().get('selection').first().toJSON()));
+                frame.on('close', () => setTimeout(() => resolve(null), 0));
+                frame.open();
+            });
 
-            if (!file) return;
+            if (!attachment) return;
 
             setIsUploading(true);
 
-            // Step 2: Get upload URL with file name as title
-            const fileName = file.name.replace(/\.[^/.]+$/, ''); // strip extension
-            const uploadData = await apiFetch({
-                path: `${apiRequestPath}/mux/uploads`,
-                method: 'POST',
-                data: { passthrough: fileName },
-            });
+            const fileName = attachment.filename
+                ? attachment.filename.replace(/\.[^/.]+$/, '')
+                : (attachment.title || 'video');
 
-            if (!uploadData?.url) {
-                throw new Error(__('Failed to create upload URL', 'fluent-player'));
-            }
-
-            const uploadUrl = uploadData.url;
-            const uploadId = uploadData.id;
-
-            // Step 3: Start upload
             const notifId = showNotification({
                 type: 'info',
-                message: __('Uploading... 0%', 'fluent-player'),
+                message: __('Uploading to Mux…', 'fluent-player') + ' 0%',
                 progress: 0,
                 duration: 0,
                 position: 'top-right'
             });
 
-            await new Promise((resolve, reject) => {
-                const upload = upchunkModule.createUpload({
-                    endpoint: uploadUrl,
-                    file,
-                    chunkSize: 5120, // 5MB chunks
-                });
-
-                upload.on('progress', (progress) => {
-                    const pct = Math.round(progress.detail);
-                    updateNotification(notifId, {
-                        message: __('Uploading...', 'fluent-player') + ` ${pct}%`,
-                        progress: pct
-                    });
-                });
-
-                upload.on('success', () => resolve());
-
-                upload.on('error', (err) => {
-                    reject(new Error(err?.detail?.message || __('Upload failed', 'fluent-player')));
-                });
+            // The file is already on the server (streamed server → Mux), so the browser
+            // has no real byte-progress — animate an estimated bar, like Bunny.
+            const progressSim = createUploadProgressSimulator({
+                fileSize: attachment.filesizeInBytes || attachment.filesize || 0,
+                onProgress: (pct) => updateNotification(notifId, {
+                    message: __('Uploading to Mux…', 'fluent-player') + ` ${pct}%`,
+                    progress: pct
+                }),
             });
+            progressSim.start();
 
-            // Step 4: Upload complete — poll for asset readiness
+            let uploadData;
+            try {
+                uploadData = await apiFetch({
+                    path: `${apiRequestPath}/mux/uploads/from-attachment`,
+                    method: 'POST',
+                    data: { attachment_id: attachment.id, passthrough: fileName },
+                });
+            } finally {
+                progressSim.stop();
+            }
+
+            const uploadId = uploadData?.upload_id || uploadData?.id;
+            if (!uploadId) {
+                throw new Error(__('Failed to start Mux upload', 'fluent-player'));
+            }
+
+            const uploadedIsAudio = (typeof uploadData?.is_audio !== 'undefined')
+                ? !!uploadData.is_audio
+                : (attachment.type === 'audio' || String(attachment.mime || attachment.subtype || '').startsWith('audio'));
+
             updateNotification(notifId, {
                 type: 'success',
                 message: __('Upload complete', 'fluent-player'),
-                progress: 100
+                progress: 100,
             });
             setTimeout(() => hideNotification(notifId), 2000);
 
@@ -358,6 +363,8 @@ const MuxProvider = ({
                     if (status?.status === 'asset_created' && status?.asset_id) {
                         clearInterval(interval);
                         pollIntervalRef.current = null;
+
+                        audioByAssetId.current[status.asset_id] = uploadedIsAudio;
 
                         // Ensure passthrough (title) is set on the Mux asset
                         if (fileName) {
@@ -579,7 +586,7 @@ const MuxProvider = ({
                         disabled={isLoading || isUploading}
                     >
                         <UploadIconSVG />
-                        {__('Upload Video', 'fluent-player')}
+                        {__('Upload Media', 'fluent-player')}
                     </Button>
                 </div>
             </div>

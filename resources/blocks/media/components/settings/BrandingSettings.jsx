@@ -1,6 +1,7 @@
 const {__} = wp.i18n;
 const {Button, SelectControl, BaseControl, TextControl} = wp.components;
-const {MediaUpload, MediaUploadCheck} = wp.blockEditor || wp.editor;
+const {MediaUpload} = wp.blockEditor || wp.editor;
+import MediaUploadCheck from '../common/BuilderMediaUploadCheck.jsx';
 import CustomToggle from '../common/CustomToggle.jsx';
 import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
 import ColorPickerInput from '../common/ColorPickerInput.jsx';

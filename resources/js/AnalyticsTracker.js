@@ -14,8 +14,9 @@ class AnalyticsTracker {
         this.mediaId = mediaId;
         this.nonce = options?.nonce || '';
 
-        // MediaWatchTracker for accurate segment-based percentage/duration
-        this.watchTracker = new MediaWatchTracker(player, {
+        const injectedTracker = options?.watchTracker;
+        this._ownsWatchTracker = !injectedTracker;
+        this.watchTracker = injectedTracker || new MediaWatchTracker(player, {
             completionThreshold: 100,
             mediaId: mediaId,
             segmentUpdateInterVal: 5,
@@ -109,7 +110,16 @@ class AnalyticsTracker {
      */
     flush(useBeacon = false) {
         if (!this.dirty || this.flushing) return;
-        if (!this.mediaId) return;
+        // A missing per-media nonce can never satisfy Pro's
+        // fluent_player_track_event:{id} verification, and falling back to the
+        // generic frontend nonce would be silently rejected — skip instead.
+        if (!this.mediaId || !this.nonce) {
+            if (!this.nonce && !this._warnedMissingNonce) {
+                this._warnedMissingNonce = true;
+                console.debug('FluentPlayer: analytics beacon skipped — no per-media nonce for media', this.mediaId);
+            }
+            return;
+        }
 
         // Clear debounce timer
         if (this.flushTimer) {
@@ -149,17 +159,35 @@ class AnalyticsTracker {
 
         this.dirty = false;
 
-        if (useBeacon && navigator.sendBeacon) {
-            const formData = buildFormData('fluent_player_track_event', payload);
-            navigator.sendBeacon(ajaxUrl, formData);
+        const markSent = () => {
             this.lastSentPercentage = percentage;
             this.lastSentDuration = watchedDuration;
+        };
+
+        if (useBeacon && navigator.sendBeacon) {
+            const formData = buildFormData('fluent_player_track_event', payload);
+            // sendBeacon returns false when the UA cannot queue the payload. On
+            // unload there is no later event to retry, so fall back to a keepalive
+            // fetch rather than silently dropping the final flush.
+            if (navigator.sendBeacon(ajaxUrl, formData)) {
+                markSent();
+            } else {
+                this.dirty = true;
+                this._keepaliveFlush(ajaxUrl, payload, markSent);
+            }
             this.flushing = false;
         } else {
             ajaxPost('fluent_player_track_event', payload)
-                .then(() => {
-                    this.lastSentPercentage = percentage;
-                    this.lastSentDuration = watchedDuration;
+                .then((response) => {
+                    // admin-ajax replies HTTP 200 even for nonce/permission
+                    // failures, so a resolved promise is not success. Only advance
+                    // the sent watermark when the server confirms the write;
+                    // otherwise keep the data dirty so the next flush retries it.
+                    if (response && response.success) {
+                        markSent();
+                    } else {
+                        this.dirty = true;
+                    }
                 })
                 .catch(() => {
                     this.dirty = true;
@@ -167,6 +195,28 @@ class AnalyticsTracker {
                 .finally(() => {
                     this.flushing = false;
                 });
+        }
+    }
+
+    /**
+     * Best-effort retry for the unload path when sendBeacon refuses to queue.
+     * keepalive lets the request outlive the page; success advances the sent
+     * watermark, failure leaves the data dirty.
+     */
+    _keepaliveFlush(ajaxUrl, payload, markSent) {
+        try {
+            const body = buildFormData('fluent_player_track_event', payload);
+            fetch(ajaxUrl, { method: 'POST', body, keepalive: true })
+                .then((res) => res.json())
+                .then((response) => {
+                    if (response && response.success) {
+                        markSent();
+                        this.dirty = false;
+                    }
+                })
+                .catch(() => { /* terminal on unload; nothing else to try */ });
+        } catch (_) {
+            /* fetch/keepalive unsupported */
         }
     }
 
@@ -191,7 +241,9 @@ class AnalyticsTracker {
         window.removeEventListener('beforeunload', this._onBeforeUnload);
 
         if (this.watchTracker) {
-            this.watchTracker.destroy();
+            if (this._ownsWatchTracker) {
+                this.watchTracker.destroy();
+            }
             this.watchTracker = null;
         }
     }

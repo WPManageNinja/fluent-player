@@ -14,11 +14,14 @@ import LogoOverlay from './LogoOverlay';
 import EmailCaptureOverlay from './EmailCaptureOverlay';
 import CTAOverlay from './CTAOverlay';
 import ActionBarOverlay from './ActionBarOverlay';
+import { isAudioSource } from '../../../../js/utils/videoSrc.js';
 // TopTitleOverlay and LanguageControls are now part of TopControls
 
-const VideoLayout = ({ currentTime, settings, presetData, skin = 'modern' }) => {
+const VideoLayout = ({ currentTime, settings, isAudio: isAudioProp, presetData, skin = 'modern' }) => {
     const behaviors = settings.behaviors || {};
-    const isAudio = settings.viewType === 'audio';
+    // Use the parent's decision (computed from normalized data + resolved src) as the
+    // source of truth; fall back to detecting from settings when not provided.
+    const isAudio = (typeof isAudioProp !== 'undefined') ? isAudioProp : isAudioSource(settings);
 
     // Audio Layout (minimal shows play button only)
     if (isAudio) {

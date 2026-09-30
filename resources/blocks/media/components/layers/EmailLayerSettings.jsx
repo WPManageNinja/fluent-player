@@ -449,17 +449,8 @@ const EmailLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editi
 						name="allow_skip"
 					/>
 				</div>
-				{window.fluentPlayerBlockVars?.has_fluentcrm && (
-					<div className="fluent-player-form-row">
-						<CustomToggle
-							checked={settings.skip_if_crm_contact !== false}
-							onChange={(value) => updateSettings("skip_if_crm_contact", null, value)}
-							label={__("Skip for Subscribed CRM Contacts", "fluent-player")}
-							help={__("When enabled, logged-in users who are already subscribed FluentCRM contacts will not see this email capture.", "fluent-player")}
-							name="skip_if_crm_contact"
-						/>
-					</div>
-				)}
+				{/* "Skip for Subscribed CRM Contacts" removed — nothing consumed the flag.
+					Use a viewer.is_crm_contact Display Condition instead. */}
 			</SettingsSectionCard>
 
 			<SettingsSectionCard

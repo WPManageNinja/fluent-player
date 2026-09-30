@@ -82,6 +82,10 @@ class TimedContentController {
             ['seeked', onSeeked],
             ['ended', onEnded],
         ];
+
+        // Sync visibility now: time-update/seek never fires in a paused editor preview
+        // (Divi canvas), and a [0,x] section would stay hidden until play on the frontend.
+        this.updateVisibility(this.player.currentTime || 0);
     }
 
     /**

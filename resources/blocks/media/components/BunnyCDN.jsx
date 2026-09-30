@@ -1,4 +1,4 @@
-const { useState, useEffect, useMemo, useCallback } = wp.element;
+const { useState, useEffect, useMemo, useCallback, useRef } = wp.element;
 const { __ } = wp.i18n;
 const { Button, SelectControl } = wp.components;
 const apiFetch = wp.apiFetch;
@@ -6,6 +6,8 @@ import ConfirmPopover from './common/ConfirmPopover.jsx';
 import Skeleton from './common/Skeleton.jsx';
 import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, DirectoryIconSVG, DeleteIconSVG, PlusIconSVG, EditIconSVG, SearchIconSVG, CloseIconSVG } from './common/Icons.jsx';
+import { detectStreamAudioHint } from './common/detectStreamAudioHint.js';
+import { defaultPostStatus } from '@share/helper.js';
 
 // Debounce hook for search
 const useDebounce = (value, delay) => {
@@ -35,6 +37,9 @@ const BunnyCDN = ({
                       saveMediaToServer
                   }) => {
     const { showNotification, updateNotification, hideNotification } = useNotification();
+    // Source audio flag by Bunny video id, captured from the upload MIME. Covers the
+    // brief window before the metaTag propagates to the video list (getVideos).
+    const audioByVideoId = useRef({});
     const [libraries, setLibraries] = useState([]);
     const [videos, setVideos] = useState([]);
     const [collections, setCollections] = useState([]);
@@ -326,6 +331,14 @@ const BunnyCDN = ({
 
 
 
+            // Audio detection for the selected Bunny video, most authoritative first:
+            //  1. the source MIME captured at upload through our picker (this session), then
+            //  2. the fp_media_type metaTag we persisted on the Bunny video, then
+            //  3. the original-filename title extension (for dashboard-uploaded videos).
+            const isAudio = (typeof audioByVideoId.current[video.guid] !== 'undefined')
+                ? audioByVideoId.current[video.guid]
+                : detectStreamAudioHint('bunny', video);
+
             // Create the media data structure with all necessary fields
             const updatedMediaData = {
                 title: video.title || __('Untitled Bunny Video', 'fluent-player'),
@@ -334,8 +347,8 @@ const BunnyCDN = ({
                     src: video.playlistURL,
                     posterSrc: video.thumbnailURL,
                     title: video.title || __('Untitled Bunny Video', 'fluent-player'),
-                    post_status: 'publish',
-                    viewType: 'video',
+                    post_status: defaultPostStatus(),
+                    viewType: isAudio ? 'audio' : 'video',
                     playsInline: true,
                     mutedAutoplay: false,
                     autoplay: false,
@@ -349,10 +362,11 @@ const BunnyCDN = ({
                         title: video.title,
                         thumbnail: video.thumbnailURL,
                         duration: video.length,
-                        token_auth_enabled: false
+                        token_auth_enabled: false,
+                        is_audio: isAudio
                     },
                     streamType: 'on-demand',
-                    mediaType: 'video',
+                    mediaType: isAudio ? 'audio' : 'video',
                     duration: video.length
                 }
             };
@@ -495,7 +509,7 @@ const BunnyCDN = ({
             },
             multiple: false,
             library: {
-                type: 'video'
+                type: ['video', 'audio']
             }
         });
 
@@ -560,8 +574,9 @@ const BunnyCDN = ({
 
             const videoId = createResponse.guid;
 
-            // Upload the video
-            await apiFetch({
+            // Bunny transcodes audio into video, so the upload response's is_audio
+            // (derived from the attachment MIME) is the only reliable audio signal here.
+            const uploadResp = await apiFetch({
                 path: `${window.fluentPlayerBlockVars.rest.namespace}/${window.fluentPlayerBlockVars.rest.version}/bunny/stream/videos/upload`,
                 method: 'POST',
                 data: {
@@ -570,6 +585,11 @@ const BunnyCDN = ({
                     video_id: videoId
                 }
             });
+
+            const uploadedIsAudio = (uploadResp && typeof uploadResp.is_audio !== 'undefined')
+                ? !!uploadResp.is_audio
+                : (attachment.type === 'audio' || String(attachment.mime || attachment.subtype || '').startsWith('audio'));
+            audioByVideoId.current[videoId] = uploadedIsAudio;
 
             clearInterval(progressInterval);
             updateNotification(notifId, {

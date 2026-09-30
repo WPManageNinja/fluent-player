@@ -113,17 +113,29 @@ class MediaWatchTracker {
     }
 
     getPlayerCurrentTime() {
-        if (typeof this.player.currentTime === "function") {
-            return this.player.currentTime();
+        // A disposed Vidstack element (e.g. Bricks re-render) makes the currentTime getter
+        // itself throw, so read it under try/catch to keep destroy()/flush from crashing.
+        try {
+            const t = typeof this.player.currentTime === "function"
+                ? this.player.currentTime()
+                : (this.player.currentTime || 0);
+            this._lastCurrentTime = t;
+            return t;
+        } catch (_) {
+            // Prefer the last good position over 0 so a disposal-time flush stays accurate.
+            return this._lastCurrentTime || this.endTime || this.startTime || 0;
         }
-        return this.player.currentTime || 0;
     }
 
     getPlayerDuration() {
-        if (typeof this.player.duration === "function") {
-            return this.player.duration();
+        try {
+            if (typeof this.player.duration === "function") {
+                return this.player.duration();
+            }
+            return this.player.duration || 0;
+        } catch (_) {
+            return this.duration || 0;
         }
-        return this.player.duration || 0;
     }
 
     addWatchedSegment() {

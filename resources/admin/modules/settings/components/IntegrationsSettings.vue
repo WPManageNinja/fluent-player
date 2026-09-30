@@ -172,7 +172,7 @@ onMounted(async () => {
 					v-for="item in displayIntegrations"
 					:key="item.key"
 					class="fplayer-integrations-item"
-					@click="item.key !== 'fluentcrm' && openConfigPage(item.key)"
+					@click="(item.key !== 'fluentcrm' || getIntegrationValue(item.key, 'connected')) && openConfigPage(item.key)"
 				>
 					<!-- Integration Row Header -->
 					<div class="fplayer-integrations-row">
@@ -222,7 +222,7 @@ onMounted(async () => {
 									{{ getIntegrationValue(item.key, 'enabled') ? 'Enabled' : 'Disabled' }}
 								</el-tag>
 								<el-button
-									v-if="item.key !== 'fluentcrm'"
+									v-if="item.key !== 'fluentcrm' || getIntegrationValue(item.key, 'connected')"
 									class="fplayer-secondary-btn"
 									type="primary"
 									plain

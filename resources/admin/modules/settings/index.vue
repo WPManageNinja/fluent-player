@@ -1,6 +1,6 @@
 <script setup>
     import { onMounted, onBeforeUnmount, ref, computed, unref, markRaw } from 'vue';
-    import { ArrowRight } from '@element-plus/icons-vue';
+    import { ArrowRight, InfoFilled } from '@element-plus/icons-vue';
     import { useSettings } from '@/composables/useSettings.js';
     import Notify from '@/utils/Notify';
     import { FEATURES, useProFeatures } from '@/composables/useFeatures.js';
@@ -237,6 +237,27 @@
 		if (isConfigPage.value) return true;
 		return ![FEATURES.STORAGE, FEATURES.EXPORT, FEATURES.INTEGRATIONS, FEATURES.MIGRATION, FEATURES.LICENSING].includes(tabId);
 	}
+
+	const isMac = typeof navigator !== 'undefined'
+		&& /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
+	const saveShortcutKeys = isMac ? '⌘S' : 'Ctrl+S';
+	const saveAriaKeyshortcuts = isMac ? 'Meta+S' : 'Control+S';
+
+	// Cmd/Ctrl+S → save, intercepting the browser's save-page dialog. Listener
+	// lives with this component, so the rest of the admin keeps native behavior.
+	const handleSaveShortcut = (event) => {
+		if (event.code !== 'KeyS' || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+			return;
+		}
+		event.preventDefault();
+		if (saving.value || !hasFeature(activeTab.value) || !hasSaveButton(activeTab.value)) {
+			return;
+		}
+		saveSettings();
+	};
+
+	onMounted(() => document.addEventListener('keydown', handleSaveShortcut));
+	onBeforeUnmount(() => document.removeEventListener('keydown', handleSaveShortcut));
 </script>
 
 <template>
@@ -326,15 +347,24 @@
                         <h2 v-else>{{ currentTab?.name }}</h2>
                     </div>
 
-                     <el-button
+                    <el-tooltip
                         v-if="hasFeature(activeTab) && hasSaveButton(activeTab)"
-                        type="primary"
-                        class="fplayer-primary-btn fplayer-settings-save-btn"
-                        @click="saveSettings"
-                        :loading="saving"
+                        :content="$t('Keyboard shortcut: %s', saveShortcutKeys)"
+                        placement="bottom"
+                        effect="dark"
+                        :show-after="400"
                     >
-                        {{ $t('Save Settings') }}
-                    </el-button>
+                        <el-button
+                            type="primary"
+                            class="fplayer-primary-btn fplayer-settings-save-btn"
+                            @click="saveSettings"
+                            :loading="saving"
+                            :aria-keyshortcuts="saveAriaKeyshortcuts"
+                        >
+                            {{ $t('Save Settings') }}
+                            <el-icon class="fplayer-btn-hint-icon" aria-hidden="true"><InfoFilled /></el-icon>
+                        </el-button>
+                    </el-tooltip>
                 </div>
 
                 <div class="fplayer-settings-content-body">

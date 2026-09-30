@@ -7,6 +7,30 @@ export const getLanguageLabel = (code) => {
 	return option?.label || code;
 };
 
+// Apply a subtitle edit (language / custom label / default flag) to the track matching
+// `matchKey`. Setting the default clears it on every other track — only one can be the
+// default (subtitle-tracks.php honours is_default, else falls back to the first).
+export const applySubtitleEdit = (subtitles, matchKey, getKey, edit = {}) => {
+	if (!Array.isArray(subtitles)) {
+		return [];
+	}
+
+	const makeDefault = !!edit.is_default;
+
+	return subtitles.map((subtitle, index) => {
+		if (getKey(subtitle, index) === matchKey) {
+			return {
+				...subtitle,
+				language: edit.language,
+				label: edit.label || getLanguageLabel(edit.language),
+				is_default: makeDefault,
+			};
+		}
+
+		return makeDefault ? { ...subtitle, is_default: false } : subtitle;
+	});
+};
+
 export const getNormalizedYouTubeId = (src = '') => {
 	if (typeof src !== 'string') {
 		return '';

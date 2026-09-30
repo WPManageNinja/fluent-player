@@ -1,0 +1,315 @@
+// Shared dark-mode theming for the reused block-editor settings panels when a page
+// builder (Divi, Elementor) hosts them on a dark sidebar. The block panels bake a
+// light palette (dark text, white cards) with !important; this recolours them from
+// the HOST builder's own colour tokens, passed in by the caller. Nest the @include
+// under the builder's scope selector (doubled class) so it out-specifies the baked
+// rules. One rule set — the only per-builder difference is the token values.
+@mixin fp-page-builder-dark-panels(
+    $bg,
+    $field,
+    $raised,
+    $txt,
+    $txt-strong,
+    $txt-muted,
+    $border,
+    $border-bold,
+    $brand
+) {
+    color: $txt;
+
+    // The component SVG icons are filled via --icon-* design tokens that default to DARK
+    // (e.g. UploadIconSVG uses var(--icon-strong-950, #0E121B)) — invisible on the dark
+    // panel. Repoint the icon tokens to the panel's light text so every icon shows.
+    --icon-strong-950: #{$txt-strong};
+    --icon-sub-500: #{$txt-muted};
+    --icon-soft-400: #{$txt-muted};
+    --icon-disabled-300: #{$txt-muted};
+
+    // Panel / accordion / row chrome -> transparent over the dark sidebar.
+    .components-panel__body,
+    .components-panel__body-toggle,
+    .components-panel__body-title,
+    .components-panel__header,
+    .fluent-player-block-panel,
+    .fluent-player-form-row,
+    .fluent-player-block-panel .components-panel__row {
+        background: transparent !important;
+    }
+
+    // Headings, labels, section/option/preset titles + names -> strong text.
+    h1, h2, h3, h4,
+    .components-panel__body-toggle,
+    .fluent-player-block-panel [class*="label"],
+    .fluent-player-block-panel [class*="-title"],
+    .fluent-player-block-panel [class*="-name"],
+    .fluent-player-block-panel .fluent-player-tips-message__title,
+    .fluent-player-block-panel .fluent-player-tips-message__title strong {
+        color: $txt-strong !important;
+    }
+
+    // WP BaseControl labels (TextControl/SelectControl etc.) carry a dark Emotion
+    // colour with enough specificity to outweigh the generic [class*="label"] rule
+    // above. The label is a <label> in some controls and a <span> in others, so match
+    // by a doubled class (higher specificity, element-agnostic) to beat Emotion.
+    .fluent-player-block-panel .components-base-control__label.components-base-control__label {
+        color: $txt-strong !important;
+    }
+
+    // Help / description / body copy + card meta + card descriptions (e.g. the layout-style
+    // card's "Classic sidebar layout"). Requested: muted copy should also read white on the
+    // dark panel, so this uses the strong tone rather than the muted one.
+    .fluent-player-block-panel [class*="help"],
+    .fluent-player-block-panel [class*="description"],
+    .fluent-player-block-panel [class*="__desc"],
+    .fluent-player-block-panel [class*="-desc"],
+    .fluent-player-block-panel [class*="card-meta"],
+    .fluent-player-block-panel [class*="card-meta"] * {
+        color: $txt-strong !important;
+    }
+
+    // The Beta chip keeps its pale accent fill, so pin dark text for contrast.
+    .fluent-player-block-panel .fluent-player-tips-message__badge {
+        color: $bg !important;
+    }
+
+    // Inputs, selects, control containers, secondary buttons, token/tag fields,
+    // colour-picker triggers, tip callouts and the option/preset cards -> elevated
+    // dark surface (kills every white box). Primary buttons handled below.
+    input[type="text"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="email"],
+    textarea,
+    select,
+    .components-text-control__input,
+    .components-select-control__input,
+    .components-input-control__container,
+    .components-form-token-field__input-container,
+    .components-form-token-field__token,
+    .components-form-token-field__token-text,
+    .components-form-token-field__remove-token,
+    .custom-range-input-wrapper,
+    .pos-preview,
+    .fp-input-with-suffix,
+    .fp-color-trigger,
+    .fp-shortcode-inserter-btn,
+    .custom-radio-option-wrap,
+    .fplayer-preset-card,
+    .fplayer-preset-preview,
+    .fluent-player-tips-message,
+    .components-notice,
+    .fp-settings-section-card,
+    .fp-card,
+    .fp-compact-card,
+    .chapter-card,
+    .overlay-card,
+    .layer-card,
+    .hotspot-card,
+    .provider-card,
+    .language-card,
+    .language-add-form,
+    .subtitle-card,
+    .fluent-player-yt-tracks,
+    .preset-collapsible-panel,
+    .fp-layout-card,
+    .fp-layout-options-panel,
+    .fp-position-preview {
+        background-color: $field !important;
+        color: $txt !important;
+        border-color: $border !important;
+    }
+
+    // Section dividers bake a light rule that reads as a bright line on the dark panel.
+    .panel-divider {
+        background-color: $border !important;
+    }
+
+    // The selected layout-style card marks itself with the brand accent border.
+    .fp-layout-card--selected {
+        border-color: $brand !important;
+        box-shadow: 0 0 0 1px $brand inset !important;
+    }
+
+    // Logo position grid: the active cell's light-theme tokens get flattened to $field by
+    // the surface rule above, so it reads identical to the rest. Dim the idle dots and
+    // re-mark the active cell with the brand accent + a strong dot/label.
+    .fp-position-grid-item .pos-preview .dot {
+        background: $txt-muted !important;
+    }
+    .fp-position-grid-item.active .pos-preview {
+        border-color: $brand !important;
+        box-shadow: 0 0 0 1px $brand inset !important;
+    }
+    .fp-position-grid-item.active .pos-preview .dot {
+        background: $txt-strong !important;
+    }
+    .fp-position-grid-item.active .pos-label {
+        color: $txt-strong !important;
+    }
+
+    // Playlist layout position selector: the selected preview bakes a near-black border that
+    // the elevated-surface rule above flattens to $field — invisible here. Re-mark it with
+    // the brand ring so the chosen position reads as selected on the dark panel.
+    .fp-position-option--selected .fp-position-preview {
+        border-color: $brand !important;
+        box-shadow: 0 0 0 1px $brand inset !important;
+    }
+
+    // The block-editor block card (shown atop BlockInspector when a page-builder
+    // widget hosts the block editor): its name bakes a near-black that vanishes on
+    // the dark panel; the description is a muted slate.
+    .block-editor-block-card__name {
+        color: $txt-strong !important;
+    }
+    .block-editor-block-card__description {
+        color: $txt-strong !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: $txt-muted;
+    }
+
+    // Range-slider rails read as a stray light bar on the dark sidebar.
+    [class*="Rail-railBackground"] {
+        background-color: $border !important;
+    }
+
+    // WP box-control Reset defaults to the accent colour (low contrast here) -> body.
+    .component-box-control__reset-button,
+    [class*="box-control__reset"] {
+        color: $txt !important;
+    }
+
+    // Box-control (Padding) icons: the reset icon is a CSS mask painted with a
+    // background-color, the link icon is an SVG using currentColor — both bake a
+    // near-black tone that vanishes on the dark panel. Repaint with the body tone.
+    .fp-custom-boxcontrol .component-box-control__reset-button::before {
+        background-color: $txt !important;
+    }
+    .fp-custom-boxcontrol .component-box-control__linked-button svg {
+        color: $txt !important;
+        fill: currentColor !important;
+    }
+    // Box-control slider: unfilled rail + filled track baked light/dark for the
+    // white sidebar; use the border tone for the rail and the brand for the fill.
+    .fp-custom-boxcontrol .components-range-control__wrapper::before {
+        background: $border !important;
+    }
+    .fp-custom-boxcontrol .components-range-control__track {
+        background: $brand !important;
+    }
+
+    // Radio rows blend with the sidebar (not a lighter card).
+    .custom-radio-option-wrap,
+    .custom-radio-option-wrap.is-selected {
+        background-color: $bg !important;
+    }
+
+    // Toggle ON fill + selected radio dot bake a dark navy that vanishes here;
+    // use the brand colour so on/selected states stay visible.
+    .custom-toggle-input:checked + .custom-toggle-slider {
+        background-color: $brand !important;
+        border-color: $brand !important;
+    }
+    .custom-radio-dot.is-selected {
+        background-color: $brand !important;
+    }
+
+    // Secondary/action buttons want a raised tone (a step lighter than the field
+    // surface). Base .fp-icon-btn (card edit/delete, no --secondary modifier) is
+    // included so those icon buttons get a visible surface too.
+    .fp-btn-secondary,
+    .fp-shortcode-inserter-btn,
+    .fp-icon-btn,
+    .fp-icon-btn--secondary {
+        background-color: $raised !important;
+        border-color: $border-bold !important;
+        // White label (not the muted body tone) — the action buttons (Upload / Change /
+        // Insert shortcode / icon buttons) must read as the panel's strongest text.
+        color: $txt-strong !important;
+    }
+
+    // Primary CTA: brand fill + white label, so it's distinct from the raised secondaries
+    // (its dark-navy fill was indistinguishable from a Cancel button here).
+    .fp-btn-primary {
+        background-color: $brand !important;
+        border-color: $brand !important;
+        color: #fff !important;
+    }
+    .fp-btn-primary svg path {
+        fill: #fff !important;
+    }
+
+    // The subtitle edit form bakes a white card; blend it into the dark sidebar so its
+    // fields (raised surface) read as the elevated elements.
+    .subtitle-edit-form {
+        background: transparent !important;
+        border-color: $border !important;
+    }
+
+    // Lift just the form-control edges a step brighter than the low-contrast token so
+    // selects/inputs don't dissolve into their surface.
+    select,
+    .components-select-control__input,
+    input[type="text"],
+    input[type="number"],
+    input[type="url"],
+    input[type="search"],
+    input[type="email"],
+    textarea {
+        border-color: color-mix(in srgb, #{$border}, #fff 22%) !important;
+    }
+
+    // The block panel CSS hard-codes the icon fill near-black ($bg-strong-950 on
+    // --secondary, e.g. the timestamp copy button) — invisible on the raised dark
+    // surface; paint it the heading tone. Danger buttons keep their own red fill.
+    .fp-icon-btn:not(.fp-icon-btn--danger) svg path,
+    .fp-icon-btn--secondary svg path {
+        fill: $txt-strong !important;
+    }
+
+    // A WP `variant="link"` button (e.g. "Reset to default") renders in the WP link/brand
+    // colour, which is low-contrast on the dark panel — paint it the panel text colour and
+    // keep it flat (no surface), so it reads as a link, not a button.
+    .fp-reset-to-default,
+    .fp-reset-to-default.components-button.is-link {
+        color: $txt !important;
+        background: transparent !important;
+    }
+
+    // Danger icon buttons (delete logo / remove thumbnail) keep a flat surface but a
+    // readable icon — they carry their own hover colour, so just ensure the icon shows.
+    .fp-icon-btn--danger {
+        color: $txt !important;
+    }
+
+    // The colour-row trigger label ("Brand Color", …) is the row's title — give it the
+    // stronger heading tone so it doesn't read as muted body text.
+    .fp-color-trigger-label {
+        color: $txt-strong !important;
+    }
+
+    // Panel accordion chevron ships a near-black fill; paint it the heading colour,
+    // and give each section a subtle divider for separation.
+    .components-panel__arrow {
+        fill: $txt-strong !important;
+    }
+    .components-panel__body {
+        border-top-color: $border-bold !important;
+        border-bottom-color: $border-bold !important;
+    }
+    .components-panel__body.is-opened > .components-panel__body-title {
+        border-bottom: 1px solid $border-bold !important;
+        box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.15) !important;
+    }
+
+    // Empty colour swatches render as a light ring; give them a border + dark fill.
+    .fp-color-trigger-swatch {
+        border-color: $border !important;
+    }
+    .fp-color-trigger-swatch.is-empty {
+        background-color: $bg !important;
+    }
+}

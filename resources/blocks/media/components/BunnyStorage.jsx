@@ -6,6 +6,8 @@ import ConfirmPopover from './common/ConfirmPopover.jsx';
 import Skeleton from './common/Skeleton.jsx';
 import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, DirectoryIconSVG, DeleteIconSVG, PlusIconSVG, SearchIconSVG, CloseIconSVG } from './common/Icons.jsx';
+import { isAudioSource } from '../../../js/utils/videoSrc.js';
+import { defaultPostStatus } from '@share/helper.js';
 
 const BunnyStorage = ({
     onCancel,
@@ -173,6 +175,13 @@ const BunnyStorage = ({
             // Probe the MP4 to get duration (poster is auto-captured by Vidstack on playback)
             const probedDuration = await probeVideoDuration(videoSrc);
 
+            // Bunny Storage keeps the real file (no transcode), so the stored filename's
+            // extension is authoritative. Prefer the list's is_audio flag, else detect
+            // from the file path.
+            const isAudio = (typeof video.is_audio !== 'undefined')
+                ? !!video.is_audio
+                : isAudioSource({ src: video.title || '' });
+
             const updatedMediaData = {
                 title: video.title.split('/').pop() || __('Untitled Bunny Storage Video', 'fluent-player'),
                 settings: {
@@ -180,8 +189,8 @@ const BunnyStorage = ({
                     src: videoSrc,
                     posterSrc: '',
                     title: video.title.split('/').pop() || __('Untitled Bunny Storage Video', 'fluent-player'),
-                    post_status: 'publish',
-                    viewType: 'video',
+                    post_status: defaultPostStatus(),
+                    viewType: isAudio ? 'audio' : 'video',
                     playsInline: true,
                     mutedAutoplay: false,
                     autoplay: false,
@@ -194,10 +203,11 @@ const BunnyStorage = ({
                         size: video.size || 0,
                         url: video.url,
                         updated_at: video.updated_at,
-                        created_at: video.created_at
+                        created_at: video.created_at,
+                        is_audio: isAudio
                     },
                     streamType: 'on-demand',
-                    mediaType: 'video',
+                    mediaType: isAudio ? 'audio' : 'video',
                     duration: probedDuration
                 }
             };
@@ -301,7 +311,7 @@ const BunnyStorage = ({
             },
             multiple: false,
             library: {
-                type: 'video'
+                type: ['video', 'audio']
             }
         });
 

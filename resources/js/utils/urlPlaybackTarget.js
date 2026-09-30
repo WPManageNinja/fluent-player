@@ -88,6 +88,30 @@ export function getUrlPlaybackTarget() {
     return win[TARGET_CACHE_KEY];
 }
 
+/**
+ * Build a playback target from a shortcode `start` offset (settings.startTime).
+ * This is the lowest-priority source: it is only consulted when the URL carries
+ * no playback target (see resolveInitialPlaybackTarget). Returns null for live
+ * streams and for zero / negative / missing / non-numeric values so it never
+ * forces a seek that would fight the URL deep-link or a live edge.
+ *
+ * @param {object|null} settings Player settings (expects `startTime`).
+ * @param {{isLiveStream?: boolean}} [options]
+ * @returns {{playerRef: null, mediaRef: null, time: number}|null}
+ */
+export function resolveShortcodeStartTarget(settings, { isLiveStream = false } = {}) {
+    if (isLiveStream) {
+        return null;
+    }
+
+    const time = normalizeTimeValue(settings?.startTime);
+    if (time === null || time <= 0) {
+        return null;
+    }
+
+    return { playerRef: null, mediaRef: null, time };
+}
+
 export function matchesUrlPlaybackRef(expectedRef, actualRef) {
     const sanitizedExpectedRef = sanitizeRef(expectedRef);
     const sanitizedActualRef = sanitizeRef(actualRef);

@@ -4,6 +4,7 @@ import { isHLSProvider } from 'vidstack';
 import '@icons'; // Custom icon loader - only imports icons we actually use
 // LayersManager and AnalyticsTracker are loaded via dynamic import() for lazy-loading
 import { getVideoError, createErrorOverlay } from './VideoErrorHandler.js';
+import { resolveArmedMilestones, resolveArmedLayers, mediaHasEmailCapture } from './behavior/arming.js';
 import $t from './translator.js';
 import { getAjaxUrl as _getAjaxUrl, getNonce as _getNonce } from './utils/ajax';
 import { evaluateConditionals, hasEnabledConditionals, mergeConditionStates } from './utils/conditions.js';
@@ -18,6 +19,7 @@ import {
     buildPlaybackTargetUrl,
     getUrlPlaybackTarget,
     matchesUrlPlaybackRef,
+    resolveShortcodeStartTarget,
     scrollPlaybackTargetIntoView
 } from './utils/urlPlaybackTarget.js';
 
@@ -57,7 +59,11 @@ class FluentPlayer {
         // Captured at instance creation so Mux Data sees a stable startup timestamp
         // regardless of when mux-embed finishes its dynamic import.
         this._playerInitTime = Date.now();
-        this.analyticsNonce = options?.analytics_nonce || window.fluent_player?.nonce || '';
+        // Only the per-media analytics nonce satisfies Pro's
+        // fluent_player_track_event:{id} check; the generic frontend nonce would
+        // always be rejected, so don't fall back to it (AnalyticsTracker skips
+        // the beacon when this is empty).
+        this.analyticsNonce = options?.analytics_nonce || '';
         this.defaultSettings = options?.default_settings || {};
         this.languageMediaSources = options?.languageMediaSources || {};
         this.conditionState = options?.condition_state || this.settings?.condition_state || {};
@@ -380,6 +386,22 @@ class FluentPlayer {
             this.analyticsTracker = null;
         }
 
+        if (this.milestoneReporter) {
+            this.milestoneReporter.destroy();
+            this.milestoneReporter = null;
+        }
+
+        if (this.layerReporter) {
+            this.layerReporter.destroy();
+            this.layerReporter = null;
+        }
+
+        if (this._sharedWatchTracker) {
+            this._sharedWatchTracker.destroy();
+            this._sharedWatchTracker = null;
+        }
+        this._sharedWatchTrackerPromise = null;
+
         // Remove all tracked event listeners
         this.eventListeners.forEach(({ target, event, handler, options }) => {
             target.removeEventListener(event, handler, options);
@@ -474,6 +496,7 @@ class FluentPlayer {
 
             if (this.mediaId) {
                 this.setupAnalyticsTracking();
+                this.setupMilestoneTracking();
             }
 
             this.setupGoogleAnalytics();
@@ -529,6 +552,36 @@ class FluentPlayer {
             this.settings,
             this
         );
+
+        this.setupLayerTracking();
+    }
+
+    async setupLayerTracking() {
+        const config = window.fluent_player?.crm_behavior;
+        if (!this.mediaId || !this.layersManager || !config || !config.active) {
+            return;
+        }
+
+        if (this.layerReporter) {
+            this.layerReporter.destroy();
+            this.layerReporter = null;
+        }
+
+        const armed = resolveArmedLayers(config, this.mediaId, this.settings?.layers || []);
+        if (!armed) {
+            return;
+        }
+
+        const { default: LayerReporter } = await import('./behavior/LayerReporter.js');
+        if (!this.layersManager) return;
+        this.layerReporter = new LayerReporter(this.layersManager, {
+            mediaId: this.mediaId,
+            nonce: config.nonce,
+            armed,
+            isLoggedIn: !!config.identity?.isLoggedIn,
+            hasContact: !!config.identity?.hasContact,
+            hasEmailCapture: mediaHasEmailCapture(this.settings),
+        });
     }
 
     // ------------------------------------------------------------------------
@@ -1024,6 +1077,12 @@ class FluentPlayer {
             this.addEventListener(this.player, 'pause', pauseEndHandler);
             this.addEventListener(this.player, 'end', pauseEndHandler);
 
+            // Already can-play by the time we attached (re-rendered/cached): run the
+            // handler now so the loader doesn't stay up over a ready video.
+            if (this.player?.hasAttribute('data-can-play')) {
+                canPlayHandler();
+            }
+
             return;
         }
 
@@ -1040,6 +1099,16 @@ class FluentPlayer {
 
         this.addEventListener(this.player, 'can-play', canPlayHandler, { once: true });
         this.addEventListener(this.player, 'loadeddata', loadedDataHandler, { once: true });
+
+        // The player can already be able to play by the time these one-time listeners
+        // attach — e.g. a server-re-rendered player in a page-builder editor (Elementor/
+        // Divi) that hydrates over already-loaded media, or a cached/instant source. The
+        // can-play/loadeddata events already fired, so { once: true } handlers never run
+        // and the loader stays up over a playing video (black frame + audio). Hide it now
+        // if the player already reports it can play.
+        if (this.player?.hasAttribute('data-can-play')) {
+            hideLoader();
+        }
 
         // Detect stuck autoplay: if autoplay + can-play but not playing after 3s
         if (this.player.hasAttribute('autoplay')) {
@@ -1489,7 +1558,9 @@ class FluentPlayer {
         const hasExplicitPlayerRef = !!target?.playerRef;
 
         if (!target) {
-            return null;
+            // No URL playback target on the page → honor a shortcode `start` offset
+            // (settings.startTime). URL deep-links always take priority over this.
+            return resolveShortcodeStartTarget(this.settings, { isLiveStream: this.isLiveStream() });
         }
 
         if (hasExplicitPlayerRef && !matchesUrlPlaybackRef(target.playerRef, containerRef)) {
@@ -1875,14 +1946,64 @@ class FluentPlayer {
     }
 
 
+    getSharedWatchTracker() {
+        if (!this._sharedWatchTrackerPromise) {
+            this._sharedWatchTrackerPromise = import('./MediaWatchTracker.js').then(
+                ({ default: MediaWatchTracker }) => {
+                    this._sharedWatchTracker = new MediaWatchTracker(this.player, {
+                        completionThreshold: 100,
+                        mediaId: this.mediaId,
+                        segmentUpdateInterVal: 5,
+                    });
+                    return this._sharedWatchTracker;
+                }
+            );
+        }
+        return this._sharedWatchTrackerPromise;
+    }
+
     async setupAnalyticsTracking() {
-        if (!this.mediaId || !this.isAnalyticsEnabled() || this.isExternallyTracked()) {
+        if (this._isDestroyed || !this.mediaId || !this.isAnalyticsEnabled() || this.isExternallyTracked()) {
             return;
         }
 
         const { default: AnalyticsTracker } = await import('./AnalyticsTracker.js');
+        // The player may have been destroyed while the chunk was loading (e.g. a
+        // FluentCommunity SPA navigation). Bail before attaching a tracker whose
+        // document/window listeners would then never be torn down.
+        if (this._isDestroyed) {
+            return;
+        }
         this.analyticsTracker = new AnalyticsTracker(this.player, this.mediaId, {
             nonce: this.analyticsNonce,
+            watchTracker: await this.getSharedWatchTracker(),
+        });
+    }
+
+    async setupMilestoneTracking() {
+        const config = window.fluent_player?.crm_behavior;
+        if (!this.mediaId || !config || !config.active) {
+            return;
+        }
+
+        const armed = resolveArmedMilestones(config, this.mediaId);
+        if (!armed) {
+            return;
+        }
+
+        const { default: MilestoneReporter } = await import('./behavior/MilestoneReporter.js');
+        const tracker = await this.getSharedWatchTracker();
+        // teardown may have run during the awaits — don't attach to a dead player
+        if (this._isDestroyed || !tracker) {
+            return;
+        }
+        this.milestoneReporter = new MilestoneReporter(tracker, {
+            mediaId: this.mediaId,
+            nonce: config.nonce,
+            armed,
+            isLoggedIn: !!config.identity?.isLoggedIn,
+            hasContact: !!config.identity?.hasContact,
+            hasEmailCapture: mediaHasEmailCapture(this.settings),
         });
     }
 

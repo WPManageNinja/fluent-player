@@ -1,0 +1,46 @@
+// Elementor editor dark-mode for the reused settings panels — the shared
+// page-builder dark-panel mixin fed Elementor's own design tokens (--e-a-*).
+// Elementor's editor panel is ALWAYS dark, so this applies unconditionally (no
+// colour-mode gate, unlike Divi).
+//
+// Keyed on `.fp-el-host` (an Elementor-ONLY host class on the widget mounts), NOT
+// on the shared `.fp-el-settings` app root — MediaSettingsApp renders that same
+// root inside the Divi module too, so keying the always-dark theme on it leaked
+// Elementor's dark palette into Divi's colour-mode-following panel (dark even in
+// Divi light mode). Divi has no `.fp-el-host`, so it keeps its own gated theming.
+// Doubled `.fp-el-host` out-specifies the baked light `.fluent-player-block-panel`
+// !important rules.
+//
+// (Previously emitted as inline PHP from ElementorPageBuilder::settingsSurfaceCss();
+// moved here so Divi + Elementor share one rule set. Order-independent — the
+// doubled class + !important win regardless of stylesheet order.)
+@use 'page-builder-dark-panels' as pb;
+
+.fp-el-host.fp-el-host {
+    @include pb.fp-page-builder-dark-panels(
+        $bg:          var(--e-a-bg-default, #1f2124),
+        $field:       var(--e-a-bg-hover, #2b2c31),
+        $raised:      var(--e-a-bg-active, #333438),
+        $txt:         var(--e-a-color-txt, #d5d8dc),
+        $txt-strong:  var(--e-a-color-txt-accent, #fff),
+        $txt-muted:   var(--e-a-color-txt-muted, #9da5ae),
+        $border:      var(--e-a-border-color, #4a4d52),
+        $border-bold: var(--e-a-border-color-bold, #3f444b),
+        $brand:       var(--fp-brand-color, #DD1F13)
+    );
+}
+
+// Elementor-specific wrapper base (not part of the shared panel theming): the flat
+// surface + margin the reused panel needs inside Elementor's sidebar, and the WP
+// admin/theme accent vars pinned to the Fluent Player brand.
+.fp-el-host {
+    background: var(--e-a-bg-default, #1f2124);
+    color: var(--e-a-color-txt, #d5d8dc);
+    margin: 0 -20px;
+    --wp-admin-theme-color: var(--fp-brand-color, #DD1F13);
+    --wp-admin-theme-color-darker-10: var(--fp-brand-color-dark, #B81A10);
+    --wp-admin-theme-color-darker-20: var(--fp-brand-color-dark, #B81A10);
+    --wp-components-color-accent: var(--fp-brand-color, #DD1F13);
+    --wp-components-color-accent-darker-10: var(--fp-brand-color-dark, #B81A10);
+    --wp-components-color-foreground: var(--e-a-color-txt, #d5d8dc);
+}

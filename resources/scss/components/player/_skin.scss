@@ -285,6 +285,16 @@ media-controls.fp-skin-floating {
       padding: 6px;
     }
 
+    // Reclaim the inline volume slider's width for the progress bar; mute stays, device handles volume.
+    &.fp-media-controls-bottom media-volume-slider {
+      display: none;
+    }
+
+    // Speed lives in the settings gear on this preset; drop the standalone speed button on mobile.
+    &.fp-media-controls-bottom .fp-speed-menu {
+      display: none;
+    }
+
     &.fp-media-controls-bottom .fp-media-time-slider {
       min-width: 0;
     }

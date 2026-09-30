@@ -27,6 +27,11 @@ const GeneralSettings = ({
     const layoutSupportsMenuToggle = layoutType !== 'grid';
     const showNavButtons = behavior.showNavButtons !== false;
 
+    // Playback / player-chrome toggles don't change the authoring canvas (it draws a static
+    // poster + list); note that so they don't read as broken in the builder.
+    const livePageNote = __('Applies on the live page — not previewed in the editor.', 'fluent-player');
+    const withLiveNote = (help) => `${help} ${livePageNote}`;
+
     const updateBehavior = (key, value) => {
         updatePlaylistData({
             ...playlistData,
@@ -88,21 +93,21 @@ const GeneralSettings = ({
 
             <CustomToggle
                 label={__('Autoplay', 'fluent-player')}
-                help={__('Start playing automatically when loaded', 'fluent-player')}
+                help={withLiveNote(__('Start playing automatically when loaded', 'fluent-player'))}
                 checked={behavior.autoplay || false}
                 onChange={(value) => updateBehavior('autoplay', value)}
             />
 
             <CustomToggle
                 label={__('Continuous Play', 'fluent-player')}
-                help={__('Auto-advance to next video when current ends', 'fluent-player')}
+                help={withLiveNote(__('Auto-advance to next video when current ends', 'fluent-player'))}
                 checked={behavior.continuousPlay !== false}
                 onChange={(value) => updateBehavior('continuousPlay', value)}
             />
 
             <CustomToggle
                 label={__('Show Previous / Next Buttons', 'fluent-player')}
-                help={__('Display previous and next track buttons in the player chrome.', 'fluent-player')}
+                help={withLiveNote(__('Display previous and next track buttons in the player chrome.', 'fluent-player'))}
                 checked={showNavButtons}
                 onChange={(value) => updateBehavior('showNavButtons', value)}
             />
@@ -110,7 +115,7 @@ const GeneralSettings = ({
             {showNavButtons && (
                 <CustomToggle
                     label={__('Loop Playlist', 'fluent-player')}
-                    help={__('Restart from the first item after the last item, and allow previous from the first item.', 'fluent-player')}
+                    help={withLiveNote(__('Restart from the first item after the last item, and allow previous from the first item.', 'fluent-player'))}
                     checked={behavior.loop === true}
                     onChange={(value) => updateBehavior('loop', value)}
                 />
@@ -119,7 +124,7 @@ const GeneralSettings = ({
             {layoutSupportsMenuToggle && (
                 <CustomToggle
                     label={__('Show Playlist Menu Toggle', 'fluent-player')}
-                    help={__('Display a button in the player chrome to show or hide the playlist menu.', 'fluent-player')}
+                    help={withLiveNote(__('Display a button in the player chrome to show or hide the playlist menu.', 'fluent-player'))}
                     checked={behavior.showPlaylistMenuToggle !== false}
                     onChange={(value) => updateBehavior('showPlaylistMenuToggle', value)}
                 />

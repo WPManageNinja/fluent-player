@@ -203,3 +203,76 @@
         }
     }
 }
+
+// Destination info card + section title on integration config pages (FluentCRM today, shared by future destinations e.g. Fluent Cart)
+.#{$slug}-integration-info-card {
+    background: var(--fp-bg-secondary);
+    border: 1px solid var(--fp-border-light);
+    border-radius: var(--fp-radius-md);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+
+    &-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--fp-text-primary);
+        }
+    }
+
+    &-link {
+        display: inline-flex;
+        align-items: center;
+        color: var(--fp-text-secondary);
+
+        &:hover {
+            color: var(--fp-text-primary);
+        }
+    }
+
+    &-body {
+        margin: 0 0 12px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--fp-text-secondary);
+    }
+
+    &-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--fp-text-secondary);
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--fp-border-light);
+            flex-shrink: 0;
+        }
+
+        &.is-active {
+            color: var(--fp-text-primary);
+
+            .status-dot {
+                background: var(--fp-state-success);
+            }
+        }
+    }
+}
+
+.#{$slug}-integration-section-title {
+    margin: 0 0 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fp-text-primary);
+}

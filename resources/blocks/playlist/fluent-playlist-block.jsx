@@ -5,7 +5,7 @@ import Edit from './edit.jsx';
 
 // WordPress dependencies
 const { __ } = wp.i18n;
-const { registerBlockType } = wp.blocks;
+const { registerBlockType, getBlockType } = wp.blocks;
 
 // Create a custom icon for the block matching the Fluent Player brand logo
 const playlistIcon = wp.element.createElement(
@@ -27,8 +27,9 @@ const playlistIcon = wp.element.createElement(
     })
 );
 
-// Register the block
-registerBlockType("fluent-player/playlist", {
+// Idempotent so importing this build into a second host (e.g. the Divi VB) can't double-register.
+if (!getBlockType("fluent-player/playlist")) {
+    registerBlockType("fluent-player/playlist", {
     apiVersion: 3,
     title: __("FluentPlayer Playlist", "fluent-player"),
     icon: playlistIcon,
@@ -73,4 +74,5 @@ registerBlockType("fluent-player/playlist", {
     },
     edit: Edit,
     save: () => null // rendering is handled by PHP
-});
+    });
+}

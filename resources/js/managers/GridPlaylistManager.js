@@ -17,6 +17,11 @@ class GridPlaylistManager {
         this.gridItemsContainer = this.container.querySelector('.grid-items');
         this.paginationContainer = this.container.querySelector('.grid-pagination');
         this.noResultsContainer = this.container.querySelector('.fplayer-no-results');
+        this.searchWrap = this.container.querySelector('.fp-grid-search');
+        this.searchInput = this.container.querySelector('.fp-grid-search-input');
+        this.searchClearBtn = this.container.querySelector('.fp-grid-search-clear');
+        this.searchResetBtn = this.container.querySelector('.fp-grid-search-reset');
+        this.headerCount = this.container.querySelector('.fp-grid-header-count');
         this.modal = this.container.querySelector('#grid-modal-overlay');
         this.modalPlayer = this.modal?.querySelector('#grid-modal-player');
         this.modalCloseBtn = this.modal?.querySelector('.grid-modal-close');
@@ -30,6 +35,9 @@ class GridPlaylistManager {
         this.isLoading = false;
         this.totalItems = this.playlist.medias.length;
         this.paginationData = null;
+        this.searchQuery = '';
+        this._searchTimer = null;
+        this._countOriginal = this.headerCount ? this.headerCount.textContent : '';
 
         this.init();
     }
@@ -38,6 +46,11 @@ class GridPlaylistManager {
         this.renderItems();
         this.setupEventListeners();
         this.updatePagination();
+
+        // Server renders the search box hidden; only a JS layer that can drive it reveals it
+        if (this.searchWrap && this.searchInput) {
+            this.searchWrap.hidden = false;
+        }
 
         // Mark grid as loaded to prevent FOUC
         if (this.gridItemsContainer) {
@@ -101,6 +114,26 @@ class GridPlaylistManager {
             }
         };
         addTrackedListener(this.paginationContainer, 'click', this._paginationClickHandler);
+
+        this._searchInputHandler = (e) => {
+            clearTimeout(this._searchTimer);
+            const value = e.target.value;
+            this._searchTimer = setTimeout(() => this.applySearch(value), 150);
+        };
+        this._searchKeydownHandler = (e) => {
+            if (e.key === 'Escape' && this.searchInput.value !== '') {
+                e.stopPropagation();
+                this.clearSearch();
+            }
+        };
+        this._searchClearHandler = () => {
+            this.clearSearch();
+            if (this.searchInput) this.searchInput.focus();
+        };
+        addTrackedListener(this.searchInput, 'input', this._searchInputHandler);
+        addTrackedListener(this.searchInput, 'keydown', this._searchKeydownHandler);
+        addTrackedListener(this.searchClearBtn, 'click', this._searchClearHandler);
+        addTrackedListener(this.searchResetBtn, 'click', this._searchClearHandler);
 
         // Modal Controls
         if (this.modal) {
@@ -433,17 +466,34 @@ class GridPlaylistManager {
         this.previousFocusElement = null;
     }
 
+    modalNavList() {
+        return this.searchQuery ? this.filteredItems : this.playlist.medias;
+    }
+
+    modalNavPosition() {
+        const currentId = this.playlist.medias[this.currentModalIndex]?.ID;
+        return this.modalNavList().findIndex(media => media.ID === currentId);
+    }
+
     navigateModal(direction) {
-        const newIndex = this.currentModalIndex + direction;
-        if (newIndex >= 0 && newIndex < this.playlist.medias.length) {
-            this.openModal(newIndex, this.modal.classList.contains('grid-fullscreen') ? 'fullscreen' : 'modal');
+        const list = this.modalNavList();
+        const pos = this.modalNavPosition();
+        if (pos === -1) return;
+
+        const newPos = pos + direction;
+        if (newPos < 0 || newPos >= list.length) return;
+
+        const globalIndex = this.playlist.medias.findIndex(media => media.ID === list[newPos].ID);
+        if (globalIndex !== -1) {
+            this.openModal(globalIndex, this.modal.classList.contains('grid-fullscreen') ? 'fullscreen' : 'modal');
         }
     }
 
     updateModalNav() {
         if (!this.modalNextBtn || !this.modalPrevBtn) return;
-        this.modalPrevBtn.disabled = this.currentModalIndex <= 0;
-        this.modalNextBtn.disabled = this.currentModalIndex >= this.playlist.medias.length - 1;
+        const pos = this.modalNavPosition();
+        this.modalPrevBtn.disabled = pos <= 0;
+        this.modalNextBtn.disabled = pos === -1 || pos >= this.modalNavList().length - 1;
     }
 
     updateModalSubtitles(subtitles) {
@@ -482,6 +532,54 @@ class GridPlaylistManager {
         }
     }
 
+    // --- Search ---
+    normalizeText(str) {
+        return String(str == null ? '' : str)
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    applySearch(query) {
+        this.searchQuery = String(query == null ? '' : query).trim();
+        const q = this.normalizeText(this.searchQuery);
+
+        this.filteredItems = q
+            ? this.playlist.medias.filter(media => this.normalizeText(media.post_title).includes(q))
+            : [...this.playlist.medias];
+
+        this.currentPage = 1;
+        this.renderItems();
+        this.updatePagination();
+        this.updateHeaderCount();
+
+        if (this.searchClearBtn) {
+            this.searchClearBtn.hidden = (this.searchInput ? this.searchInput.value : this.searchQuery) === '';
+        }
+    }
+
+    clearSearch() {
+        if (this.searchInput) {
+            this.searchInput.value = '';
+        }
+        clearTimeout(this._searchTimer);
+        this.applySearch('');
+    }
+
+    updateHeaderCount() {
+        if (!this.headerCount) return;
+
+        if (this.searchQuery === '') {
+            this.headerCount.textContent = this._countOriginal;
+            return;
+        }
+
+        const template = this.headerCount.dataset.filteredTemplate || '{shown} of {total}';
+        this.headerCount.textContent = template
+            .replace('{shown}', this.filteredItems.length)
+            .replace('{total}', this.playlist.medias.length);
+    }
+
     // --- Pagination & State Logic ---
     getItemsForCurrentPage() {
         const perPage = this.options.itemsPerPage || 12;
@@ -515,6 +613,7 @@ class GridPlaylistManager {
     }
 
     destroy() {
+        clearTimeout(this._searchTimer);
         // Close modal and cleanup keyboard handler
         if (this.modal && this.modal.classList.contains('visible')) {
             this.closeModal();

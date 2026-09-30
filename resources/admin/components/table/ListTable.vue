@@ -457,6 +457,10 @@ const sourceInfoByProvider = computed(() => {
         wordpress: {
             icon: IconUploaded,
             label: $t('Uploaded'),
+        },
+        external: {
+            icon: IconUploaded,
+            label: $t('External URL'),
         }
     };
 });
@@ -480,6 +484,7 @@ const mediaListFilters = computed(() => {
             placeholder: $t('All Sources'),
             options: [
                 { value: 'wordpress', label: sourceInfoByProvider.value.wordpress.label },
+                { value: 'external', label: sourceInfoByProvider.value.external.label },
                 { value: 'youtube', label: sourceInfoByProvider.value.youtube.label },
                 { value: 'vimeo', label: sourceInfoByProvider.value.vimeo.label },
                 { value: 'bunny', label: sourceInfoByProvider.value.bunny.label },

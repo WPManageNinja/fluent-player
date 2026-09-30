@@ -1,5 +1,5 @@
 const { __, sprintf } = wp.i18n;
-const { Button, Notice, Spinner, SelectControl, BaseControl, CheckboxControl } = wp.components;
+const { Button, Notice, Spinner, SelectControl, TextControl, BaseControl, CheckboxControl } = wp.components;
 const { MediaUpload } = wp.blockEditor || wp.editor;
 const { useState, useRef } = wp.element;
 const { apiFetch } = wp;
@@ -14,7 +14,8 @@ import {
 	getHoverPreviewStatus,
 	getRequestedMediaState,
 	hasStoryboardThumbnails,
-	isMatchingRequestedMediaState
+	isMatchingRequestedMediaState,
+	applySubtitleEdit
 } from './subtitles/utils.js';
 import { useMediaDataSync } from './subtitles/useMediaDataSync.js';
 import { useStoryboard } from './subtitles/useStoryboard.js';
@@ -24,7 +25,7 @@ import { useYouTubeCaptions } from './subtitles/useYouTubeCaptions.js';
 
 const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = null, saveMediaToServer = null }) => {
 	const [editingSubtitleKey, setEditingSubtitleKey] = useState('');
-	const [editData, setEditData] = useState({ language: 'en', label: '' });
+	const [editData, setEditData] = useState({ language: 'en', label: '', is_default: false });
 	const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, anchor: null, subtitleId: null });
 	const [isProModalOpen, setIsProModalOpen] = useState(false);
 	const deleteRequestRef = useRef(0);
@@ -53,7 +54,7 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 
 	const resetEditState = () => {
 		setEditingSubtitleKey('');
-		setEditData({ language: 'en', label: '' });
+		setEditData({ language: 'en', label: '', is_default: false });
 	};
 
 	const isProActive = window.fluentPlayerBlockVars?.hasPro || false;
@@ -224,7 +225,11 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 	}
 
 	const openEdit = (subtitle, index) => {
-		setEditData({ language: subtitle.language, label: subtitle.label });
+		setEditData({
+			language: subtitle.language,
+			label: subtitle.label,
+			is_default: !!subtitle.is_default
+		});
 		setEditingSubtitleKey(getSubtitleEditKey(subtitle, index));
 	};
 
@@ -241,15 +246,12 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 			return;
 		}
 
-		const updatedSubtitles = (currentMediaData.settings?.subtitles || []).map((subtitle, index) => (
-			getSubtitleEditKey(subtitle, index) === editingSubtitleKey
-				? {
-					...subtitle,
-					language: editData.language,
-					label: editData.label || getLanguageLabel(editData.language)
-				}
-				: subtitle
-		));
+		const updatedSubtitles = applySubtitleEdit(
+			currentMediaData.settings?.subtitles || [],
+			editingSubtitleKey,
+			getSubtitleEditKey,
+			editData
+		);
 
 		applyEditorMediaData({
 			...currentMediaData,
@@ -492,8 +494,31 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 													onChange={(value) => setEditData((prev) => ({
 														...prev,
 														language: value,
-														label: getLanguageLabel(value)
+														// Preserve a custom label; only auto-fill it when empty or
+														// still holding the previous language's auto label (the user
+														// hasn't typed their own).
+														label: (!prev.label || prev.label === getLanguageLabel(prev.language))
+															? getLanguageLabel(value)
+															: prev.label
 													}))}
+												/>
+											</div>
+
+											<div className="fluent-player-form-row">
+												<TextControl
+													label={__('Label', 'fluent-player')}
+													help={__('Shown in the captions menu. Leave blank to use the language name.', 'fluent-player')}
+													value={editData.label || ''}
+													onChange={(value) => setEditData((prev) => ({ ...prev, label: value }))}
+												/>
+											</div>
+
+											<div className="fluent-player-form-row">
+												<CheckboxControl
+													label={__('Set as default track', 'fluent-player')}
+													help={__('Show this subtitle by default when the player loads.', 'fluent-player')}
+													checked={!!editData.is_default}
+													onChange={(value) => setEditData((prev) => ({ ...prev, is_default: value }))}
 												/>
 											</div>
 
@@ -515,6 +540,9 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 												<div className="fp-card-body">
 													<div className="subtitle-title-wrap fp-card-title-wrap">
 														<span className="subtitle-name fp-card-title">{subtitle.label || getLanguageLabel(subtitle.language)}</span>
+														{subtitle.is_default && (
+															<span className="subtitle-default-badge">{__('Default', 'fluent-player')}</span>
+														)}
 													</div>
 													<div className="subtitle-meta fp-card-meta">
 														<span className="subtitle-filename fp-card-meta-item">{subtitle.filename}</span>

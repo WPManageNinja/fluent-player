@@ -6,6 +6,8 @@ import ConfirmPopover from './common/ConfirmPopover.jsx';
 import Skeleton from './common/Skeleton.jsx';
 import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, DeleteIconSVG, CloseIconSVG } from './common/Icons.jsx';
+import { detectStreamAudioHint } from './common/detectStreamAudioHint.js';
+import { defaultPostStatus } from '@share/helper.js';
 
 const CopyIconSVG = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -178,6 +180,7 @@ const MuxStream = ({
                                   defaultSettings?.preset_slug ||
                                   'course';
 
+        const streamIsAudio = detectStreamAudioHint('mux_stream', stream);
         const updatedMediaData = {
             title: streamTitle,
             settings: {
@@ -185,12 +188,12 @@ const MuxStream = ({
                 src: videoSrc,
                 posterSrc: posterSrc,
                 title: streamTitle,
-                post_status: 'publish',
+                post_status: defaultPostStatus(),
                 streamType: isLive ? 'live' : 'on-demand',
                 autoplay: isLive,
                 loadStrategy: isLive ? 'eager' : 'visible',
-                viewType: 'video',
-                mediaType: 'video',
+                viewType: streamIsAudio ? 'audio' : 'video',
+                mediaType: streamIsAudio ? 'audio' : 'video',
                 playsInline: true,
                 mutedAutoplay: false,
                 aspectRatio: 'default',
@@ -202,6 +205,7 @@ const MuxStream = ({
                     asset_id: hasRecording ? vodAssetId : '',
                     status: stream.status || 'idle',
                     is_live: isLive,
+                    is_audio: streamIsAudio,
                     duration: vodDuration,
                 },
             }

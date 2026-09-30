@@ -3,6 +3,7 @@ const { __ } = wp.i18n;
 const { Button } = wp.components;
 const apiFetch = wp.apiFetch;
 
+import { defaultPostStatus } from '@share/helper.js';
 import { buildStreamMediaData } from './cloudflareStream/buildStreamMediaData.js';
 import useNotification from './common/useNotification.js';
 import ConfirmPopover from './common/ConfirmPopover.jsx';
@@ -84,6 +85,8 @@ const CloudflareStream = ({ defaultSettings, saveMediaToServer, onCancel }) => {
             title: __('Select or Upload Video', 'fluent-player'),
             button: { text: __('Use this video', 'fluent-player') },
             multiple: false,
+            // Cloudflare Stream is a video-only platform — it rejects audio-only files
+            // at the API ("not a valid video file"). Audio should use Cloudflare R2.
             library: { type: 'video' },
         });
         uploader.on('select', () => {
@@ -95,6 +98,15 @@ const CloudflareStream = ({ defaultSettings, saveMediaToServer, onCancel }) => {
     };
 
     const uploadVideo = async (attachment) => {
+        // Cloudflare Stream rejects audio at the API. Guard with a clear message
+        // (pointing to R2) rather than surfacing the raw vendor error.
+        const attachmentIsAudio = attachment?.type === 'audio'
+            || String(attachment?.mime || attachment?.subtype || '').startsWith('audio');
+        if (attachmentIsAudio) {
+            notifyError(__('Cloudflare Stream does not support audio files. Use Cloudflare R2 for audio instead.', 'fluent-player'));
+            return;
+        }
+
         setIsUploading(true);
         const notifId = showNotification({
             type: 'info',
@@ -168,7 +180,7 @@ const CloudflareStream = ({ defaultSettings, saveMediaToServer, onCancel }) => {
         setSelectedUid(v.uid);
         const data = buildStreamMediaData(
             { uid: v.uid, meta: { name: v.name }, duration: v.duration, thumbnail: v.thumbnail, playback: { hls: v.hls }, readyToStream: v.ready, requireSignedURLs: v.require_signed_urls },
-            { presetSlug, untitledLabel: __('Untitled Stream Video', 'fluent-player') }
+            { presetSlug, untitledLabel: __('Untitled Stream Video', 'fluent-player'), postStatus: defaultPostStatus() }
         );
         try {
             if (typeof saveMediaToServer === 'function') await saveMediaToServer(data);

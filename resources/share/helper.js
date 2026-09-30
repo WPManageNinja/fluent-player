@@ -11,6 +11,14 @@ export const isFluentCommunityEditor = () => {
     return fcEditorDetected;
 };
 
+export const defaultPostStatus = (isDedicatedPlayer = false) => {
+    if (isDedicatedPlayer) {
+        return 'draft';
+    }
+    // Lesson-created media must not get a public standalone page.
+    return isFluentCommunityEditor() ? 'private' : 'publish';
+};
+
 export const secondsToTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);

@@ -14,6 +14,7 @@ import SettingsMenu from './menus/SettingsMenu';
 import CaptionsMenu from './menus/CaptionsMenu';
 import TimeSlider from './sliders/TimeSlider';
 import SeekButton from './buttons/SeekButton';
+import { shouldShowAudioPoster } from '../../../../js/utils/videoSrc.js';
 
 const AudioLayout = ({ settings, skin = 'modern' }) => {
     const controls = settings.controls || {};
@@ -42,7 +43,8 @@ const AudioLayout = ({ settings, skin = 'modern' }) => {
 
     const renderPoster = () => {
         if (!showPoster) return null;
-        return posterSrc ? (
+        // Only a user-picked poster shows; provider auto-thumbnails → default music note.
+        return shouldShowAudioPoster(settings) ? (
             <div className="fp-audio-poster" style={{ backgroundImage: `url("${posterSrc}")` }}>
                 <img src={posterSrc} alt={title} width="100" height="100" />
             </div>
