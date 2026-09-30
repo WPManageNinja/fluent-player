@@ -1,6 +1,8 @@
 const { __ } = wp.i18n;
 const { FormTokenField } = wp.components;
 
+import { formTokenFieldHowToProps } from '../formTokenFieldHowTo.js';
+
 const TagInput = ({
     value = [],
     availableTags = [],
@@ -20,7 +22,7 @@ const TagInput = ({
                 <FormTokenField
                     __experimentalAutoSelectFirstMatch
                     __experimentalExpandOnFocus
-                    __experimentalShowHowTo={false}
+                    {...formTokenFieldHowToProps()}
                     disabled={isLoading}
                     value={currentTags}
                     suggestions={suggestions}

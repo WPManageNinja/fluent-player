@@ -341,6 +341,12 @@ export const CopyIconSVG = () => (
 	</svg>
 );
 
+export const LightboxIconSVG = () => (
+	<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+		<path d="M7.5 3.125H4.375C3.68464 3.125 3.125 3.68464 3.125 4.375V7.5M12.5 3.125H15.625C16.3154 3.125 16.875 3.68464 16.875 4.375V7.5M16.875 12.5V15.625C16.875 16.3154 16.3154 16.875 15.625 16.875H12.5M7.5 16.875H4.375C3.68464 16.875 3.125 16.3154 3.125 15.625V12.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+	</svg>
+);
+
 export const AdvancedIconSVG = () => (
 	<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 12 12" fill="none" style={{fill: 'var(--icon-strong-950, #0E121B)', stroke: 'var(--icon-sub-600, #525866)', strokeWidth: '1.25px'}}>
 		<mask id="path-1-inside-1_1423_6782" fill="white">

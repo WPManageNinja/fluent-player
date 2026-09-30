@@ -233,6 +233,22 @@ export function applyYouTubePrivacyMode(provider) {
 }
 
 /**
+ * Privacy-Enhanced Mode for Vimeo. Vidstack derives the embed's `dnt` param from
+ * `provider.cookies` (dnt = !cookies) and defaults cookies=false → dnt=1. The setting
+ * defaults to `privacy_mode => true` to preserve that privacy-first default, so a missing
+ * config keeps cookies OFF; only an explicit false enables tracking. Must run on
+ * provider-change, before Vidstack builds the embed URL.
+ *
+ * @param {object} provider - Vidstack media provider (from the provider-change event)
+ */
+export function applyVimeoPrivacyMode(provider) {
+    if (!provider || provider.type !== 'vimeo') return;
+
+    const privacyMode = window.fluent_player?.vimeo?.privacy_mode ?? true;
+    provider.cookies = !privacyMode;
+}
+
+/**
  * Restore a cross-origin referrer for embed providers (YouTube, Vimeo).
  *
  * A site-wide `Referrer-Policy: same-origin` header — commonly injected by security

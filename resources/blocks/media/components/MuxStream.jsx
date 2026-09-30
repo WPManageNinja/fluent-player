@@ -8,6 +8,7 @@ import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, DeleteIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { detectStreamAudioHint } from './common/detectStreamAudioHint.js';
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 
 const CopyIconSVG = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -37,6 +38,7 @@ const MuxStream = ({
     setSelectedMedia,
     saveMediaToServer
 }) => {
+    const canManage = canManageProviders();
     const { showNotification } = useNotification();
     const [liveStreams, setLiveStreams] = useState([]);
     const [isLoadingLive, setIsLoadingLive] = useState(true);
@@ -458,12 +460,14 @@ const MuxStream = ({
                             <BackArrowSmallSVG />
                             {__('Back to Streams', 'fluent-player')}
                         </Button>
+                        {canManage && (
                         <Button
                             className="components-button fp-btn-secondary"
                             onClick={() => resetStreamKey(viewingStream.id)}
                         >
                             {__('Reset Stream Key', 'fluent-player')}
                         </Button>
+                        )}
                         <Button
                             className="components-button fp-btn-primary"
                             onClick={() => handleSelectLiveStream(viewingStream)}
@@ -528,7 +532,7 @@ const MuxStream = ({
     // List view (default)
     return (
         <div className="fluent-player-bunny">
-            {!isLoadingLive && (
+            {!isLoadingLive && canManage && (
                 <div className="fluent-player-bunny-toolbar">
                     <div></div>
                     <Button
@@ -572,17 +576,21 @@ const MuxStream = ({
                                                         e.stopPropagation();
                                                         viewStreamDetails(stream);
                                                     }}
+                                                    aria-label={__('View details', 'fluent-player') + ': ' + getStreamTitle(stream)}
                                                     title={__('View details', 'fluent-player')}
                                                 >
                                                     <EyeIconSVG />
                                                 </Button>
+                                                {canManage && (
                                                 <Button
                                                     className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
                                                     onClick={(e) => showDeleteConfirmation(stream, e)}
+                                                    aria-label={__('Delete stream', 'fluent-player') + ': ' + getStreamTitle(stream)}
                                                     title={__('Delete stream', 'fluent-player')}
                                                 >
                                                     <DeleteIconSVG />
                                                 </Button>
+                                                )}
                                             </div>
                                             <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                                 <div className="fluent-player-bunny-video-encoding-placeholder">

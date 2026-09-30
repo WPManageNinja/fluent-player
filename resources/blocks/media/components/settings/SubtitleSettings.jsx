@@ -22,6 +22,7 @@ import { useStoryboard } from './subtitles/useStoryboard.js';
 import ProModal from '../common/ProModal.jsx';
 import { useSubtitleUpload } from './subtitles/useSubtitleUpload.js';
 import { useYouTubeCaptions } from './subtitles/useYouTubeCaptions.js';
+import { useVimeoCaptions } from './subtitles/useVimeoCaptions.js';
 
 const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = null, saveMediaToServer = null }) => {
 	const [editingSubtitleKey, setEditingSubtitleKey] = useState('');
@@ -65,11 +66,13 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 		: 10;
 
 	const isYouTubeProvider = mediaData?.settings?.provider === 'youtube';
+	const isVimeoProvider = mediaData?.settings?.provider === 'vimeo';
+	const hasVimeoCaptionApi = !!subtitleApi.vimeoCaptions;
 	const hasSubtitleUploadApi = !!subtitleApi.upload;
 	const hasSubtitleDeleteApi = !!subtitleApi.delete;
 	const hasYouTubeSubtitleApi = !!subtitleApi.youtubeImport;
 	const hasYouTubeStoryboardApi = !!subtitleApi.youtubeStoryboard;
-	const hasSubtitleApiMismatch = !hasSubtitleUploadApi || !hasSubtitleDeleteApi || (isYouTubeProvider && !hasYouTubeSubtitleApi);
+	const hasSubtitleApiMismatch = !hasSubtitleUploadApi || !hasSubtitleDeleteApi || (isYouTubeProvider && !hasYouTubeSubtitleApi) || (isVimeoProvider && !hasVimeoCaptionApi);
 
 	const getYouTubeTrackLabel = (track) => {
 		const baseLabel = track?.label || track?.languageCode || __('Unknown', 'fluent-player');
@@ -151,14 +154,46 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 		showNotification,
 	});
 
-	const handleFetchYouTubeCaptions = async () => {
-		await handleFetchCaptions();
+	// Vimeo captions import — same fetch → select → import flow as YouTube.
+	const vimeoCaptions = useVimeoCaptions({
+		mediaData,
+		isVimeoProvider,
+		hasVimeoCaptionApi,
+		maxTrackSelection,
+		latestMediaDataRef,
+		syncLatestMediaData,
+		persistMediaForSubtitleActions,
+		showNotification,
+	});
+
+	// A remote-caption provider (YouTube or Vimeo) shares one fetch → select → import UI.
+	const isRemoteCaptionProvider = isYouTubeProvider || isVimeoProvider;
+	const hasRemoteCaptionApi = isVimeoProvider ? hasVimeoCaptionApi : hasYouTubeSubtitleApi;
+	const remoteCaptions = isVimeoProvider
+		? vimeoCaptions
+		: {
+			isFetchingCaptions,
+			availableTracks,
+			selectedTracks,
+			isImporting,
+			maxSelectableTrackCount,
+			resetTrackSelection,
+			handleFetchCaptions,
+			handleImportCaptions,
+			toggleTrack,
+			toggleAllTracks,
+		};
+
+	const getRemoteTrackLabel = (track) => (
+		isVimeoProvider ? (track?.label || track?.languageCode || __('Unknown', 'fluent-player')) : getYouTubeTrackLabel(track)
+	);
+
+	const handleFetchRemoteCaptions = async () => {
+		await remoteCaptions.handleFetchCaptions();
 	};
 
 	const handleImportSelectedCaptions = async () => {
-		await handleImportCaptions({
-			generateStoryboard: false,
-		});
+		await remoteCaptions.handleImportCaptions({ generateStoryboard: false });
 	};
 
 	const {
@@ -337,7 +372,7 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 				{hasSubtitleApiMismatch && (
 					<Notice status="warning" isDismissible={false}>
 						<p>{__('Your FluentPlayer Pro addon is missing the subtitle editor endpoints required by this free-plugin update.', 'fluent-player')}</p>
-						<p>{__('Update the addon before using subtitle upload, delete, or YouTube import actions in this editor.', 'fluent-player')}</p>
+						<p>{__('Update the addon before using subtitle upload, delete, or caption import actions in this editor.', 'fluent-player')}</p>
 					</Notice>
 				)}
 
@@ -346,6 +381,14 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 						className="fluent-player-yt-import"
 						title={__('YouTube Subtitle Import', 'fluent-player')}
 						description={__('Admin-only import for YouTube captions and hover previews; use it only for content you are allowed to import, and review your privacy notice and hosting or processor terms before enabling it on a live site.', 'fluent-player')}
+					/>
+				)}
+
+				{isVimeoProvider && (
+					<ShowTipsMessage
+						className="fluent-player-yt-import"
+						title={__('Vimeo Subtitle Import', 'fluent-player')}
+						description={__('Fetch the captions available on this Vimeo video and import the ones you want as subtitles.', 'fluent-player')}
 					/>
 				)}
 
@@ -366,42 +409,42 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 							</Button>
 						)}
 					/>
-					{isYouTubeProvider && (
+					{isRemoteCaptionProvider && (
 						<Button
 							className="components-button fp-btn-secondary add-subtitle-btn"
-							onClick={handleFetchYouTubeCaptions}
-							disabled={isFetchingCaptions || isImporting || isGeneratingHoverPreview || !hasYouTubeSubtitleApi}
+							onClick={handleFetchRemoteCaptions}
+							disabled={remoteCaptions.isFetchingCaptions || remoteCaptions.isImporting || isGeneratingHoverPreview || !hasRemoteCaptionApi}
 						>
-							{isFetchingCaptions ? <Spinner /> : <DownloadIconSVG />}
-							{isFetchingCaptions ? __('Fetching...', 'fluent-player') : __('Fetch', 'fluent-player')}
+							{remoteCaptions.isFetchingCaptions ? <Spinner /> : <DownloadIconSVG />}
+							{remoteCaptions.isFetchingCaptions ? __('Fetching...', 'fluent-player') : __('Fetch', 'fluent-player')}
 						</Button>
 					)}
 				</div>
 
-				{isYouTubeProvider && availableTracks !== null && availableTracks.length === 0 && (
+				{isRemoteCaptionProvider && remoteCaptions.availableTracks !== null && remoteCaptions.availableTracks.length === 0 && (
 					<Notice status="warning" isDismissible={false}>
 						{__('No subtitles available for this video.', 'fluent-player')}
 					</Notice>
 				)}
 
-				{isYouTubeProvider && availableTracks !== null && availableTracks.length > 0 && (
+				{isRemoteCaptionProvider && remoteCaptions.availableTracks !== null && remoteCaptions.availableTracks.length > 0 && (
 					<div className="fluent-player-yt-tracks">
 						<div className="fluent-player-yt-tracks__header">
 							<CheckboxControl
 								className="fluent-player-yt-tracks__checkbox fluent-player-yt-tracks__checkbox--select-all"
 								label={sprintf(__('Select All (max %d)', 'fluent-player'), maxTrackSelection)}
-								checked={selectedTracks.length === maxSelectableTrackCount && maxSelectableTrackCount > 0}
-								onChange={toggleAllTracks}
+								checked={remoteCaptions.selectedTracks.length === remoteCaptions.maxSelectableTrackCount && remoteCaptions.maxSelectableTrackCount > 0}
+								onChange={remoteCaptions.toggleAllTracks}
 							/>
 							<Button
 								className="fp-icon-btn fp-icon-btn--secondary fp-icon-btn--sm fp-icon-btn--close"
 								aria-label={__('Close', 'fluent-player')}
-								onClick={resetTrackSelection}
+								onClick={remoteCaptions.resetTrackSelection}
 							>
 								<ClearIconSVG />
 							</Button>
 						</div>
-						{availableTracks.length > maxTrackSelection && (
+						{remoteCaptions.availableTracks.length > maxTrackSelection && (
 							<p className="fluent-player-yt-tracks__help">
 								{sprintf(
 									__('To keep imports reliable, you can select up to %d subtitle tracks at once.', 'fluent-player'),
@@ -410,26 +453,26 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 							</p>
 						)}
 						<div className="fluent-player-yt-tracks__list">
-							{availableTracks.map((track) => (
+							{remoteCaptions.availableTracks.map((track) => (
 								<CheckboxControl
 									key={track.trackId}
 									className="fluent-player-yt-tracks__checkbox"
-									label={getYouTubeTrackLabel(track)}
-									checked={selectedTracks.includes(track.trackId)}
-									disabled={isImporting || (!selectedTracks.includes(track.trackId) && selectedTracks.length >= maxTrackSelection)}
-									onChange={() => toggleTrack(track.trackId)}
+									label={getRemoteTrackLabel(track)}
+									checked={remoteCaptions.selectedTracks.includes(track.trackId)}
+									disabled={remoteCaptions.isImporting || (!remoteCaptions.selectedTracks.includes(track.trackId) && remoteCaptions.selectedTracks.length >= maxTrackSelection)}
+									onChange={() => remoteCaptions.toggleTrack(track.trackId)}
 								/>
 							))}
 						</div>
 						<Button
 							className="components-button fp-btn-primary w-100"
 							onClick={handleImportSelectedCaptions}
-							disabled={isImporting || isGeneratingHoverPreview || selectedTracks.length === 0 || !hasYouTubeSubtitleApi}
+							disabled={remoteCaptions.isImporting || isGeneratingHoverPreview || remoteCaptions.selectedTracks.length === 0 || !hasRemoteCaptionApi}
 						>
-							{isImporting ? <Spinner /> : null}
-							{isImporting
+							{remoteCaptions.isImporting ? <Spinner /> : null}
+							{remoteCaptions.isImporting
 								? __('Importing...', 'fluent-player')
-								: sprintf(__('Import Selected (%d)', 'fluent-player'), selectedTracks.length)}
+								: sprintf(__('Import Selected (%d)', 'fluent-player'), remoteCaptions.selectedTracks.length)}
 						</Button>
 					</div>
 				)}

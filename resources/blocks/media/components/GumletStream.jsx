@@ -7,6 +7,7 @@ import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG } from './common/Icons.jsx';
 import { buildGumletMediaData } from './common/buildGumletMediaData.js';
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 
 const CopyIconSVG = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -28,6 +29,7 @@ const GumletStream = ({
     defaultSettings,
     saveMediaToServer,
 }) => {
+    const canManage = canManageProviders();
     const { showNotification } = useNotification();
     const [title, setTitle] = useState('');
     const [resolution, setResolution] = useState('720p');
@@ -217,9 +219,11 @@ const GumletStream = ({
                             <BackArrowSmallSVG />
                             {__('Back', 'fluent-player')}
                         </Button>
+                        {canManage && (
                         <Button className="components-button fp-btn-secondary" onClick={(e) => { setDeleteAnchor(e.currentTarget); setConfirmDelete(true); }}>
                             {__('Delete Stream', 'fluent-player')}
                         </Button>
+                        )}
                         <Button className="components-button fp-btn-primary" onClick={useStream} disabled={selecting}>
                             {selecting ? __('Adding…', 'fluent-player') : __('Use This Stream', 'fluent-player')}
                         </Button>
@@ -241,6 +245,26 @@ const GumletStream = ({
     }
 
     // ── Create form ──
+    // Provisioning a live stream is administrator-only: it creates a billable
+    // account-level resource and only an admin can delete one. Say so rather
+    // than presenting a form that would 403 on submit.
+    if (!canManage) {
+        return (
+            <div className="fluent-player-bunny fluent-player-gumlet">
+                <h5>{__('Create Live Stream', 'fluent-player')}</h5>
+                <p className="fluent-player-bunny-empty-state">
+                    {__('Creating a live stream requires an administrator. Ask a site administrator to set one up, then select it here.', 'fluent-player')}
+                </p>
+                <div className="fluent-player-bunny-action-button">
+                    <Button className="components-button back-button fp-btn-secondary" onClick={onCancel}>
+                        <BackArrowSmallSVG />
+                        {__('Back to Media Selector', 'fluent-player')}
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="fluent-player-bunny fluent-player-gumlet">
             <h5>{__('Create Live Stream', 'fluent-player')}</h5>

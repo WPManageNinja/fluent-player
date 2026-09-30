@@ -9,6 +9,7 @@
 @use './components/player/buttons';
 @use './components/player/captions';
 @use './components/player/chapter-title';
+@use './components/player/chapters-strip';
 @use './components/player/controls';
 @use './components/player/gestures';
 @use './components/player/menus';
@@ -204,6 +205,7 @@ $fp-block-modal-container: ".fluent-player-block-panel, .fluent-player-block-mod
 $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-playlist, .fluent-player-block-panel, .fluent-player-block-modal";
 
 #{$fp-block-container} {
+	/* Single source of truth for focus rings on every block-UI control (incl. .fp-btn-secondary). Don't re-add focus box-shadows per component. */
 	:where(
 		button,
 		[role='button'],
@@ -437,6 +439,27 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		border: 1px solid $color-border;
 		overflow: hidden;
 		margin-bottom: $spacing-xl;
+
+		// _player.scss gives every .fluent-player content-visibility:auto. Inside this
+		// overflow:hidden box the browser misjudges visibility and never paints — the same
+		// failure that file's slider/modal escape hatches exist for.
+		.fluent-player {
+			content-visibility: visible;
+			contain-intrinsic-size: none;
+		}
+
+		// The chapter-strip wrapper stands in for .fluent-player-container as the flex item, so it
+		// has to carry the same sizing or the player is sized from its own content and overflows.
+		.fluent-player-preview-content > .fluent-player {
+			width: 100%;
+			min-width: 0;
+		}
+
+		// The content row stretches that wrapper to the media's aspect-ratio height, so a chapter
+		// strip below it overflows into this box's overflow:hidden and vanishes.
+		.fluent-player-preview-content:has(.fp-chapters) {
+			align-items: flex-start;
+		}
 
 		&--loading {
 			background:
@@ -834,45 +857,6 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		margin-left: auto;
 		margin-right: auto;
 	}
-
-	/* Fix YouTube Shorts (portrait) zoom in landscape container */
-	iframe.vds-youtube[data-no-controls] {
-		height: 100%;
-	}
-
-	/* Block hover on YouTube iframe and cover watermark area at the bottom */
-	[data-media-provider]:has(iframe.vds-youtube[data-no-controls])::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-		background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 50px);
-	}
-
-	/* Hide YouTube iframe when not actively playing */
-	media-player iframe.vds-youtube {
-		opacity: 0 !important;
-		visibility: hidden !important;
-	}
-
-	media-player[data-playing] iframe.vds-youtube {
-		opacity: 1 !important;
-		visibility: visible !important;
-	}
-
-	/* Keep poster visible for YouTube when not playing */
-	[data-media-provider]:has(iframe.vds-youtube) media-poster {
-		opacity: 1;
-		background-color: #000;
-		transition: none;
-	}
-
-	/* Delay poster fade-out so it covers YouTube's initial logo flash on play start */
-	media-player[data-playing] [data-media-provider]:has(iframe.vds-youtube) media-poster {
-		opacity: 0;
-		transition: opacity 0s linear 0.4s;
-	}
-
 
 	.wp-block-fluent-player-media .fluent-player-youtube-form,
 	.wp-block-fluent-player-media .fluent-player-vimeo-form,
@@ -2541,13 +2525,14 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
 		transition: all 0.3s ease;
 		cursor: pointer;
-	
+
 		&:hover {
 			background: $bg-weak-50;
 			color: $text-strong-950;
 			border: 1px solid $stroke-sub-300;
 		}
-	
+
+		/* Keyboard focus ring comes from the global --fp-focus-ring rule above; only the border/reset lives here. */
 		&:focus,
 		&:focus-within,
 		&:focus-visible {
@@ -2555,6 +2540,12 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 			box-shadow: none;
 			outline: none;
 		}
+	}
+
+	.fp-btn-secondary--inline,
+	.fp-btn-secondary--inline.components-button {
+		display: inline-flex;
+		margin-top: 8px;
 	}
 	
 	/* Icon Button - for icon-only buttons like edit, delete, back */
@@ -5196,11 +5187,16 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		border: none !important;
 	}
 
-	// Suggestions list (ul) and each option (li) – list may be portaled outside, so also target at root
+	// Must stay nested: this stylesheet loads on every block editor screen, so at
+	// the file root these would restyle core's Tags/Categories token fields too.
 	.components-form-token-field__suggestions-list {
-		border: 1px solid $stroke-soft-200;
 		border-radius: var(--fp-radius-8);
+		border: 1px solid $stroke-soft-200;
 		background: $bg-white-0;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		list-style: none;
+		margin: 0;
+		padding: 4px 0;
 	}
 
 	.components-form-token-field__suggestion {
@@ -5222,26 +5218,14 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 			color: $text-strong-950;
 			box-shadow: none;
 		}
-	}
-}
 
-// Suggestions dropdown may render in a portal outside .fp-form-token-field – target by class so hover works
-.components-form-token-field__suggestions-list {
-	border-radius: var(--fp-radius-8);
-	border: 1px solid $stroke-soft-200;
-	background: $bg-white-0;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-	list-style: none;
-	margin: 0;
-	padding: 4px 0;
-}
-
-.components-form-token-field__suggestion {
-	cursor: pointer;
-	padding: 8px 12px;
-
-	&:hover {
-		background: $bg-weak-50;
+		// Outranks core's .is-selected (0,3,0 vs 0,2,0), so restate the highlight.
+		// Keep last to win the specificity tie with :hover above.
+		&.is-selected {
+			background: $stroke-sub-300;
+			color: $text-strong-950;
+			font-weight: 600;
+		}
 	}
 }
 
@@ -6999,8 +6983,11 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	}
 }
 
-/* Block inspector Advanced panel: at root so it matches in the sidebar (not necessarily under our container) */
-.block-editor-block-inspector__advanced {
+/* Core sidebar markup outside our container — scoped to player-block documents
+   so it can't restyle the Advanced panel of unrelated blocks. */
+body.post-type-fluent_player_media .block-editor-block-inspector__advanced,
+body.post-type-fluent_playlist .block-editor-block-inspector__advanced,
+body.fluent-player-block-selected .block-editor-block-inspector__advanced {
 	&.is-opened {
 		padding: 16px;
 
@@ -8550,4 +8537,54 @@ body.fluent-player-block-selected {
 	background: $bg-soft-200;
 	outline: 2px solid $stroke-sub-300;
 	outline-offset: -2px;
+}
+
+// Vidstack's base.css gives iframe.vds-youtube[data-no-controls] height:1000%, which is what
+// pushes YouTube's title bar out of the frame — only fp-portrait/fp-short may undo it.
+// Scoped to .fluent-player-container so the modals, which portal outside the block, match.
+.fluent-player-container {
+	iframe.vds-youtube {
+		opacity: 0 !important;
+		visibility: hidden !important;
+	}
+
+	media-player[data-playing] iframe.vds-youtube {
+		opacity: 1 !important;
+		visibility: visible !important;
+	}
+
+	[data-media-provider]:has(iframe.vds-youtube) media-poster {
+		opacity: 1;
+		background-color: #000;
+		transition: none;
+	}
+
+	media-player[data-playing] [data-media-provider]:has(iframe.vds-youtube) media-poster {
+		opacity: 0;
+		transition: opacity 0s linear 0.4s;
+	}
+
+	// Also swallows pointer events, so YouTube never registers a hover and re-shows its title.
+	[data-media-provider]:has(iframe.vds-youtube[data-no-controls])::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 50px);
+	}
+
+	// A Short saved with ratio 'default'/'original' is not portrait by ratio but still needs this.
+	&.fp-portrait,
+	&.fp-short {
+		iframe.vds-youtube[data-no-controls] {
+			height: 100%;
+		}
+
+		// Giving up the 1000% lift puts the title bar back inside the frame.
+		[data-media-provider]:has(iframe.vds-youtube[data-no-controls])::after {
+			background:
+				linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 70px),
+				linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 50px);
+		}
+	}
 }

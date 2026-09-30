@@ -8,7 +8,7 @@
  * stays post-type-agnostic.
  *
  * Pure seam (plain .js, no JSX) so Vitest can import it directly; the DOM mount
- * + navigation are proven by dev/e2e/admin/editor-back-button.spec.js.
+ * + navigation are proven by tests/e2e/admin/editor-back-button.spec.js.
  *
  * @param {{backUrl?: string, backLabel?: string, backAriaLabel?: string}} [config]
  * @return {{url: string, label: string, ariaLabel: string}|null} null = do not render.

@@ -4,6 +4,7 @@ const { Button } = wp.components;
 const apiFetch = wp.apiFetch;
 
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 import { buildStreamMediaData } from './cloudflareStream/buildStreamMediaData.js';
 import useNotification from './common/useNotification.js';
 import ConfirmPopover from './common/ConfirmPopover.jsx';
@@ -29,6 +30,7 @@ const formatDuration = (secs) => {
  * mirroring the R2 source structure, including its notification-based progress.
  */
 const CloudflareStream = ({ defaultSettings, saveMediaToServer, onCancel }) => {
+    const canManage = canManageProviders();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -255,6 +257,7 @@ const CloudflareStream = ({ defaultSettings, saveMediaToServer, onCancel }) => {
                                     onClick={() => selectVideo(v)}
                                     onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectVideo(v); } }}
                                 >
+                                    {canManage && (
                                     <div className="fluent-player-bunny-video-grid-item-action" onClick={(e) => e.stopPropagation()}>
                                         <Button
                                             className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
@@ -271,6 +274,7 @@ const CloudflareStream = ({ defaultSettings, saveMediaToServer, onCancel }) => {
                                             <DeleteIconSVG />
                                         </Button>
                                     </div>
+                                    )}
                                     <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                         {v.thumbnail
                                             ? <img src={v.thumbnail} alt="" loading="lazy" />

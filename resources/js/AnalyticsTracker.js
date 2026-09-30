@@ -36,6 +36,11 @@ class AnalyticsTracker {
         this._onBeforeUnload = this._handleBeforeUnload.bind(this);
 
         this._attachListeners();
+
+        // Attached mid-playback (muted preview convert) — no 'play' event will follow.
+        if (this.player?.paused === false) {
+            this._handlePlay();
+        }
     }
 
     _attachListeners() {

@@ -21,6 +21,12 @@
 @import '../../../node_modules/element-plus/theme-chalk/el-menu.css';
 @import '../../../node_modules/element-plus/theme-chalk/el-tooltip.css';
 
+// Admin SPA screen background. Kept out of _globals so it can't ride into the
+// block editor bundle.
+body {
+    background-color: var(--fp-body-bg-color, #F3F5FA);
+}
+
 .#{$slug} {
     &-app {
         margin-left: -20px;

@@ -3,17 +3,20 @@ const {Button, TextControl, SelectControl, BaseControl} = wp.components;
 const {MediaUpload} = wp.blockEditor || wp.editor;
 import MediaUploadCheck from '../common/BuilderMediaUploadCheck.jsx';
 import CustomToggle from '../common/CustomToggle.jsx';
-import {DeleteIconSVG, LockIconSVG} from '../common/Icons.jsx';
+import {DeleteIconSVG, LockIconSVG, GeneralSettingsIconSVG} from '../common/Icons.jsx';
 import CustomRadioGroup from '../common/CustomRadioGroup.jsx';
 import UrlInput from '../common/UrlInput.jsx';
+import InfoIcon from '../common/InfoIcon.jsx';
+import MutedPreviewConfigModal from './MutedPreviewConfigModal.jsx';
 import ShortcodeInserter from '../common/ShortcodeInserter.jsx';
 import ProModal from '../common/ProModal.jsx';
 
 const {useRef, useState} = wp.element;
 
-const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) => {
+const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData, presets = []}) => {
     const titleInputRef = useRef(null);
     const [isPlaybackProModalOpen, setIsPlaybackProModalOpen] = useState(false);
+    const [isPreviewConfigOpen, setIsPreviewConfigOpen] = useState(false);
     if (!mediaData) return null;
 
     const hasPro = window.fluentPlayerBlockVars?.hasPro || false;
@@ -49,25 +52,22 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
     const handleAutoplayChange = (value) => {
         const newSettings = {...mediaData.settings};
 
-        if (value === 'none') {
-            newSettings.autoplay = false;
-            newSettings.mutedAutoplay = false;
-        } else if (value === 'autoplay') {
-            newSettings.autoplay = true;
-            newSettings.mutedAutoplay = false;
-        } else if (value === 'muted_autoplay') {
-            newSettings.autoplay = false;
-            newSettings.mutedAutoplay = true;
-        }
+        newSettings.autoplay = value === 'autoplay';
+        newSettings.mutedAutoplay = value === 'muted_autoplay';
+        newSettings.mutedPreview = value === 'muted_preview';
 
         setMediaData({...mediaData, settings: newSettings});
     };
 
     const getAutoplayMode = () => {
+        if (mediaData.settings.mutedPreview) return 'muted_preview';
         if (mediaData.settings.mutedAutoplay) return 'muted_autoplay';
         if (mediaData.settings.autoplay) return 'autoplay';
         return 'none';
     };
+
+    const isAudioMedia = mediaData.settings.viewType === 'audio'
+        || mediaData.settings.mediaType === 'audio';
 
     const loadStrategyOptions = [
         {
@@ -198,15 +198,48 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
 
                 <div className="fluent-player-form-row">
                     <SelectControl
-                        label={__('Autoplay Mode', 'fluent-player')}
+                        label={
+                            <>
+                                {__('Autoplay Mode', 'fluent-player')}
+                                <InfoIcon
+                                    label={__('About autoplay modes', 'fluent-player')}
+                                    tooltip={__('Browsers may block autoplay with sound until the visitor interacts with your site.', 'fluent-player')}
+                                />
+                            </>
+                        }
                         value={getAutoplayMode()}
                         options={[
                             {label: __('No Autoplay', 'fluent-player'), value: 'none'},
                             {label: __('Autoplay with Sound', 'fluent-player'), value: 'autoplay'},
                             {label: __('Muted Autoplay', 'fluent-player'), value: 'muted_autoplay'},
+                            ...(!isAudioMedia ? [{label: __('Muted Preview', 'fluent-player'), value: 'muted_preview'}] : []),
                         ]}
                         onChange={handleAutoplayChange}
+                        help={{
+                            autoplay: __('Tries sound first; starts muted when the browser blocks it.', 'fluent-player'),
+                            muted_autoplay: __('Always plays muted — background-style playback.', 'fluent-player'),
+                            muted_preview: __('Loops silently until clicked; then plays with sound. Not applied in playlists.', 'fluent-player'),
+                        }[getAutoplayMode()]}
                     />
+
+                    {!isAudioMedia && getAutoplayMode() === 'muted_preview' && (
+                        <>
+                            <Button
+                                className="fp-btn-secondary fp-btn-secondary--inline"
+                                onClick={() => setIsPreviewConfigOpen(true)}
+                            >
+                                <GeneralSettingsIconSVG />
+                                {__('Customize preview', 'fluent-player')}
+                            </Button>
+                            <MutedPreviewConfigModal
+                                isOpen={isPreviewConfigOpen}
+                                onClose={() => setIsPreviewConfigOpen(false)}
+                                mediaData={mediaData}
+                                setMediaData={setMediaData}
+                                presets={presets}
+                            />
+                        </>
+                    )}
                 </div>
 
                 <CustomToggle

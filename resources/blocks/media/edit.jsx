@@ -112,6 +112,7 @@ import TimedContentStylePanel from './components/settings/TimedContentStylePanel
 import LanguageSwitcher from './components/settings/LanguageSwitcher.jsx';
 import MediaSelector from './components/MediaSelector.jsx';
 import TimestampShortcode from './components/settings/TimestampShortcode.jsx';
+import ModalShortcode from './components/settings/ModalShortcode.jsx';
 import SubtitleSettings from './components/settings/SubtitleSettings.jsx';
 import PresetSelector from './components/PresetSelector';
 import FluentPlayer from './components/player/FluentPlayer';
@@ -129,6 +130,7 @@ import {
     LanguageIconSVG,
     SubtitleIconSVG,
     TimestampIconSVG,
+    LightboxIconSVG,
     PresetIconSVG,
     TimedContentWatchIconSVG,
     TagIconSVG
@@ -993,6 +995,7 @@ const EditInner = (props) => {
                             setAttributes={setAttributes}
                             mediaData={mediaState.data}
                             setMediaData={setMediaDataWithDirty}
+                            presets={playerState.presets}
                         />
                     </PanelBody>
 
@@ -1014,6 +1017,7 @@ const EditInner = (props) => {
                             setMediaData={setMediaDataWithDirty}
                             presets={playerState.presets}
                             onVideoModalOpen={pauseMainPreview}
+                            playerRef={mainPlayerRef}
                         />
                     </PanelBody>
 
@@ -1070,6 +1074,13 @@ const EditInner = (props) => {
                     <PanelBody className="fluent-player-block-panel" title={<><TimestampIconSVG /> {__('Timestamp Links', 'fluent-player')}</>} initialOpen={false}>
                         <NotificationProvider>
                             <TimestampShortcode mediaData={mediaState.data}/>
+                            <NotificationContainer />
+                        </NotificationProvider>
+                    </PanelBody>
+
+                    <PanelBody className="fluent-player-block-panel" title={<><LightboxIconSVG /> {__('Lightbox', 'fluent-player')}</>} initialOpen={false}>
+                        <NotificationProvider>
+                            <ModalShortcode mediaData={mediaState.data}/>
                             <NotificationContainer />
                         </NotificationProvider>
                     </PanelBody>
@@ -1179,6 +1190,7 @@ const EditInner = (props) => {
                                     mediaData={playerState.settings}
                                     updateMediaSettings={updateMediaSetting}
                                     onPlayerReady={(el) => { mainPlayerRef.current = el; }}
+                                    showChapterStrip
                                 />
                             ) : (
                                 <div className="fluent-player-preview-placeholder">

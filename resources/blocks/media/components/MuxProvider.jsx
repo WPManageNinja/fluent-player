@@ -8,6 +8,7 @@ import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, SearchIconSVG, EditIconSVG, DeleteIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { detectStreamAudioHint } from './common/detectStreamAudioHint.js';
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 import { createUploadProgressSimulator } from './common/simulatedProgress.js';
 
 const MuxProvider = ({
@@ -20,6 +21,7 @@ const MuxProvider = ({
     setSelectedMedia,
     saveMediaToServer
 }) => {
+    const canManage = canManageProviders();
     const { showNotification, updateNotification, hideNotification } = useNotification();
     const [assets, setAssets] = useState([]);
     const [selectedAsset, setSelectedAsset] = useState(null);
@@ -366,8 +368,10 @@ const MuxProvider = ({
 
                         audioByAssetId.current[status.asset_id] = uploadedIsAudio;
 
-                        // Ensure passthrough (title) is set on the Mux asset
-                        if (fileName) {
+                        // Belt-and-braces only: uploads/from-attachment already sets
+                        // passthrough at creation. PUT assets/{id} is admin-only, so
+                        // skip it rather than fire a request that can only 403.
+                        if (fileName && canManage) {
                             await apiFetch({
                                 path: `${apiRequestPath}/mux/assets/${status.asset_id}`,
                                 method: 'PUT',
@@ -501,6 +505,7 @@ const MuxProvider = ({
                                         className={`fluent-player-bunny-video-grid-item ${asset.status !== 'ready' ? 'encoding' : ''} ${selectedAsset?.id === asset.id ? 'selected' : ''}`}
                                         onClick={() => handleSelectAsset(asset)}
                                     >
+                                        {canManage && (
                                         <div className="fluent-player-bunny-video-grid-item-action">
                                             <Button
                                                 className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
@@ -509,6 +514,7 @@ const MuxProvider = ({
                                                     setAssetToEdit(asset);
                                                     setEditAssetTitle(asset.passthrough || '');
                                                 }}
+                                                aria-label={__('Edit video title', 'fluent-player') + ': ' + getAssetTitle(asset)}
                                                 title={__('Edit video title', 'fluent-player')}
                                             >
                                                 <EditIconSVG />
@@ -516,11 +522,13 @@ const MuxProvider = ({
                                             <Button
                                                 className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
                                                 onClick={(e) => showDeleteConfirmation(asset, e)}
+                                                aria-label={__('Delete video', 'fluent-player') + ': ' + getAssetTitle(asset)}
                                                 title={__('Delete video', 'fluent-player')}
                                             >
                                                 <DeleteIconSVG />
                                             </Button>
                                         </div>
+                                        )}
                                         <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                             {asset.thumbnail_url ? (
                                                 <img

@@ -79,6 +79,10 @@ const allInputs = {
         'fluent-playlist': 'resources/js/fluent-playlist.js',
         'fluent-playlist-css': 'resources/scss/public/fluent-playlist.scss',
     },
+    'fluent-player-modal': {
+        'fluent-player-modal': 'resources/js/fluent-player-modal.js',
+        'fluent-player-modal-css': 'resources/scss/public/fluent-player-modal.scss',
+    },
     'gutenberg': {
         'fluent-player-block': 'resources/blocks/media/fluent-player-block.jsx',
         'fluent-player-block-css': 'resources/scss/fluent-player-block.scss',

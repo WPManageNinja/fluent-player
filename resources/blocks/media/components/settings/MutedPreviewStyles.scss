@@ -1,0 +1,180 @@
+.fp-muted-preview-visual {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+
+    &.is-interactive {
+        pointer-events: auto;
+        cursor: pointer;
+        border: 0;
+        background: transparent;
+
+        &:focus-visible .fp-muted-preview-visual-play {
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.75);
+        }
+
+        // No play icon to carry the focus ring when the preset hides center controls.
+        &.is-bare:focus-visible {
+            outline: 3px solid rgba(255, 255, 255, 0.65);
+            outline-offset: -3px;
+        }
+    }
+
+    // Mirrors the center media-play-button in _controls.scss.
+    .fp-muted-preview-visual-play {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: var(--media-play-bg, #FFFFFFD9);
+        box-shadow: 0px 4px 8px rgba(82, 82, 82, 0.08);
+
+        svg {
+            width: 32px;
+            height: 32px;
+            color: var(--media-play-color, #DD1F13);
+        }
+    }
+}
+
+// !important: the chip carries display:flex inline.
+.fp-muted-preview-modal .fp-caption-style-preview {
+    display: none !important;
+}
+
+.fp-muted-preview-testing {
+    position: relative;
+}
+
+.fp-mp-hide-overlays .fp-media-custom-overlay {
+    display: none !important;
+}
+
+// Extra scope outranks the editor's always-show-controls rule (same specificity, order-dependent otherwise).
+.fluent-player-block-modal .fp-muted-preview-testing {
+    media-player {
+        // transition:none is load-bearing — see _muted-preview.scss.
+        .fp-media-controls-top,
+        .fp-media-controls-center,
+        .fp-media-controls-bottom {
+            opacity: 0;
+            pointer-events: none;
+            transition: none;
+        }
+
+        &[data-controls] media-captions {
+            bottom: 8px;
+        }
+    }
+}
+
+// Repeats _muted-preview.scss placement — the public bundle isn't loaded in the editor.
+.fluent-player-preview-player .fp-mp-overlay {
+    position: absolute;
+    z-index: 6;
+    display: flex;
+    justify-content: center;
+    padding: 12px;
+    pointer-events: none;
+
+    img {
+        width: 100%;
+        height: auto;
+    }
+
+    .fp-mp-overlay-text {
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        font-size: 15px;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    &.fp-mp-pos-top-left { top: 0; left: 0; justify-content: flex-start; }
+    &.fp-mp-pos-top-center { top: 0; left: 50%; transform: translateX(-50%); }
+    &.fp-mp-pos-top-right { top: 0; right: 0; justify-content: flex-end; }
+    &.fp-mp-pos-middle-left { top: 50%; left: 0; transform: translateY(-50%); justify-content: flex-start; }
+    &.fp-mp-pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    &.fp-mp-pos-middle-right { top: 50%; right: 0; transform: translateY(-50%); justify-content: flex-end; }
+    &.fp-mp-pos-bottom-left { bottom: 0; left: 0; justify-content: flex-start; }
+    &.fp-mp-pos-bottom-center { bottom: 0; left: 50%; transform: translateX(-50%); }
+    &.fp-mp-pos-bottom-right { bottom: 0; right: 0; justify-content: flex-end; }
+}
+
+.fp-muted-preview-modal-test {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+}
+
+.fp-muted-preview-modal-note {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--fp-text-sub-600, #525866);
+}
+
+.fp-muted-preview-pro-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+
+    .fluent-player-form-row {
+        margin: 0 !important;
+    }
+
+    .fp-muted-preview-modal-note {
+        margin-bottom: 0;
+    }
+
+    .custom-radio-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .custom-radio-group .custom-radio-group-header {
+        margin-bottom: 8px;
+    }
+
+    .custom-radio-group.fp-inline-radio .custom-radio-options {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 8px 20px;
+
+        .custom-radio-option {
+            flex: 0 0 auto;
+            width: auto;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+
+            &:focus,
+            &:focus-visible {
+                outline: none;
+                box-shadow: none;
+
+                .custom-radio-indicator {
+                    border-radius: 50%;
+                    box-shadow: var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16)));
+                }
+            }
+        }
+    }
+}
+
+.fp-muted-preview-pro-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}

@@ -112,6 +112,13 @@
                 color: var(--fp-text-secondary);
                 text-align: right;
                 word-break: break-word;
+
+                small {
+                    display: block;
+                    margin-top: 2px;
+                    font-size: 12px;
+                    color: var(--fp-text-tertiary, var(--fp-text-secondary));
+                }
             }
         }
     }

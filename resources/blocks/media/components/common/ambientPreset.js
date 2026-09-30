@@ -8,7 +8,7 @@
  * PHP side (slug "ambient" OR the canonical muted-autoplay-loop-no-controls
  * settings shape).
  *
- * Unit-tested in dev/test/js/blocks/ambientPreset.test.js.
+ * Unit-tested in tests/unit/blocks/ambientPreset.test.js.
  */
 
 export const isAmbientPresetSettings = (settings = {}) => (

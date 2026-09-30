@@ -1,6 +1,7 @@
 const { __ } = wp.i18n;
 const { useState } = wp.element;
-const { __experimentalBoxControl: BoxControl } = wp.components;
+// Fallback covers WordPress versions that only expose the experimental alias.
+const BoxControl = wp.components.BoxControl || wp.components.__experimentalBoxControl;
 
 import {
     TimedContentWatchIconSVG,

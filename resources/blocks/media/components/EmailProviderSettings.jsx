@@ -4,6 +4,7 @@ const { MediaUpload, MediaUploadCheck } = wp.blockEditor;
 const {useState, useEffect, useCallback, useRef} = wp.element;
 const {apiFetch} = wp;
 
+import { formTokenFieldHowToProps } from '../../common/formTokenFieldHowTo.js';
 import { PlusIconSVG, DeleteIconSVG, EditIconSVG, ChevronDownSVG, CloseIconSVG } from './common/Icons.jsx';
 import InfoIcon from './common/InfoIcon.jsx';
 import CRMInactiveWarning from './common/CRMInactiveWarning.jsx';
@@ -709,7 +710,7 @@ export const EmailProviderSettings = ({ settings, updateSettings, requestPath, u
                                     <FormTokenField
                                         __experimentalAutoSelectFirstMatch
                                         __experimentalExpandOnFocus
-                                        __experimentalShowHowTo={false}
+                                        {...formTokenFieldHowToProps()}
                                         value={valueAsLabels}
                                         suggestions={suggestions}
                                         placeholder={field.placeholder || __('Type or select...', 'fluent-player')}

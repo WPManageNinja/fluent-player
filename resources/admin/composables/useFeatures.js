@@ -10,6 +10,7 @@ export const FEATURES = {
     BRANDING: 'branding',
     LICENSING: 'licensing',
     YOUTUBE: 'youtube',
+    VIMEO: 'vimeo',
     PERFORMANCE: 'performance',
     PLAYLIST: 'playlist',
     ANALYTICS: 'analytics',

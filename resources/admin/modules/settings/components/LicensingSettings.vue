@@ -1,20 +1,12 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue';
 import { ElIcon } from 'element-plus';
-import { CircleCheckFilled, WarningFilled, Lock, Refresh, DocumentCopy } from '@element-plus/icons-vue';
+import { CircleCheckFilled, WarningFilled, Lock, Refresh } from '@element-plus/icons-vue';
 import Rest from '@/utils/http/Rest.js';
 import Notify from '@/utils/Notify.js';
 import ProUpgrade from '@/components/ProUpgrade.vue';
 import { useProFeatures } from '@/composables/useFeatures.js';
 import { useAdminNotices } from '@/composables/useAdminNotices';
-
-const { setNotices } = useAdminNotices();
-
-const syncNotices = (response) => {
-    if (response && Array.isArray(response.admin_notices)) {
-        setNotices(response.admin_notices);
-    }
-};
 
 defineProps({
     settings: {
@@ -24,6 +16,17 @@ defineProps({
 });
 
 const { isProActive, getUpgradeUrl } = useProFeatures();
+const { setNotices } = useAdminNotices();
+const instance = getCurrentInstance();
+const $t = instance?.proxy?.$t || ((text) => text);
+
+// Refresh the in-app notices after a licence write. Older Pro builds omit the key,
+// so leave the existing notices alone rather than blanking them.
+const syncNotices = (response) => {
+    if (Array.isArray(response?.admin_notices)) {
+        setNotices(response.admin_notices);
+    }
+};
 const isLicensingEnabled = computed(() => !!window.fluentFrameworkAdmin?.licensing?.enabled);
 const purchaseUrl = getUpgradeUrl('licensing');
 
@@ -41,22 +44,27 @@ const form = reactive({
 
 const statusKey = computed(() => String(license.value?.status || 'unregistered'));
 
-const hasLicense = computed(() => !!(license.value && license.value.license_key));
+const hasLicense = computed(() => !!(license.value && license.value.license_key_masked));
 
-const maskedLicenseKey = computed(() => {
-    const value = String(license.value?.license_key || '');
-    if (!value) {
-        return '';
-    }
+// The raw key never reaches the browser; the server sends a masked version only.
+const maskedLicenseKey = computed(() => String(license.value?.license_key_masked || ''));
 
-    if (value.length <= 8) {
-        return value;
-    }
-
-    return `${value.slice(0, 4)}••••${value.slice(-4)}`;
-});
+// Set by the server when a license is past expiry but still inside the store's
+// grace window. Absent on older Pro builds, so it simply reads false there.
+const inGracePeriod = computed(() => !!license.value?.in_grace_period);
 
 const expiresLabel = computed(() => {
+    if (license.value?.is_lifetime) {
+        return 'Lifetime';
+    }
+
+    // Prefer the server's locale-formatted date; fall back to the raw value for
+    // older Pro builds that do not send expires_human.
+    const human = String(license.value?.expires_human || '');
+    if (human) {
+        return human;
+    }
+
     const expires = String(license.value?.expires || '');
     if (!expires) {
         return 'Not available';
@@ -64,6 +72,46 @@ const expiresLabel = computed(() => {
 
     return expires === 'lifetime' ? 'Lifetime' : expires;
 });
+
+const daysRemaining = computed(() => {
+    const value = license.value?.days_remaining;
+
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const days = Number(value);
+
+    return Number.isFinite(days) ? Math.trunc(days) : null;
+});
+
+const expiryHint = computed(() => {
+    const days = daysRemaining.value;
+
+    if (days === null || license.value?.is_lifetime) {
+        return '';
+    }
+
+    if (days === -1) {
+        return $t('Expired within the last day');
+    }
+
+    if (days < 0) {
+        return $t('Expired more than %d days ago').replace('%d', Math.abs(days) - 1);
+    }
+
+    if (days === 0) {
+        return $t('Less than 1 day remaining');
+    }
+
+    if (days === 1) {
+        return $t('In 1 day');
+    }
+
+    return $t('In %d days').replace('%d', days);
+});
+
+const lastCheckedLabel = computed(() => String(license.value?.last_checked_human || ''));
 
 const renewUrl = computed(() => license.value?.renew_url || purchaseUrl);
 
@@ -84,8 +132,9 @@ const loadLicense = async (forceRefresh = false) => {
 
     try {
         const response = await Rest.get('settings/license', forceRefresh ? { refresh: 1 } : {});
-        license.value = response?.license || null;
-        syncNotices(response);
+        // Tolerant of both contracts: the plain shape returns the license object
+        // directly; older Pro builds wrap it as { license }.
+        license.value = response?.license_data ?? response?.license ?? response ?? null;
     } catch (error) {
         Notify.error(error.message || 'Failed to load license details');
     } finally {
@@ -108,10 +157,10 @@ const activateLicense = async () => {
             license_key: form.licenseKey.trim()
         });
 
-        license.value = response?.license || license.value;
+        license.value = response?.license_data ?? response?.license ?? license.value;
+        syncNotices(response);
         form.licenseKey = '';
         showNewLicenseInput.value = false;
-        syncNotices(response);
         Notify.success(response?.message || 'License activated successfully');
     } catch (error) {
         errorMessage.value = error.message || 'Failed to activate license';
@@ -126,28 +175,14 @@ const deactivateLicense = async () => {
 
     try {
         const response = await Rest.delete('settings/license');
-        license.value = response?.license || null;
-        showNewLicenseInput.value = false;
+        license.value = response?.license_data ?? response?.license ?? null;
         syncNotices(response);
+        showNewLicenseInput.value = false;
         Notify.success(response?.message || 'License deactivated successfully');
     } catch (error) {
         Notify.error(error.message || 'Failed to deactivate license');
     } finally {
         deactivating.value = false;
-    }
-};
-
-const copyLicenseKey = async () => {
-    const value = String(license.value?.license_key || '');
-    if (!value) {
-        return;
-    }
-
-    try {
-        await navigator.clipboard.writeText(value);
-        Notify.success('License key copied');
-    } catch (error) {
-        Notify.error('Could not copy the license key');
     }
 };
 
@@ -195,10 +230,21 @@ onMounted(() => {
                 v-loading="activating || deactivating"
             >
                 <div v-if="statusKey === 'valid'" class="fplayer-license-content is-centered">
-                    <span class="fplayer-license-icon is-success" role="img" aria-label="License active">
-                        <el-icon><CircleCheckFilled /></el-icon>
+                    <span
+                        class="fplayer-license-icon"
+                        :class="inGracePeriod ? 'is-warning' : 'is-success'"
+                        role="img"
+                        :aria-label="inGracePeriod ? $t('License in grace period') : $t('License active')"
+                    >
+                        <el-icon><WarningFilled v-if="inGracePeriod" /><CircleCheckFilled v-else /></el-icon>
                     </span>
-                    <h3>Congratulations! Your license key is valid and activated</h3>
+                    <h3 v-if="inGracePeriod">Your license is in a grace period</h3>
+                    <h3 v-else>Congratulations! Your license key is valid and activated</h3>
+
+                    <p v-if="inGracePeriod" class="fplayer-license-grace" role="alert">
+                        Your license has expired. Everything keeps working for now, but updates and support
+                        will end soon — <a :href="renewUrl" target="_blank" rel="noopener">renew your license</a> to keep them.
+                    </p>
                     <p>
                         Want to deactivate this license?
                         <a href="#" @click.prevent="deactivateLicense">Click here</a>
@@ -209,18 +255,26 @@ onMounted(() => {
                             <span class="label">License Key</span>
                             <span class="value fplayer-license-key">
                                 <code>{{ maskedLicenseKey }}</code>
-                                <el-button text class="fplayer-license-copy" @click="copyLicenseKey">
-                                    <el-icon><DocumentCopy /></el-icon>
-                                </el-button>
                             </span>
                         </p>
                         <p>
-                            <span class="label">Expires</span>
-                            <span class="value">{{ expiresLabel }}</span>
+                            <span class="label">{{ inGracePeriod ? 'Expired' : 'Expires' }}</span>
+                            <span class="value">
+                                {{ expiresLabel }}
+                                <small v-if="expiryHint">{{ expiryHint }}</small>
+                            </span>
+                        </p>
+                        <p v-if="inGracePeriod">
+                            <span class="label">{{ $t('Updates & Support') }}</span>
+                            <span class="value">{{ $t('Ending soon') }}</span>
                         </p>
                         <p v-if="license?.variation_title">
                             <span class="label">Plan</span>
                             <span class="value">{{ license.variation_title }}</span>
+                        </p>
+                        <p v-if="lastCheckedLabel">
+                            <span class="label">{{ $t('Last checked') }}</span>
+                            <span class="value">{{ lastCheckedLabel }}</span>
                         </p>
                     </div>
                 </div>
@@ -246,7 +300,14 @@ onMounted(() => {
                             </p>
                             <p>
                                 <span class="label">Expired At</span>
-                                <span class="value">{{ expiresLabel }}</span>
+                                <span class="value">
+                                    {{ expiresLabel }}
+                                    <small v-if="expiryHint">{{ expiryHint }}</small>
+                                </span>
+                            </p>
+                            <p v-if="lastCheckedLabel">
+                                <span class="label">{{ $t('Last checked') }}</span>
+                                <span class="value">{{ lastCheckedLabel }}</span>
                             </p>
                         </div>
                     </template>

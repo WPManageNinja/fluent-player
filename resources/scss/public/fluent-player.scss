@@ -21,7 +21,9 @@
 @use "../components/player/player";
 @use '../components/player/email-capture';
 @use '../components/player/cta-overlay';
+@use '../components/player/muted-preview';
 @use '../components/player/action-bar';
+@use '../components/player/chapters-strip';
 @use '../components/player/youtube-subscribe';
 @use '../components/player/language-switcher';
 @use '../components/player/top-title-overlay';

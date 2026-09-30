@@ -53,6 +53,23 @@
     "isEntry": true,
     "src": "resources/scss/public/fluent-playlist.scss"
   },
+  "resources/js/fluent-player-modal.css": {
+    "file": "fluent-player-modal.css",
+    "src": "resources/js/fluent-player-modal.css"
+  },
+  "resources/js/fluent-player-modal.js": {
+    "file": "fluent-player-modal.js",
+    "isEntry": true,
+    "src": "resources/js/fluent-player-modal.js"
+  },
+  "resources/scss/public/fluent-player-modal.scss": {
+    "file": "fluent-player-modal.css",
+    "imports": [
+      "resources/js/fluent-player-modal.js"
+    ],
+    "isEntry": true,
+    "src": "resources/scss/public/fluent-player-modal.scss"
+  },
   "AnalyticsTopTable.css": {
     "file": "AnalyticsTopTable.css",
     "src": "AnalyticsTopTable.css"
@@ -396,6 +413,7 @@
       "resources/admin/modules/settings/components/StorageSettings.vue",
       "resources/admin/modules/settings/components/StorageConfigPage.vue",
       "resources/admin/modules/settings/components/YoutubeSettings.vue",
+      "resources/admin/modules/settings/components/VimeoSettings.vue",
       "resources/admin/modules/settings/components/AnalyticsSettings.vue",
       "resources/admin/modules/settings/components/ExportSettings.vue",
       "resources/admin/modules/settings/components/migration/Index.vue",
@@ -746,6 +764,15 @@
     ],
     "isDynamicEntry": true,
     "src": "resources/admin/modules/settings/components/StorageSettings.vue"
+  },
+  "resources/admin/modules/settings/components/VimeoSettings.vue": {
+    "file": "fp-VimeoSettings.js",
+    "imports": [
+      "_fp-el-switch.js",
+      "resources/admin/app.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "resources/admin/modules/settings/components/VimeoSettings.vue"
   },
   "resources/admin/modules/settings/components/YoutubeSettings.vue": {
     "file": "fp-YoutubeSettings.js",

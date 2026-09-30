@@ -100,6 +100,11 @@ export default [
                 component: () => import('@/modules/settings/components/YoutubeSettings.vue'),
             },
             {
+                path: 'vimeo',
+                name: 'settings.vimeo',
+                component: () => import('@/modules/settings/components/VimeoSettings.vue'),
+            },
+            {
                 path: 'analytics',
                 name: 'settings.analytics',
                 component: () => import('@/modules/settings/components/AnalyticsSettings.vue'),

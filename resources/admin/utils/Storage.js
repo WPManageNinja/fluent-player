@@ -2,10 +2,20 @@ const generator = key => 'fframe-' + key; // you should change this prefix
 
 export default class Storage {
     static get(key, defaultValue = '') {
-        let value = localStorage.getItem(generator(key));
+        let value;
+
+        try {
+            value = localStorage.getItem(generator(key));
+        } catch (e) {
+            return defaultValue;
+        }
 
         if (value && ['{', '['].indexOf(value[0]) !== -1) {
-            value = JSON.parse(value);
+            try {
+                value = JSON.parse(value);
+            } catch (e) {
+                return defaultValue;
+            }
         }
 
         if (!value) {
@@ -20,14 +30,21 @@ export default class Storage {
             value = JSON.stringify(value);
         }
 
-        localStorage.setItem(generator(key), value);
+        // Writes are best effort: private mode and quota errors must not break the UI.
+        try {
+            localStorage.setItem(generator(key), value);
+        } catch (e) {}
     }
 
     static remove(key) {
-        localStorage.removeItem(generator(key));
+        try {
+            localStorage.removeItem(generator(key));
+        } catch (e) {}
     }
 
     static clear() {
-        localStorage.clear();
+        try {
+            localStorage.clear();
+        } catch (e) {}
     }
 }

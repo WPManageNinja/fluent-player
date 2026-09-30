@@ -65,6 +65,7 @@
     font-weight: var(--fp-playlist-font-weight, 400);
     line-height: var(--fp-playlist-line-height, 1.4);
     color: var(--fp-playlist-text-color, #666);
+    white-space: nowrap;
 }
 
 .fp-grid-search {
@@ -168,6 +169,14 @@
         text-align: center;
         color: color-mix(in srgb, var(--fp-playlist-text-color, #333) 70%, var(--fp-playlist-background-color, #fff));
 
+        media-icon {
+            display: block;
+            flex: none;
+            width: 48px;
+            height: 48px;
+            opacity: 0.55;
+        }
+
         h5 {
             margin: 0;
             font-size: var(--fp-playlist-font-size, 14px);
@@ -204,7 +213,7 @@
 
 .fp-grid-content {
     display: grid;
-    grid-template-columns: repeat(var(--grid-columns, 3), 1fr);
+    grid-template-columns: repeat(var(--grid-columns, 3), minmax(0, 1fr));
     gap: 16px;
     padding: 16px;
     background: var(--fp-playlist-background-color, #fff);
@@ -229,6 +238,8 @@
     cursor: pointer;
     min-width: 0;
     width: 100%;
+    // width:100% is the track width; padding must sit inside it or columns overflow.
+    box-sizing: border-box;
     transition: background-color 0.2s ease, color 0.2s ease;
     background: transparent;
     color: var(--fp-playlist-text-color, #333);
@@ -491,6 +502,11 @@
     border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 500;
+}
+
+.fp-grid-item-overlay .duration-badge {
+    top: 8px;
+    bottom: auto;
 }
 
 .grid-item-info {
@@ -855,19 +871,100 @@ body.fluent-player-modal-open {
 @media (max-width: 640px) {
     .fp-grid-header {
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 8px 12px;
     }
 
     .fp-grid-header-right {
-        flex: 1 1 100%;
-        justify-content: space-between;
+        display: contents;
+    }
+
+    // Basis 0, not auto: auto wraps the count onto its own row.
+    .fp-grid-header-title {
+        flex: 1 1 0;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .fp-grid-header-count {
+        flex: 0 0 auto;
+        order: 1;
     }
 
     .fp-grid-search {
-        flex: 1;
+        flex: 1 1 100%;
+        order: 2;
+        min-width: 0;
     }
 
-    .fp-grid-search-input {
+    // Ancestor needed to outrank the nested base rule's width:200px.
+    .fp-grid-search input.fp-grid-search-input {
         width: 100%;
+    }
+}
+
+// --- Responsive columns ---
+// repeat() rejects min()/calc() in the track count, hence the per-class caps.
+@mixin fp-grid-column-cap($cap) {
+    @for $i from ($cap + 1) through 8 {
+        .playlist-grid.grid-columns-#{$i} .fp-grid-content {
+            grid-template-columns: repeat($cap, minmax(0, 1fr));
+        }
+    }
+}
+
+// Narrowest tier must come last — each re-caps the same selectors.
+@media (max-width: 1024px) {
+    @include fp-grid-column-cap(4);
+}
+
+@media (max-width: 768px) {
+    @include fp-grid-column-cap(3);
+}
+
+@media (max-width: 600px) {
+    @include fp-grid-column-cap(2);
+
+    .fp-grid-content {
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .fp-grid-item,
+    .grid-item.fp-grid-item {
+        gap: 8px;
+        padding: 8px 8px 12px;
+    }
+
+    .grid-item-info {
+        padding: 8px 0 0;
+    }
+
+    .fp-grid-item-title-overlay {
+        padding: 16px 6px 6px;
+    }
+
+    .duration-badge {
+        padding: 2px 6px;
+        font-size: 0.7rem;
+    }
+
+    .fp-grid-item-overlay .duration-badge {
+        top: 4px;
+    }
+
+    .fp-grid-header,
+    .fp-grid-footer {
+        padding: 12px;
+    }
+
+    .fp-grid-pagination {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .fp-grid-pagination-btn {
+        padding: 10px 14px;
     }
 }

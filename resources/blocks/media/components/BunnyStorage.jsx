@@ -8,6 +8,7 @@ import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, DirectoryIconSVG, DeleteIconSVG, PlusIconSVG, SearchIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { isAudioSource } from '../../../js/utils/videoSrc.js';
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 
 const BunnyStorage = ({
     onCancel,
@@ -25,6 +26,7 @@ const BunnyStorage = ({
     const [videoLoading, setVideoLoading] = useState(false);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const canManage = canManageProviders();
     const { showNotification, updateNotification, hideNotification } = useNotification();
     const [isSelecting, setIsSelecting] = useState(false);
     const [videoToDelete, setVideoToDelete] = useState(null);
@@ -618,15 +620,18 @@ const BunnyStorage = ({
                                         className={`fluent-player-bunny-video-grid-item ${isVideoSelected(video) ? 'selected' : ''}`}
                                         onClick={() => selectVideo(video)}
                                     >
+                                        {canManage && (
                                         <div className="fluent-player-bunny-video-grid-item-action">
                                             <Button
                                                 className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
                                                 onClick={(e) => showDeleteConfirmation(video, e)}
+                                                aria-label={__('Delete video', 'fluent-player') + ': ' + video.title.split('/').pop()}
                                                 title={__('Delete video', 'fluent-player')}
                                             >
                                                 <DeleteIconSVG />
                                             </Button>
                                         </div>
+                                        )}
                                         <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                             <span className="dashicons dashicons-video-alt3"></span>
                                         </div>

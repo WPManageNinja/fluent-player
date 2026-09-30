@@ -1,8 +1,8 @@
 @use "variables" as *;
 
-body {
-    background-color: var(--fp-body-bg-color, #F3F5FA);
-}
+// No bare element rules here — this partial is shared with
+// fluent-player-block.scss, which loads on every block editor screen.
+// Screen-level paint belongs in admin/admin.scss.
 
 .#{$slug} {
     &-w-full {

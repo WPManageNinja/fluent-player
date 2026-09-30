@@ -1,11 +1,13 @@
-const { __ } = wp.i18n;
-const { Button, BaseControl } = wp.components;
+const { __, _n, sprintf } = wp.i18n;
+const { Button, BaseControl, SelectControl } = wp.components;
 const { useState } = wp.element;
 
-import { EditIconSVG, DeleteIconSVG, PlusIconSVG, TimeIconSVG, StopwatchIconSVG } from '../common/Icons.jsx';
+import { EditIconSVG, DeleteIconSVG, PlusIconSVG, TimeIconSVG, StopwatchIconSVG, DownloadIconSVG, LockIconSVG } from '../common/Icons.jsx';
+import ProModal from '../common/ProModal.jsx';
 import ConfirmPopover from '../common/ConfirmPopover.jsx';
 import ChapterManageModal from './ChapterManageModal.jsx';
 import useNotification from '../common/useNotification.js';
+import { readVimeoChapters } from './subtitles/vimeoChapters.js';
 
 const formatTime = (seconds) => {
 	const mins = Math.floor(seconds / 60);
@@ -20,15 +22,42 @@ const formatDuration = (startTime, endTime) => {
 	return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const ChapterSettings = ({ mediaData, setMediaData, presets, onVideoModalOpen }) => {
+const ChapterSettings = ({ mediaData, setMediaData, presets, onVideoModalOpen, playerRef }) => {
 	const { showNotification } = useNotification();
+	const hasPro = !!window.fluentPlayerBlockVars?.hasPro;
+	const [isDisplayProModalOpen, setIsDisplayProModalOpen] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingChapter, setEditingChapter] = useState(null);
 	const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, anchor: null, index: null });
 
 	if (!mediaData) return null;
 
+	const isVimeoProvider = mediaData?.settings?.provider === 'vimeo';
 	const chapters = mediaData?.settings?.chapters || [];
+
+	// Vimeo ships chapters; Vidstack loads them into the preview player's chapters track.
+	const handleImportVimeoChapters = () => {
+		const imported = readVimeoChapters(playerRef?.current);
+		if (!imported.length) {
+			showNotification({
+				type: 'warning',
+				message: __('No chapters found on this Vimeo video yet. Start the preview so chapters load, then try again.', 'fluent-player'),
+			});
+			return;
+		}
+		setMediaData({
+			...mediaData,
+			settings: { ...mediaData.settings, chapters: imported },
+		});
+		showNotification({
+			type: 'success',
+			message: sprintf(
+				/* translators: %d: number of chapters. */
+				_n('Imported %d chapter from Vimeo.', 'Imported %d chapters from Vimeo.', imported.length, 'fluent-player'),
+				imported.length
+			),
+		});
+	};
 	const chaptersSorted = [...chapters].sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
 	const hasChapters = chapters.length > 0;
 
@@ -95,6 +124,59 @@ const ChapterSettings = ({ mediaData, setMediaData, presets, onVideoModalOpen })
 	return (
 		<>
 			<BaseControl>
+				{hasChapters && hasPro && (
+					<SelectControl
+						label={__('Chapters display', 'fluent-player')}
+						help={__('Show chapters as the built-in menu button, or as an inline scrolling list below the player.', 'fluent-player')}
+						value={mediaData?.settings?.chaptersDisplay || 'menu'}
+						options={[
+							{ label: __('Menu button (default)', 'fluent-player'), value: 'menu' },
+							{ label: __('Inline scroll', 'fluent-player'), value: 'strip' },
+						]}
+						onChange={(value) =>
+							setMediaData({
+								...mediaData,
+								settings: { ...mediaData.settings, chaptersDisplay: value },
+							})
+						}
+					/>
+				)}
+				{hasChapters && !hasPro && (
+					<div className="components-base-control">
+						<div
+							className="layer-card"
+							style={{ cursor: 'pointer' }}
+							role="button"
+							tabIndex={0}
+							aria-label={__('Chapters display — a Pro feature. Upgrade to enable.', 'fluent-player')}
+							onClick={() => setIsDisplayProModalOpen(true)}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									setIsDisplayProModalOpen(true);
+								}
+							}}
+						>
+							<div className="layer-info">
+								<div className="layer-title-row">
+									<div className="layer-type-info">
+										<span className="layer-title">{__('Chapters display', 'fluent-player')}</span>
+									</div>
+									<LockIconSVG size={14} />
+								</div>
+							</div>
+							<p style={{ margin: 0, fontSize: '13px', color: 'var(--fp-text-sub-600, #525866)' }}>
+								{__('Show chapters as an inline scrolling list below the player.', 'fluent-player')}
+							</p>
+						</div>
+						{isDisplayProModalOpen && (
+							<ProModal
+								onClose={() => setIsDisplayProModalOpen(false)}
+								feature={__('Chapters display', 'fluent-player')}
+							/>
+						)}
+					</div>
+				)}
 				{hasChapters && (
 					<div className="chapters-section">
 						{chaptersSorted.map((chapter, index) => {
@@ -134,6 +216,16 @@ const ChapterSettings = ({ mediaData, setMediaData, presets, onVideoModalOpen })
 							);
 						})}
 					</div>
+				)}
+
+				{isVimeoProvider && (
+					<Button
+						className="components-button fp-btn-secondary import-vimeo-chapters-btn w-100"
+						style={{ marginBottom: '8px' }}
+						onClick={handleImportVimeoChapters}>
+						<DownloadIconSVG />
+						{__('Import from Vimeo', 'fluent-player')}
+					</Button>
 				)}
 
 				<Button

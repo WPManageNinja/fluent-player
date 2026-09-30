@@ -1,0 +1,3 @@
+// Standalone modal stylesheet, enqueued on demand with the modal entry so the
+// overlay CSS stays out of the core player stylesheet.
+@use '../components/player/modal';

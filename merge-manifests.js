@@ -24,7 +24,10 @@ function mergeManifests() {
         }
     }
 
-    const manifestFiles = ['manifest.fluent-player.json', 'manifest.fluent-playlist.json', 'manifest.playlist.json', 'manifest.admin.json', 'manifest.gutenberg.json', 'manifest.elementor.json', 'manifest.elementor-canvas.json', 'manifest.elementor-playlist-canvas.json', 'manifest.divi-vb.json', 'manifest.divi-playlist.json', 'manifest.vidstack-loader.json', 'manifest.gutenberg-playlist.json', 'manifest.timed-content.json', 'manifest.media-toolbar.json'];
+    // One entry per Vite build mode. When you add a new Vite entry (vite.config.js),
+    // add its `manifest.<mode>.json` here too — otherwise that mode's asset is dropped
+    // from the combined manifest.json and 404s in production.
+    const manifestFiles = ['manifest.fluent-player.json', 'manifest.fluent-playlist.json', 'manifest.fluent-player-modal.json', 'manifest.playlist.json', 'manifest.admin.json', 'manifest.gutenberg.json', 'manifest.elementor.json', 'manifest.elementor-canvas.json', 'manifest.elementor-playlist-canvas.json', 'manifest.divi-vb.json', 'manifest.divi-playlist.json', 'manifest.vidstack-loader.json', 'manifest.gutenberg-playlist.json', 'manifest.timed-content.json', 'manifest.media-toolbar.json'];
 
     manifestFiles.forEach(file => {
         const manifestPath = path.join(assetsDir, file);

@@ -62,6 +62,12 @@
                 </el-button>
                 <template #dropdown>
                     <el-dropdown-menu class="fplayer-table-actions-dropdown">
+                        <el-dropdown-item v-if="editPostType === 'fluent_player_media' && isProActive" command="copy-modal-shortcode">
+                            <div class="fplayer-icon-wrapper">
+                                <IconCopy :size="18" />
+                                <span class="fplayer-icon-label">{{ $t('Copy lightbox shortcode') }}</span>
+                            </div>
+                        </el-dropdown-item>
                         <el-dropdown-item v-if="editPostType === 'fluent_player_media' && isProActive" command="analytics" @click.native="captureEvent">
                             <div class="fplayer-icon-wrapper">
                                 <IconAnalytics :size="18" />
@@ -96,9 +102,12 @@ import IconView from '@components/icons/IconView.vue';
 import IconEdit from '@components/icons/IconEdit.vue';
 import IconRestore from '@components/icons/IconRestore.vue';
 import IconAnalytics from '@components/icons/IconAnalytics.vue';
+import IconCopy from '@components/icons/IconCopy.vue';
 import IconDelete from '@components/icons/IconDelete.vue';
 import { usePostNavigation } from '@/composables/usePostNavigation';
 import { useProFeatures } from '@/composables/useFeatures.js';
+import Notify from '@/utils/Notify';
+import $t from '@/utils/translator/Translator';
 
 const { isProActive } = useProFeatures();
 
@@ -149,9 +158,25 @@ const captureEvent = (event) => {
     lastEvent = event;
 };
 
+const copyModalShortcode = () => {
+    const shortcode = `[fluentplayer_modal id="${props.row.ID}"]${$t('Watch now')}[/fluentplayer_modal]`;
+    if (!navigator.clipboard?.writeText) {
+        Notify.error($t('Failed to copy shortcode'), { position: 'bottom-right' });
+        return;
+    }
+    navigator.clipboard.writeText(shortcode)
+        .then(() => Notify.success($t('Shortcode copied to clipboard!'), { position: 'bottom-right' }))
+        .catch(() => Notify.error($t('Failed to copy shortcode'), { position: 'bottom-right' }));
+};
+
 const handleCommand = (command) => {
     const event = lastEvent;
     lastEvent = null;
+
+    if (command === 'copy-modal-shortcode') {
+        copyModalShortcode();
+        return;
+    }
 
     if (command === 'analytics') {
         if (event && (event.metaKey || event.ctrlKey)) {

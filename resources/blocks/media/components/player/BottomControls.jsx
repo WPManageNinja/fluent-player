@@ -20,7 +20,8 @@ import SeekButton from './buttons/SeekButton';
 
 const BottomControls = ({ settings, skin: skinProp }) => {
     const skin = skinProp || settings.skin || 'modern';
-    const hasChapter = settings.chapters && settings.chapters.length > 0;
+    // The scroll strip replaces the menu button, matching bottom-controls.php.
+    const hasChapter = settings.chapters && settings.chapters.length > 0 && !settings._chapterStripActive;
     const src = settings.src || '';
     const provider = settings.provider || '';
     const hasHls = provider === 'bunny' || provider === 'mux' || provider === 'mux_stream' || src.includes('.m3u8');

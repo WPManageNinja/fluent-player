@@ -8,6 +8,7 @@ class Settings extends Model {
             // Initialize with empty objects that will be filled after loading
             general: {},
             youtube: {},
+            vimeo: {},
             performance: {},
             analytics: {},
             google_analytics: {},
@@ -27,11 +28,15 @@ class Settings extends Model {
         general: {
             default_aspect_ratio: 'original',
             resume_playback: true,
+            pause_others_on_play: true,
             custom_css: '',
         },
         youtube: {
             privacy_mode: false,
             show_subscribe_button: false,
+        },
+        vimeo: {
+            privacy_mode: true,
         },
         performance: {},
         analytics: {

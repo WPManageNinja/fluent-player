@@ -194,6 +194,16 @@ onMounted(() => {
                 </div>
             </div>
 
+            <div class="fplayer-form-item fplayer-form-item-full-width fplayer-pause-others-item">
+                <div class="fplayer-form-label-wrapper">
+                    <label class="fplayer-form-label">Single Playback</label>
+                    <div class="fplayer-form-help">Pause every other player on the page when a video starts, so only one plays at a time</div>
+                </div>
+                <div class="fplayer-form-control">
+                    <el-checkbox v-model="props.settings.pause_others_on_play">Pause other players when one starts</el-checkbox>
+                </div>
+            </div>
+
 
             <div class="fplayer-form-item fplayer-form-item-full-width fplayer-custom-css-item">
                 <div class="fplayer-form-label-wrapper">

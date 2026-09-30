@@ -8,10 +8,7 @@
 </template>
 
 <script setup>
-import { getCurrentInstance } from 'vue';
-
-const instance = getCurrentInstance();
-const $t = instance?.proxy?.$t || ((str) => str);
+import $t from '@/utils/translator/Translator';
 
 defineProps({
 	size: {

@@ -14,7 +14,6 @@
                 :aria-keyshortcuts="ariaKeyshortcuts"
             >
                 {{ buttonText }}
-                <el-icon class="fplayer-btn-hint-icon" aria-hidden="true"><InfoFilled /></el-icon>
             </el-button>
         </el-tooltip>
     </div>
@@ -22,7 +21,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { InfoFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
     title: {

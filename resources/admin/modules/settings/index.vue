@@ -11,6 +11,7 @@
     import IconIntegrations from '@/components/icons/settings/IconIntegrations.vue';
     import IconStorage from '@/components/icons/settings/IconStorage.vue';
     import IconYoutube from '@/components/icons/settings/IconYoutube.vue';
+    import IconVimeo from '@/components/icons/settings/IconVimeo.vue';
     import IconPerformance from '@/components/icons/settings/IconPerformance.vue';
     import IconSettingsAnalytics from '@/components/icons/settings/IconSettingsAnalytics.vue';
     import IconExport from '@/components/icons/settings/IconExport.vue';
@@ -48,6 +49,7 @@
 	    { id: FEATURES.INTEGRATIONS, name: 'Integrations', label: 'Integrations', path: '/settings/integrations', icon: markRaw(IconIntegrations) },
 	    { id: FEATURES.STORAGE, name: 'Storage', label: 'Storage', path: '/settings/storage', icon: markRaw(IconStorage) },
 	    { id: FEATURES.YOUTUBE, name: 'YouTube Settings', label: 'YouTube', path: '/settings/youtube', icon: markRaw(IconYoutube) },
+	    { id: FEATURES.VIMEO, name: 'Vimeo Settings', label: 'Vimeo', path: '/settings/vimeo', icon: markRaw(IconVimeo) },
 	    { id: FEATURES.ANALYTICS, name: 'Analytics Settings', label: 'Analytics', path: '/settings/analytics', icon: markRaw(IconSettingsAnalytics) },
 	    { id: FEATURES.EXPORT, name: 'Export', label: 'Export', path: '/settings/export', icon: markRaw(IconExport) },
     ];

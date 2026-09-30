@@ -7,6 +7,7 @@ import useNotification from './common/useNotification.js';
 import ConfirmPopover from './common/ConfirmPopover.jsx';
 import { BackArrowSmallSVG, UploadIconSVG, DirectoryIconSVG, SearchIconSVG, DeleteIconSVG, EditIconSVG, PlusIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { buildR2MediaData } from './r2/buildR2MediaData.js';
+import { canManageProviders } from './common/capabilities.js';
 import { defaultPostStatus } from '@share/helper.js';
 
 const restBase = () => {
@@ -32,6 +33,7 @@ const R2 = ({
     defaultSettings,
     saveMediaToServer
 }) => {
+    const canManage = canManageProviders();
     const [files, setFiles] = useState([]);
     const [folders, setFolders] = useState([]);
     const [truncated, setTruncated] = useState(false);
@@ -379,6 +381,7 @@ const R2 = ({
                                     >
                                         <span className="fluent-player-bunny-directory-grid-item-icon" aria-hidden="true"><DirectoryIconSVG /></span>
                                         <span className="fluent-player-bunny-directory-grid-item-name">{dir.name}</span>
+                                        {canManage && (
                                         <div className="fluent-player-bunny-directory-grid-item-action" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 className="fluent-player-bunny-directory-grid-item-action-btn fp-icon-btn"
@@ -395,6 +398,7 @@ const R2 = ({
                                                 <DeleteIconSVG />
                                             </Button>
                                         </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -429,6 +433,7 @@ const R2 = ({
                                         onClick={() => selectObject(file)}
                                         onKeyDown={(e) => onItemKeyDown(e, () => selectObject(file))}
                                     >
+                                        {canManage && (
                                         <div className="fluent-player-bunny-video-grid-item-action" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
@@ -438,6 +443,7 @@ const R2 = ({
                                                 <DeleteIconSVG />
                                             </Button>
                                         </div>
+                                        )}
                                         <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                             <span className="dashicons dashicons-video-alt3" aria-hidden="true"></span>
                                         </div>

@@ -1,4 +1,5 @@
 import FluentPlayer from './FluentPlayer';
+import { initChapterStrips } from './chapterStrip.js';
 import './BrowserStorage';
 import { delegateMediaUnlockForms } from './utils/unlock';
 import { computeBrandingVars } from './utils/brandingVars.js';
@@ -14,7 +15,13 @@ function applyLivePreviewBranding(detail) {
     const vars = computeBrandingVars(detail.settings, detail.defaultSettings || {});
     document.querySelectorAll('[data-media-id]').forEach((el) => {
         if (String(el.getAttribute('data-media-id')) !== target) return;
-        Object.keys(vars).forEach((key) => el.style.setProperty(key, vars[key]));
+        // The chapter strip is a sibling of the container and inherits from the wrapper, so
+        // the wrapper has to be repainted too or the strip keeps the old accent until reload.
+        const wrapper = el.closest('.fluent-player');
+        Object.keys(vars).forEach((key) => {
+            el.style.setProperty(key, vars[key]);
+            if (wrapper) wrapper.style.setProperty(key, vars[key]);
+        });
     });
 }
 
@@ -38,22 +45,31 @@ function destroyInstance(entry) {
 }
 
 /**
+ * Destroy a container's instance, drop it from the registry, and clear its config
+ * global once no surviving duplicate placement still shares that var name.
+ */
+function destroyContainer(container) {
+    const entry = playerInstances.get(container);
+    if (!entry) return;
+    destroyInstance(entry);
+    playerInstances.delete(container);
+
+    // Duplicate placements of one media reuse the same varName, so only drop the
+    // global once no surviving container still shares it.
+    const stillUsed = [...playerInstances.values()].some((e) => e.varName === entry.varName);
+    if (entry.varName && !stillUsed && window[entry.varName]) {
+        try { delete window[entry.varName]; } catch (_) { /* non-configurable */ }
+    }
+}
+
+/**
  * Destroy and remove instances whose DOM containers have been removed from the
  * document (e.g. FluentCommunity SPA navigation between feed posts or lessons).
- * Also cleans up the window[varName] global that was set during init.
  */
 function cleanupOrphanedInstances() {
-    for (const [container, entry] of playerInstances) {
+    for (const container of [...playerInstances.keys()]) {
         if (!document.body.contains(container)) {
-            destroyInstance(entry);
-            playerInstances.delete(container);
-
-            // Only drop the global once no surviving container still shares that name —
-            // duplicate placements of one media reuse the same varName.
-            const stillUsed = [...playerInstances.values()].some((e) => e.varName === entry.varName);
-            if (entry.varName && !stillUsed && window[entry.varName]) {
-                try { delete window[entry.varName]; } catch (_) { /* non-configurable */ }
-            }
+            destroyContainer(container);
         }
     }
 }
@@ -65,6 +81,13 @@ async function initFluentPlayers(force = false) {
     // Initialize single players
     for (const container of document.querySelectorAll('.fluent-player')) {
         if (playerInstances.has(container) && !force) {
+            continue;
+        }
+
+        // Consent gate: an integration holds a third-party embed until the
+        // visitor opts in, then clears this flag and fires InitSingleFluentPlayer.
+        // Unconditional — `force` re-inits consented players, it must not bypass it.
+        if (container.hasAttribute('data-fp-defer')) {
             continue;
         }
 
@@ -108,6 +131,12 @@ async function initFluentPlayers(force = false) {
             destroyInstance(playerInstances.get(container));
         }
 
+        // The container may have left the DOM during an await above (e.g. a modal
+        // closed mid-fetch); don't mount — and leak — a player on a detached node.
+        if (!document.body.contains(container)) {
+            continue;
+        }
+
         playerInstances.set(container, { instance: new FluentPlayer(container, playerData), varName });
     }
 }
@@ -115,6 +144,9 @@ async function initFluentPlayers(force = false) {
 async function initFluentPlayer(event) {
     const container = event.detail.container;
     if (!container) return;
+
+    // GDPR-friendly init: don't mount a still-deferred embed — it hasn't been consented yet.
+    if (container.hasAttribute('data-fp-defer')) return;
 
     let playerData = event.detail.playerData;
     const varName = container.dataset.var_name;
@@ -207,19 +239,28 @@ if (!window.__fluentPlayerBootstrapped) {
 
     // Auto-initialize on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => initFluentPlayers());
+        document.addEventListener('DOMContentLoaded', () => { initFluentPlayers(); initChapterStrips(); });
     } else {
         initFluentPlayers();
+        initChapterStrips();
     }
 
     document.addEventListener('FComMediaReady', function(_) {
         initFluentPlayers(true);
+        initChapterStrips();
     });
 
     // Players injected after load; initFluentPlayers() skips containers it already owns.
-    observeInjectedPlayers(() => initFluentPlayers());
+    observeInjectedPlayers(() => { initFluentPlayers(); initChapterStrips(); });
     document.addEventListener('InitSingleFluentPlayer', initFluentPlayer);
     document.addEventListener('fluentPlayer/settingsPreview', (e) => applyLivePreviewBranding(e.detail));
+
+    // Symmetric to InitSingleFluentPlayer: tear down the instance for a container
+    // (the modal fires this before removing its overlay).
+    document.addEventListener('DestroyFluentPlayer', (event) => {
+        const container = event.detail && event.detail.container;
+        if (container) destroyContainer(container);
+    });
 
     // Export for manual initialization
     window.FluentPlayer = FluentPlayer;

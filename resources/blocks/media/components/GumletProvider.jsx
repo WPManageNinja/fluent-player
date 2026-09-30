@@ -8,6 +8,7 @@ import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, SearchIconSVG, EditIconSVG, DeleteIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { buildGumletMediaData } from './common/buildGumletMediaData.js';
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 import { gumletDeleteErrorMessage } from './common/gumletMessages.js';
 
 const GumletProvider = ({
@@ -20,6 +21,7 @@ const GumletProvider = ({
     setSelectedMedia,
     saveMediaToServer,
 }) => {
+    const canManage = canManageProviders();
     const { showNotification, updateNotification, hideNotification } = useNotification();
     const [assets, setAssets] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
@@ -365,6 +367,7 @@ const GumletProvider = ({
                                         onClick={() => selectVideo(asset)}
                                         onKeyDown={(e) => onItemKeyDown(e, asset)}
                                     >
+                                        {canManage && (
                                         <div className="fluent-player-bunny-video-grid-item-action">
                                             <Button
                                                 className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
@@ -387,6 +390,7 @@ const GumletProvider = ({
                                                 <DeleteIconSVG />
                                             </Button>
                                         </div>
+                                        )}
                                         <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                             {asset.thumbnail ? (
                                                 <img src={asset.thumbnail} alt={asset.title || asset.id} loading="lazy" />

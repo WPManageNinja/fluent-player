@@ -10,10 +10,14 @@ import { getAjaxUrl as _getAjaxUrl, getNonce as _getNonce } from './utils/ajax';
 import { evaluateConditionals, hasEnabledConditionals, mergeConditionStates } from './utils/conditions.js';
 import { shouldWarnMissingGoogleAnalytics, waitForGoogleAnalytics } from './utils/googleAnalytics.js';
 import { disablePlayerControlsDOM, enablePlayerControlsDOM } from './utils/playerControls';
-import { applyYouTubePrivacyMode, applyEmbedReferrerPolicy, privacyEnhanceYouTubePoster, applyBunnyStreamToken, appendBunnyTokenQuery } from './utils/videoSrc.js';
+import { applyYouTubePrivacyMode, applyVimeoPrivacyMode, applyEmbedReferrerPolicy, privacyEnhanceYouTubePoster, applyBunnyStreamToken, appendBunnyTokenQuery } from './utils/videoSrc.js';
+import { syncVimeoCaptions } from './utils/vimeoTracks.js';
+import { applyVimeoMenuCapabilities } from './utils/vimeoCapabilities.js';
+import { bridgeVimeoQuality } from './utils/vimeoQuality.js';
 import ContextMenuController from './utils/contextMenuController.js';
 import { submitEmailCapture, showEmailConfirmation } from './utils/emailCapture.js';
 import { getPlayerModalGate } from './utils/playerKeyboardGate.js';
+import { setupMutedPreview } from './utils/mutedPreview.js';
 import { throttle } from './utils/throttle.js';
 import {
     buildPlaybackTargetUrl,
@@ -44,6 +48,10 @@ const CONSTANTS = {
     // Autoplay countdown
     AUTOPLAY_COUNTDOWN_SECONDS: 3,
     AUTOPLAY_FINAL_DELAY_MS: 600,
+    // Post-attempt check that autoplay actually progressed — YouTube can block
+    // silently with no play() rejection and a misleading paused state.
+    AUTOPLAY_VERIFY_DELAY_MS: 1500,
+    AUTOPLAY_VERIFY_MAX_CHECKS: 4,
 
     // Google Analytics: wait briefly for a late-loaded site tag
     GA_POLL_INTERVAL_MS: 200,
@@ -106,6 +114,13 @@ class FluentPlayer {
         }
 
         this.init();
+
+        // A deferred embed rendered load="custom" and loaded nothing; building it means
+        // consent was granted. Start the provider AFTER init() so the YouTube/Vimeo privacy
+        // and provider-change handlers are wired before Vidstack sets the provider up.
+        if (this.player.hasAttribute('data-fp-load-deferred') && typeof this.player.startLoading === 'function') {
+            this.player.startLoading();
+        }
     }
 
     /**
@@ -150,15 +165,20 @@ class FluentPlayer {
             this.container.style.setProperty('--fp-control-bar-bg', controlBarColor);
         }
 
-        // Apply aspect ratio for layout shift prevention (only if not already set by server CSS)
-        const computedRatio = getComputedStyle(this.container).aspectRatio;
-        if ((!computedRatio || computedRatio === 'auto') && this.settings?.viewType !== 'audio') {
+        // Apply aspect ratio for layout shift prevention (only if not already set by server CSS).
+        // With a chapter strip the wrapper deliberately has no ratio — it holds player + strip,
+        // and the ratio lives on .fluent-player-container instead.
+        const ratioTarget = this.container.querySelector('.fp-chapters')
+            ? this.container.querySelector('.fluent-player-container')
+            : this.container;
+        const computedRatio = ratioTarget ? getComputedStyle(ratioTarget).aspectRatio : 'auto';
+        if (ratioTarget && (!computedRatio || computedRatio === 'auto') && this.settings?.viewType !== 'audio') {
             const mediaRatio = this.settings?.aspectRatio;
             const defaultRatio = this.defaultSettings?.aspectRatio || this.defaultSettings?.defaultAspectRatio;
             const ratio = (mediaRatio && mediaRatio !== 'default') ? mediaRatio : defaultRatio;
             if (ratio && ratio !== 'original') {
                 const cssRatio = ratio.includes('/') ? ratio : ratio.replace(':', ' / ');
-                this.container.style.aspectRatio = cssRatio;
+                ratioTarget.style.aspectRatio = cssRatio;
             }
         }
     }
@@ -471,7 +491,9 @@ class FluentPlayer {
         this.setupLoadingTransition();
         this.setupPlayerEvents();
 
-        if (this.mediaId && this.isSavePlayPositionEnabled()) {
+        this.previewActive = !!this.settings?.mutedPreview && setupMutedPreview(this);
+
+        if (this.mediaId && this.isSavePlayPositionEnabled() && !this.previewActive) {
             this.setupSaveResume();
         }
 
@@ -479,44 +501,57 @@ class FluentPlayer {
         const deferredInit = () => {
             this.setupVideoEndBehavior();
             this.setupAutoplay();
-
-            if (this.settings.layers?.length > 0) {
-                this.initializeLayersManager();
-            }
-
-            if (this.settings.overlays?.length) {
-                this.handleOverlays();
-            }
-
-            if (this.settings.email_capture?.enabled) {
-                this.handleEmailCapture();
-            }
-
-            if (this.settings.cta?.enabled) {
-                this.handleCTA();
-            }
-
-            if (this.settings.action_bar?.enabled) {
-                this.handleActionBar();
-            }
-
-            if (this.mediaId) {
-                this.setupAnalyticsTracking();
-                this.setupMilestoneTracking();
-            }
-
-            this.setupGoogleAnalytics();
             this.setupTimestamps();
 
-            if (this.settings?.show_language_switcher === true) {
-                setTimeout(() => this.setupLanguageSwitcher(), CONSTANTS.UI_DELAY_MS);
+            // Everything here stays dormant during a muted preview until convert.
+            let overlaysArmed = false;
+            if (this.previewActive && this.settings.mutedPreviewConfig?.showOverlays && this.settings.overlays?.length) {
+                this.handleOverlays();
+                overlaysArmed = true;
             }
 
-            this.setupPauseOtherVideos();
+            const featureSetups = () => {
+                if (this.settings.layers?.length > 0) {
+                    this.initializeLayersManager();
+                }
 
-            // Mux Data analytics (lazy-loaded only when configured)
-            if (this.settings?.mux_data?.env_key) {
-                this.setupMuxData();
+                if (!overlaysArmed && this.settings.overlays?.length) {
+                    this.handleOverlays();
+                }
+
+                if (this.settings.email_capture?.enabled) {
+                    this.handleEmailCapture();
+                }
+
+                if (this.settings.cta?.enabled) {
+                    this.handleCTA();
+                }
+
+                if (this.settings.action_bar?.enabled) {
+                    this.handleActionBar();
+                }
+
+                if (this.mediaId) {
+                    this.setupAnalyticsTracking();
+                    this.setupMilestoneTracking();
+                }
+
+                this.setupGoogleAnalytics();
+
+                if (this.settings?.show_language_switcher === true) {
+                    setTimeout(() => this.setupLanguageSwitcher(), CONSTANTS.UI_DELAY_MS);
+                }
+
+                // Mux Data analytics (lazy-loaded only when configured)
+                if (this.settings?.mux_data?.env_key) {
+                    this.setupMuxData();
+                }
+            };
+
+            if (this.previewActive) {
+                this._armDeferredFeatures = featureSetups;
+            } else {
+                featureSetups();
             }
         };
 
@@ -828,7 +863,23 @@ class FluentPlayer {
             // applyYouTubeParams must run synchronously before any await, so it patches
             // buildParams before Vidstack's reactive effects call setup() → #watchSrc()
             applyYouTubeParams(provider);
+            // Vimeo privacy (dnt) toggles provider.cookies; same synchronous timing.
+            applyVimeoPrivacyMode(provider);
             applyEmbedReferrerPolicy(provider);
+            if (provider?.type === 'vimeo') {
+                // Imported Vimeo captions render as <track>s; sync the menu selection to
+                // the iframe's native captions (Vidstack can't paint over the iframe).
+                syncVimeoCaptions(this.player);
+                // Forward native quality-menu selections to the Vimeo iframe (Vidstack has
+                // no working setQuality for Vimeo).
+                bridgeVimeoQuality(this.player);
+                // Hide the speed menu when the video can't change rate, and the quality
+                // menu when there's only one quality. provider-change precedes can-play.
+                this.addEventListener(this.player, 'can-play', () => {
+                    applyVimeoMenuCapabilities(this.player);
+                    setTimeout(() => applyVimeoMenuCapabilities(this.player), 2000);
+                }, { once: true });
+            }
             await applyHLS(provider);
         };
 
@@ -961,32 +1012,69 @@ class FluentPlayer {
     setupAutoplay() {
         if (!this.player) return;
 
-        // Only setup if autoplay is enabled in settings
-        if (!this.settings.autoplay && !this.settings.mutedAutoplay) return;
+        // Only setup if an autoplay mode is enabled in settings
+        if (!this.settings.autoplay && !this.settings.mutedAutoplay && !this.previewActive) return;
+
+        /**
+         * Mute and retry after a blocked sound-autoplay attempt.
+         */
+        const recoverMuted = () => {
+            if (!this.player) return;
+            this.player.muted = true;
+            this.player.play().catch(e => {
+                console.error('FluentPlayer: Autoplay failed:', e);
+            });
+        };
+
+        /**
+         * Verify the autoplay attempt actually progressed and recover muted if
+         * not. Backs up the promise-rejection path: YouTube can block silently
+         * with no rejection and a misleading paused state (frozen at 0:00).
+         * Recovery requires zero progress WITH the media ready to play —
+         * a start merely starved of data re-checks instead of muting.
+         */
+        const verifyStarted = () => {
+            if (this._autoplayVerifyScheduled) return;
+            this._autoplayVerifyScheduled = true;
+            let checks = 0;
+            const check = () => {
+                if (!this.player || this._isDestroyed || this.player.currentTime) {
+                    return;
+                }
+                // A preview convert restarts at 0 with sound — not a blocked autoplay.
+                if (this._autoplayVerifyDisarmed) {
+                    return;
+                }
+                if (this.player.state?.canPlay) {
+                    recoverMuted();
+                    return;
+                }
+                if (++checks < CONSTANTS.AUTOPLAY_VERIFY_MAX_CHECKS) {
+                    setTimeout(check, CONSTANTS.AUTOPLAY_VERIFY_DELAY_MS);
+                }
+            };
+            setTimeout(check, CONSTANTS.AUTOPLAY_VERIFY_DELAY_MS);
+        };
 
         const providerChangeHandler = () => {
             setTimeout(() => {
                 const playPromise = this.player?.play();
                 if (playPromise !== undefined) {
-                    playPromise.catch(error => {
+                    playPromise.catch(() => {
                         if (!this.player.muted) {
-                            this.player.muted = true;
-                            this.player?.play().catch(e => {
-                                console.error('FluentPlayer: Autoplay failed:', e);
-                            });
+                            recoverMuted();
                         }
                     });
                 }
+                verifyStarted();
             }, CONSTANTS.AUTOPLAY_FINAL_DELAY_MS);
         };
 
         const canPlayHandler = () => {
             if (this.player?.paused) {
-                this.player.muted = true;
-                this.player.play().catch(e => {
-                    console.error('FluentPlayer: Autoplay on can-play failed:', e);
-                });
+                recoverMuted();
             }
+            verifyStarted();
         };
 
         this.addEventListener(this.player, 'provider-change', providerChangeHandler);
@@ -1425,7 +1513,7 @@ class FluentPlayer {
 
     setupPlayerEvents() {
         const canPlayHandler = () => {
-            if (!this.consumeInitialPlaybackTime() && this.isSavePlayPositionEnabled()) {
+            if (!this.previewActive && !this.consumeInitialPlaybackTime() && this.isSavePlayPositionEnabled()) {
                 this.loadSavedPosition();
             }
 
@@ -2151,6 +2239,11 @@ class FluentPlayer {
         this.addEventListener(this.player, 'pause', pauseHandler);
         this.addEventListener(this.player, 'ended', endedHandler);
         this.addEventListener(this.player, 'time-update', timeUpdateHandler);
+
+        // Attached mid-playback (muted preview convert) — no 'play' event will follow.
+        if (this.player.paused === false) {
+            playHandler();
+        }
     }
 
     // Track events to Google Analytics
@@ -2930,13 +3023,21 @@ class FluentPlayer {
     }
 
     setupPauseOtherVideos() {
-        const shouldPauseOthers = true; // Maybe make this configurable if needed later
-
-        if (shouldPauseOthers === false) {
+        // Global setting (general.pause_others_on_play); defaults on when the key is absent.
+        if (this.defaultSettings?.pauseOthersOnPlay === false) {
             return;
         }
 
+        // Called from both the deferred and synchronous init paths; bind the listeners once.
+        if (this._pauseOthersBound) {
+            return;
+        }
+        this._pauseOthersBound = true;
+
         const playHandler = () => {
+            if (this.previewActive) {
+                return;
+            }
             const event = new CustomEvent('fluent-player-play', {
                 detail: {
                     playerId: this.instanceId
@@ -2946,6 +3047,9 @@ class FluentPlayer {
         };
 
         const documentPlayHandler = (e) => {
+            if (this.previewActive) {
+                return;
+            }
             if (e.detail.playerId !== this.instanceId && this.player) {
                 this.player.pause();
             }

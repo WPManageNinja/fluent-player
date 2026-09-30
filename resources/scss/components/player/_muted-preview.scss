@@ -1,0 +1,168 @@
+/*
+ * Muted preview state.
+ *
+ * .fp-muted-preview is server-rendered on the player root so controls are
+ * hidden from first paint (no flash before JS). The runtime removes it on
+ * convert (click → sound from the start).
+ */
+
+.fp-muted-preview {
+    media-player {
+        // transition:none is load-bearing — a paused Vidstack CSSTransition can hold stale opacity.
+        .fp-media-controls-top,
+        .fp-media-controls-center,
+        .fp-media-controls-bottom {
+            opacity: 0;
+            pointer-events: none;
+            transition: none;
+        }
+
+        media-gesture {
+            pointer-events: none;
+        }
+
+        &[data-controls] media-captions {
+            bottom: 8px;
+        }
+
+        .fp-media-logo-overlay,
+        .fp-media-custom-overlay {
+            z-index: 21;
+        }
+    }
+
+    .fp-chapters {
+        display: none;
+    }
+
+    .fp-muted-preview-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        border: 0;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+
+        &:focus-visible {
+            outline: none;
+
+            .fp-muted-preview-play {
+                box-shadow: 0px 4px 8px rgba(82, 82, 82, 0.08), var(--media-focus-ring, 0 0 0 3px rgba(255, 255, 255, 0.65));
+            }
+        }
+
+        // No play icon to carry the focus ring when the preset hides center controls.
+        &--bare:focus-visible {
+            outline: 3px solid rgba(255, 255, 255, 0.65);
+            outline-offset: -3px;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover .fp-muted-preview-play {
+                background: color-mix(in srgb, var(--media-play-bg, #FFFFFFD9) 88%, white);
+                box-shadow: 0px 6px 12px rgba(82, 82, 82, 0.12);
+                transform: scale(1.02);
+            }
+        }
+
+        &:active .fp-muted-preview-play {
+            transform: scale(0.98);
+        }
+    }
+
+    // Mirrors the center media-play-button in _controls.scss.
+    .fp-muted-preview-play {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: var(--media-play-bg, #FFFFFFD9);
+        box-shadow: 0px 4px 8px rgba(82, 82, 82, 0.08);
+        transition: all 0.2s ease;
+
+        svg {
+            width: 32px;
+            height: 32px;
+            color: var(--media-play-color, #DD1F13);
+        }
+    }
+}
+
+// Timed content renders outside the player root, as a later sibling under .fp-media-block.
+.fp-muted-preview ~ .fp-timed-content-container {
+    display: none;
+}
+
+.fp-muted-preview .fp-mp-overlay {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    padding: 12px;
+    pointer-events: none;
+
+    img {
+        width: 100%;
+        height: auto;
+    }
+
+    .fp-mp-overlay-text {
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        font-size: 15px;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    &.fp-mp-pos-top-left { top: 0; left: 0; justify-content: flex-start; }
+    &.fp-mp-pos-top-center { top: 0; left: 50%; transform: translateX(-50%); }
+    &.fp-mp-pos-top-right { top: 0; right: 0; justify-content: flex-end; }
+    &.fp-mp-pos-middle-left { top: 50%; left: 0; transform: translateY(-50%); justify-content: flex-start; }
+    &.fp-mp-pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    &.fp-mp-pos-middle-right { top: 50%; right: 0; transform: translateY(-50%); justify-content: flex-end; }
+    &.fp-mp-pos-bottom-left { bottom: 0; left: 0; justify-content: flex-start; }
+    &.fp-mp-pos-bottom-center { bottom: 0; left: 50%; transform: translateX(-50%); }
+    &.fp-mp-pos-bottom-right { bottom: 0; right: 0; justify-content: flex-end; }
+}
+
+@media (max-width: 768px) {
+    .fp-muted-preview .fp-muted-preview-play {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+
+        svg {
+            width: 26px;
+            height: 26px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .fp-muted-preview .fp-muted-preview-play {
+        width: 44px;
+        height: 44px;
+
+        svg {
+            width: 24px;
+            height: 24px;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fp-muted-preview .fp-muted-preview-play {
+        transition: none;
+    }
+}

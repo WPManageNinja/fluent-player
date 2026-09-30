@@ -27,7 +27,7 @@
             <BulkActionBar
                 v-if="selectedRows.length"
                 :selected-rows="selectedRows"
-                :entity="bulkEntity"
+                :entity="entity"
                 :has-pro="hasPro"
                 :all-tags="allTags"
                 :busy="bulkBusy"
@@ -277,7 +277,7 @@ const maxVisibleTags = 3;
 const tableRef = ref(null);
 const selectedRows = ref([]);
 const bulkBusy = ref(false);
-const bulkEntity = computed(() => (props.editPostType === 'fluent_player_media' ? 'media' : 'playlist'));
+const entity = computed(() => (props.editPostType === 'fluent_player_media' ? 'media' : 'playlist'));
 
 const handleSelectionChange = (rows) => {
     selectedRows.value = rows;
@@ -304,9 +304,18 @@ const handleBulkApply = async ({ action, payload }) => {
 
 watch(() => props.dataSource.list, () => {
     selectedRows.value = [];
+
+    // A restored or stale page can outlive the rows it pointed at (deletes, filters).
+    const pagination = props.dataSource.pagination;
+    const pages = Math.max(1, Math.ceil(pagination.total / pagination.per_page) || 1);
+
+    if (pagination.current_page > pages) {
+        pagination.current_page = pages;
+        props.dataSource.get();
+    }
 });
 
-const columnStorageKey = () => `columns-${bulkEntity.value}`;
+const columnStorageKey = () => `columns-${entity.value}`;
 
 const columnVisibility = ref(Storage.get(columnStorageKey(), {}) || {});
 
@@ -367,6 +376,35 @@ const onRowClick = (row, column, event) => {
     if (event?.target?.closest?.('.el-checkbox') || event?.target?.closest?.('.fplayer-selection-column')) return;
     handleEdit(row, event);
 };
+
+const listStateKey = () => `list-state-${entity.value}`;
+
+const listStateSignature = () => {
+    const { page, per_page, ...filters } = props.dataSource.useQuery();
+
+    return JSON.stringify(filters);
+};
+
+const storedList = Storage.get(listStateKey(), {}) || {};
+const storedPerPage = parseInt(storedList.per_page, 10);
+const storedPage = parseInt(storedList.page, 10);
+
+// Runs before the first get(), so a route query still overrides the restore.
+if (storedPerPage > 0) {
+    props.dataSource.pagination.per_page = Math.min(storedPerPage, 100);
+}
+
+if (storedPage > 0 && storedList.sig === listStateSignature()) {
+    props.dataSource.pagination.current_page = storedPage;
+}
+
+watch(() => [props.dataSource.pagination.current_page, props.dataSource.pagination.per_page], () => {
+    Storage.set(listStateKey(), {
+        page: props.dataSource.pagination.current_page,
+        per_page: props.dataSource.pagination.per_page,
+        sig: listStateSignature(),
+    });
+});
 
 props.dataSource.get();
 

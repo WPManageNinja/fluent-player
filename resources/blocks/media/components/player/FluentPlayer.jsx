@@ -9,6 +9,7 @@ import 'vidstack/player/ui';
 import '@icons'; // Custom icon loader - only imports icons we actually use
 import { isFluentCommunityEditor } from '@share/helper.js';
 import VideoLayout from './VideoLayout';
+import ChapterStrip from './ChapterStrip';
 import CenterControls from './CenterControls';
 import VideoErrorOverlay from '../common/VideoErrorOverlay';
 import { resolveCrossOrigin } from './crossOrigin.js';
@@ -47,7 +48,7 @@ function getEditorPosterCandidate(mediaData) {
     return mediaData?.posterSrc || mediaData?.settings?.posterSrc || '';
 }
 
-const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false, presetData, onPlayerReady, revealOnSeek = false }) => {
+const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false, presetData, onPlayerReady, revealOnSeek = false, showChapterStrip = false }) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [posterDismissed, setPosterDismissed] = useState(false);
     const [brandingColor, setBrandingColor] = useState('');
@@ -646,6 +647,13 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
     }, [videoSrc]);
 
     const chaptersVTT = generateChaptersVTT();
+    // chapters_strip_active is Pro-answered and defaults false, so without Pro the menu stays.
+    const chapterStripSelected = !!window.fluentPlayerBlockVars?.hasPro
+        && (mediaData.chaptersDisplay || 'menu') === 'strip'
+        && Array.isArray(mediaData.chapters)
+        && mediaData.chapters.length > 0;
+    // Only the main preview renders the strip itself.
+    const chapterStripActive = showChapterStrip && chapterStripSelected;
     const aspectRatio = getAspectRatio();
     const skin = mediaData.skin || 'modern';
     // Render-time audio detection: CDN providers hardcode viewType=video, so an
@@ -661,6 +669,9 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         const parts = ratio.split(':');
         return parts.length === 2 && parseInt(parts[0]) < parseInt(parts[1]);
     })();
+
+    // Mirrors player.php's $isShort — a Short with ratio 'default'/'original' is not portrait by ratio.
+    const isShort = !!mediaData.is_short;
 
     const containerStyle = {
         position: 'relative',
@@ -688,7 +699,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
 
     if (isPosterOnlyPreview) {
         return (
-            <div className={`fluent-player-container${isPortrait ? ' fp-portrait' : ''}`} data-skin={skin} style={containerStyle}>
+            <div className={`fluent-player-container${isPortrait ? ' fp-portrait' : ''}${isShort ? ' fp-short' : ''}`} data-skin={skin} style={containerStyle}>
                 <media-player
                     title={mediaData.title}
                     load="play"
@@ -720,8 +731,8 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         );
     }
 
-    return (
-        <div className={`fluent-player-container${isPortrait ? ' fp-portrait' : ''}${ytCover ? ' fp-yt-cover' : ''}`} data-skin={skin} style={containerStyle}>
+    const previewPlayer = (
+        <div className={`fluent-player-container${isPortrait ? ' fp-portrait' : ''}${isShort ? ' fp-short' : ''}${ytCover ? ' fp-yt-cover' : ''}`} data-skin={skin} style={containerStyle}>
             <media-player
                 className={!captionsEnabled ? 'fp-captions-hidden' : undefined}
                 title={mediaData.title}
@@ -770,7 +781,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                 <VideoLayout
                     playerRef={playerRef}
                     currentTime={currentTime}
-                    settings={{ ...mediaData, thumbnails: thumbnailsWithToken, _hideCaptions: !captionsEnabled }}
+                    settings={{ ...mediaData, thumbnails: thumbnailsWithToken, _hideCaptions: !captionsEnabled, _chapterStripActive: chapterStripSelected }}
                     isAudio={isAudioLayout}
                     presetData={presetData}
                     skin={skin}
@@ -827,6 +838,28 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
 
             {videoError && (
                 <VideoErrorOverlay error={videoError} onRetry={handleRetry} />
+            )}
+        </div>
+    );
+
+    // Keyed off the static prop, not the live setting: toggling chapters display must not change
+    // the tree root, or React remounts <media-player> and Vidstack logs "provider destroyed".
+    // Modal previews pass no prop, so their DOM is untouched.
+    if (!showChapterStrip) {
+        return previewPlayer;
+    }
+
+    // The strip is a sibling of the container on the front end and inherits --media-brand from
+    // the .fluent-player wrapper, which is also what its theme-proofing selectors are scoped to.
+    return (
+        <div className="fluent-player" style={{ '--media-brand': brandingColor }}>
+            {previewPlayer}
+            {chapterStripActive && (
+                <ChapterStrip
+                    chapters={mediaData.chapters}
+                    currentTime={currentTime}
+                    playerRef={playerRef}
+                />
             )}
         </div>
     );

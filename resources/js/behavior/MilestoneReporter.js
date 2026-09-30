@@ -80,6 +80,11 @@ class MilestoneReporter {
         document.addEventListener('visibilitychange', this._onVisibility);
         window.addEventListener('beforeunload', this._onBeforeUnload);
         this._attached = true;
+
+        // Attached mid-playback (muted preview convert) — no 'play' event will follow.
+        if (this.player.paused === false) {
+            this._handlePlay();
+        }
     }
 
     _handlePlay() {

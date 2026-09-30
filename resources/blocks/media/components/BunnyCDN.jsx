@@ -8,6 +8,7 @@ import useNotification from './common/useNotification.js';
 import { BackArrowSmallSVG, UploadIconSVG, DirectoryIconSVG, DeleteIconSVG, PlusIconSVG, EditIconSVG, SearchIconSVG, CloseIconSVG } from './common/Icons.jsx';
 import { detectStreamAudioHint } from './common/detectStreamAudioHint.js';
 import { defaultPostStatus } from '@share/helper.js';
+import { canManageProviders } from './common/capabilities.js';
 
 // Debounce hook for search
 const useDebounce = (value, delay) => {
@@ -36,6 +37,7 @@ const BunnyCDN = ({
                       setSelectedMedia,
                       saveMediaToServer
                   }) => {
+    const canManage = canManageProviders();
     const { showNotification, updateNotification, hideNotification } = useNotification();
     // Source audio flag by Bunny video id, captured from the upload MIME. Covers the
     // brief window before the metaTag propagates to the video list (getVideos).
@@ -874,6 +876,7 @@ const BunnyCDN = ({
                                         className="fluent-player-bunny-directory-grid-item"
                                         onClick={() => selectCollection(collection)}
                                     >
+                                        {canManage && (
                                         <div className="fluent-player-bunny-directory-grid-item-action">
                                             <Button
                                                 className="fluent-player-bunny-directory-grid-item-action-btn"
@@ -882,6 +885,7 @@ const BunnyCDN = ({
                                                     setCollectionToEdit(collection);
                                                     setEditCollectionName(collection.name);
                                                 }}
+                                                aria-label={__('Edit collection', 'fluent-player') + ': ' + collection.name}
                                                 title={__('Edit collection', 'fluent-player')}
                                             >
                                                 <EditIconSVG />
@@ -893,11 +897,13 @@ const BunnyCDN = ({
                                                     setCollectionToDelete(collection);
                                                     setCollectionDeleteAnchor(e.currentTarget);
                                                 }}
+                                                aria-label={__('Delete collection', 'fluent-player') + ': ' + collection.name}
                                                 title={__('Delete collection', 'fluent-player')}
                                             >
                                                 <DeleteIconSVG />
                                             </Button>
                                         </div>
+                                        )}
                                         <span className="fluent-player-bunny-directory-grid-item-icon"><DirectoryIconSVG /></span>
                                         <span className="fluent-player-bunny-directory-grid-item-name">{collection.name}</span>
                                     </div>
@@ -930,6 +936,7 @@ const BunnyCDN = ({
                                                     className={`fluent-player-bunny-video-grid-item ${selectedVideo?.guid === video.guid ? 'selected' : ''} ${encoding ? 'encoding' : ''}`}
                                                     onClick={() => selectVideo(video)}
                                                 >
+                                                    {canManage && (
                                                     <div className="fluent-player-bunny-video-grid-item-action">
                                                         <Button
                                                             className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
@@ -938,6 +945,7 @@ const BunnyCDN = ({
                                                                 setVideoToEdit(video);
                                                                 setEditVideoTitle(video.title);
                                                             }}
+                                                            aria-label={__('Edit video title', 'fluent-player') + ': ' + video.title}
                                                             title={__('Edit video title', 'fluent-player')}
                                                         >
                                                             <EditIconSVG />
@@ -945,11 +953,13 @@ const BunnyCDN = ({
                                                         <Button
                                                             className="fluent-player-bunny-video-grid-item-action-btn fp-icon-btn"
                                                             onClick={(e) => showDeleteConfirmation(video, e)}
+                                                            aria-label={__('Delete video', 'fluent-player') + ': ' + video.title}
                                                             title={__('Delete video', 'fluent-player')}
                                                         >
                                                             <DeleteIconSVG />
                                                         </Button>
                                                     </div>
+                                                    )}
                                                     <div className="fluent-player-bunny-video-grid-item-thumbnail">
                                                         {encoding ? (
                                                             <div className="fluent-player-bunny-video-encoding-placeholder">
