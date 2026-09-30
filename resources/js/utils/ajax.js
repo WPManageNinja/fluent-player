@@ -3,16 +3,21 @@
  * Centralizes ajax_url/nonce access and FormData construction.
  */
 
+function getConfig() {
+    return window.fluent_player || window.fluentCommunityPortalVars?.fluent_player || {};
+}
+
 export function getAjaxUrl() {
-    if (window.fluent_player?.ajax_url) {
-        return window.fluent_player.ajax_url;
+    const ajaxUrl = getConfig().ajax_url;
+    if (ajaxUrl) {
+        return ajaxUrl;
     }
     console.error('FluentPlayer: ajax_url not found. Please ensure wp_localize_script is called properly.');
     return null;
 }
 
 export function getNonce() {
-    return window.fluent_player?.nonce || '';
+    return getConfig().nonce || '';
 }
 
 /**

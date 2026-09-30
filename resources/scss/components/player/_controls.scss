@@ -12,6 +12,14 @@ media-controls {
     rgb(0 0 0 / 0.5)
   );
 
+  /* Lighter bottom-only scrim shown during playback (on hover) so the control
+     bar + captions stay readable over bright video, without the full vignette. */
+  $gradient-bottom: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.45) 0%,
+    transparent 22%
+  );
+
   direction: ltr;
   display: flex;
   flex-direction: column;
@@ -25,7 +33,17 @@ media-controls {
 
   &[data-visible] {
     opacity: 1;
+  }
+
+  /* Full vignette while paused (incl. initial/ended). */
+  media-player[data-paused] &[data-visible] {
     background-image: $gradient;
+  }
+
+  /* During playback, controls still appear on hover but only get a subtle
+     bottom scrim (for control/caption legibility) — not the full vignette. */
+  media-player:not([data-paused]) &[data-visible] {
+    background-image: $gradient-bottom;
   }
 
   &-group {
@@ -77,7 +95,7 @@ media-controls {
       width: 56px;
       height: 56px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.85);
+      background: var(--media-play-bg, #FFFFFFD9);
       box-shadow: 0px 4px 8px rgba(82, 82, 82, 0.08);
       transition: all 0.2s ease;
 
@@ -88,7 +106,7 @@ media-controls {
       media-icon {
         width: 32px;
         height: 32px;
-        color: var(--media-brand, #DD1F13) !important;
+        color: var(--media-play-color, #DD1F13) !important;
       }
 
       // Hover effect
@@ -104,7 +122,7 @@ media-controls {
 
       @media (hover: hover) and (pointer: fine) {
         &:hover {
-          background: rgba(255, 255, 255, 0.95);
+          background: color-mix(in srgb, var(--media-play-bg, #FFFFFFD9) 88%, white);
           box-shadow: 0px 6px 12px rgba(82, 82, 82, 0.12);
           transform: scale(1.02);
         }

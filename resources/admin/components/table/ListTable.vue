@@ -1,5 +1,5 @@
 <template>
-    <div class="fplayer-list-table-container">
+    <div class="fplayer-list-table-container" :class="{ 'fplayer-bulk-active': selectedRows.length }">
         <div v-if="$route.name === routeName">
 	        <HeaderFilters
 		        v-if="showHeaderFilters"
@@ -8,6 +8,7 @@
 		        @filter-change="handleFilterChange"
 		        @search="handleSearch"
 		        :status-filters="statusFilters"
+		        :more-status-filters="moreStatusFilters"
                 :extra-filters="showSourceColumn ? mediaListFilters : []"
                 :extra-filter-values="mediaListFilterValues"
 		        :tag-filters="showTagFilters ? allTags : []"
@@ -17,18 +18,36 @@
                 @extra-filter-change="handleExtraFilterChange"
                 @clear-combined-filters="handleClearCombinedFilters"
 		        @manage-tags="manageTagsVisible = true"
-	        />
+	        >
+                <template #toolbar-extra>
+                    <ColumnVisibility :columns="columnOptions" @toggle="toggleColumn" />
+                </template>
+            </HeaderFilters>
+
+            <BulkActionBar
+                v-if="selectedRows.length"
+                :selected-rows="selectedRows"
+                :entity="bulkEntity"
+                :has-pro="hasPro"
+                :all-tags="allTags"
+                :busy="bulkBusy"
+                @apply="handleBulkApply"
+                @clear="clearSelection"
+            />
 
             <TableSkeleton
                 v-if="dataSource.isBusy.loading"
                 :show-source="showSourceColumn"
-                :show-tags="showTagFilters"
+                :columns="skeletonColumns"
             />
             <el-table
                 v-else
+                ref="tableRef"
                 :data="dataSource.list"
                 :show-header="dataSource.list.length > 0"
+                row-key="ID"
                 @row-click="onRowClick"
+                @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
                 :default-sort="defaultSort"
                 class="fplayer-list-table"
@@ -38,7 +57,8 @@
                         <IconNoData :size="120" />
                     </div>
                 </template>
-	            <el-table-column :label="$t('ID')" width="96" class-name="fplayer-id-column" sortable="custom" prop="id">
+                <el-table-column type="selection" width="45" :reserve-selection="false" class-name="fplayer-selection-column" />
+	            <el-table-column v-if="isColVisible('id')" :label="$t('ID')" width="80" class-name="fplayer-id-column" sortable="custom" prop="id">
 	                <template #default="scope">
                         #{{ scope.row.ID }}
                     </template>
@@ -46,20 +66,19 @@
                 <el-table-column min-width="200" :label="$t('Title')" sortable="custom" prop="title">
                     <template #default="scope">
                         <div class="fplayer-table-title-cell">
-                            <component :is="getMediaTypeIcon(scope.row)" :size="20" :title="getMediaType(scope.row) === 'audio' ? $t('Audio') : $t('Video')" class="fplayer-table-title-icon" />
-                            <el-tooltip placement="top" :show-after="300" popper-class="fplayer-title-tooltip">
-                                <template #content>
-                                    <div class="fplayer-title-tooltip-inner">
-                                        <img
-                                            v-if="scope.row.settings?.posterSrc"
-                                            :src="scope.row.settings.posterSrc"
-                                            alt=""
-                                            aria-hidden="true"
-                                            class="fplayer-title-tooltip-thumb"
-                                        />
-                                        <span class="fplayer-title-tooltip-text">{{ scope.row.post_title }}</span>
-                                    </div>
-                                </template>
+                            <span class="fplayer-table-thumb">
+                                <img
+                                    v-if="getPosterSrc(scope.row)"
+                                    :src="getPosterSrc(scope.row)"
+                                    alt=""
+                                    aria-hidden="true"
+                                    class="fplayer-table-thumb-img"
+                                />
+                                <span class="fplayer-table-thumb-overlay">
+                                    <component :is="getMediaTypeIcon(scope.row)" :size="20" :title="getMediaType(scope.row) === 'audio' ? $t('Audio') : $t('Video')" />
+                                </span>
+                            </span>
+                            <el-tooltip placement="top" :show-after="300" :content="scope.row.post_title" popper-class="fplayer-title-tooltip">
                                 <a :href="getEditUrl(scope.row)" @click.prevent="handleEdit(scope.row, $event)" class="fplayer-table-title-link fplayer-table-title-link--clamp">
                                     {{ scope.row.post_title }}
                                 </a>
@@ -68,29 +87,33 @@
                     </template>
                 </el-table-column>
 
-	            <el-table-column v-if="showSourceColumn" width="130" :label="$t('Source')">
+	            <el-table-column v-if="showSourceColumn && isColVisible('source')" width="80" :label="$t('Source')">
 		            <template #default="scope">
 			            <div class="fplayer-icon-wrapper">
-                            <template v-if="sourceInfoByProvider[scope.row.settings?.provider]">
-                                <component :is="sourceInfoByProvider[scope.row.settings?.provider].icon" :size="20" />
-                                <span class="fplayer-icons-label">{{ sourceInfoByProvider[scope.row.settings?.provider].label }}</span>
-                            </template>
-                            <div v-else class="fplayer-icon-wrapper">
-                                <component :is="IconUploaded" :size="20" />
-                                <span class="fplayer-icon-label">{{ $t('Uploaded') }}</span>
-                            </div>
+                            <el-tooltip
+                                :content="sourceInfoByProvider[scope.row.settings?.provider]?.label || $t('Uploaded')"
+                                placement="top"
+                            >
+                                <span
+                                    class="fplayer-icon-wrapper"
+                                    role="img"
+                                    :aria-label="sourceInfoByProvider[scope.row.settings?.provider]?.label || $t('Uploaded')"
+                                >
+                                    <component :is="sourceInfoByProvider[scope.row.settings?.provider]?.icon || IconUploaded" :size="20" />
+                                </span>
+                            </el-tooltip>
                         </div>
 		            </template>
 	            </el-table-column>
 
-	            <el-table-column v-if="showSourceColumn" width="90" :label="$t('Duration')">
+	            <el-table-column v-if="showSourceColumn && isColVisible('duration')" width="90" :label="$t('Duration')">
 		            <template #default="scope">
 			            <template v-if="scope.row.settings?.duration > 0">{{ formatDuration(scope.row.settings.duration) }}</template>
 			            <span v-else class="fplayer-tag-empty">&mdash;</span>
 		            </template>
 	            </el-table-column>
 
-	            <el-table-column v-if="editPostType === 'fluent_player_media' && hasPro" width="150" :label="$t('Tags')">
+	            <el-table-column v-if="editPostType === 'fluent_player_media' && hasPro && isColVisible('tags')" width="110" :label="$t('Tags')">
 		            <template #default="scope">
 			            <div v-if="scope.row.tags?.length" class="fplayer-tag-chips">
 				            <el-tag
@@ -116,37 +139,39 @@
 		            </template>
 	            </el-table-column>
 
-	            <el-table-column width="130" :label="$t('Created At')" sortable="custom" prop="date">
+	            <el-table-column v-if="isColVisible('date')" width="130" :label="$t('Created At')" sortable="custom" prop="date">
 		            <template #default="scope">
 			            {{ formatDate(scope.row.post_date) }}
 		            </template>
 	            </el-table-column>
 
-                <el-table-column :width="showSourceColumn ? 110 : 130" :label="$t('Status')" sortable="custom" prop="post_status">
+                <el-table-column v-if="isColVisible('status')" :width="showSourceColumn ? 110 : 130" :label="$t('Status')" sortable="custom" prop="post_status">
                     <template #default="scope">
                         <el-tag
 	                        class="fplayer-status-tag"
 	                        :class="{ ['fplayer-status-tag--' + scope.row.post_status] : true }"
                             size="small"
                         >
-                            {{ scope.row.post_status === 'publish' ? $t('Public') : (scope.row.post_status === 'private' ? $t('Private') : $t('Draft')) }}
+                            {{ statusLabel(scope.row.post_status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="$t('ShortCode')" :width="showSourceColumn ? 190 : 240">
+                <el-table-column v-if="isColVisible('shortcode')" :label="$t('ShortCode')" width="190">
                     <template #default="scope">
                         <TableShortcode :shortcode="getShortcode(scope.row)" />
                     </template>
                 </el-table-column>
-                
-                <el-table-column :min-width="50" class-name="fplayer-actions-column">
+
+                <el-table-column width="124" fixed="right" :label="$t('Actions')" align="left" class-name="fplayer-actions-column">
                     <template #default="scope">
-                        <TableActions 
+                        <TableActions
                             :row="scope.row"
                             :view-url-key="viewUrlKey"
                             :edit-post-type="editPostType"
                             @delete="dataSource.delete"
+                            @restore="dataSource.restore"
+                            @force-delete="dataSource.forceDelete"
                         />
                     </template>
                 </el-table-column>
@@ -171,7 +196,10 @@
 <script setup>
 import Pagination from '@components/Pagination.vue';
 import HeaderFilters from '@components/HeaderFilters.vue';
+import BulkActionBar from '@components/table/BulkActionBar.vue';
+import ColumnVisibility from '@components/table/ColumnVisibility.vue';
 import ManageTagsModal from '@components/modals/ManageTagsModal.vue';
+import Notify from '@/utils/Notify';
 import TableActions from '@components/table/TableActions.vue';
 import TableShortcode from '@components/table/TableShortcode.vue';
 import TableSkeleton from '@components/table/TableSkeleton.vue';
@@ -182,13 +210,16 @@ import IconVideo from '@components/icons/IconVideo.vue';
 import IconAudio from '@components/icons/IconAudio.vue';
 import IconBunnyCDN from '@components/icons/IconBunnyCDN.vue';
 import IconMux from '@components/icons/IconMux.vue';
+import IconGumlet from '@components/icons/IconGumlet.vue';
+import IconCloudflare from '@components/icons/IconCloudflare.vue';
 import IconNoData from '@components/icons/IconNoData.vue';
 import Rest from '@/utils/http/Rest';
+import Storage from '@/utils/Storage';
 import { useFluentPlayerCopyText } from '@/composables/useFluentPlayerCopyText.js';
 import { usePostNavigation } from '@/composables/usePostNavigation';
 import { formatDate } from '@/composables/useAppConfig.js';
 import { formatDuration } from '@/modules/analytics/helpers/time.js';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { getCurrentInstance } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -242,7 +273,80 @@ const { getEditUrl, handleEdit } = usePostNavigation(props);
 
 const hasPro = computed(() => !!window.fluentFrameworkAdmin?.has_pro);
 const maxVisibleTags = 3;
+
+const tableRef = ref(null);
+const selectedRows = ref([]);
+const bulkBusy = ref(false);
+const bulkEntity = computed(() => (props.editPostType === 'fluent_player_media' ? 'media' : 'playlist'));
+
+const handleSelectionChange = (rows) => {
+    selectedRows.value = rows;
+};
+
+const clearSelection = () => {
+    tableRef.value?.clearSelection?.();
+    selectedRows.value = [];
+};
+
+const handleBulkApply = async ({ action, payload }) => {
+    bulkBusy.value = true;
+    try {
+        const response = await props.dataSource.bulkAction(action, selectedRows.value.map((r) => r.ID), payload);
+        clearSelection();
+        Notify.success(response?.message || instance?.proxy.$t('Done'), { position: 'bottom-right' });
+    } catch (error) {
+        const message = error?.message || instance?.proxy.$t('Bulk action failed');
+        Notify.error(message, { position: 'bottom-right' });
+    } finally {
+        bulkBusy.value = false;
+    }
+};
+
+watch(() => props.dataSource.list, () => {
+    selectedRows.value = [];
+});
+
+const columnStorageKey = () => `columns-${bulkEntity.value}`;
+
+const columnVisibility = ref(Storage.get(columnStorageKey(), {}) || {});
+
+const isColVisible = (key) => columnVisibility.value[key] !== false;
+
+const toggleColumn = (key) => {
+    columnVisibility.value = { ...columnVisibility.value, [key]: !isColVisible(key) };
+    Storage.set(columnStorageKey(), columnVisibility.value);
+};
+
+const columnOptions = computed(() => {
+    const $t = instance?.proxy.$t;
+    const defs = [
+        { key: 'id', label: $t('ID') },
+        { key: 'source', label: $t('Source'), requires: 'source' },
+        { key: 'duration', label: $t('Duration'), requires: 'source' },
+        { key: 'tags', label: $t('Tags'), requires: 'tags' },
+        { key: 'date', label: $t('Created At') },
+        { key: 'status', label: $t('Status') },
+        { key: 'shortcode', label: $t('ShortCode') },
+    ];
+    return defs
+        .filter((d) => {
+            if (d.requires === 'source') return showSourceColumn.value;
+            if (d.requires === 'tags') return showTagFilters.value;
+            return true;
+        })
+        .map((d) => ({ key: d.key, label: d.label, visible: isColVisible(d.key) }));
+});
 const showTagFilters = computed(() => props.editPostType === 'fluent_player_media' && hasPro.value);
+
+const skeletonColumns = computed(() => ({
+    id: isColVisible('id'),
+    source: showSourceColumn.value && isColVisible('source'),
+    duration: showSourceColumn.value && isColVisible('duration'),
+    tags: showTagFilters.value && isColVisible('tags'),
+    date: isColVisible('date'),
+    status: isColVisible('status'),
+    shortcode: isColVisible('shortcode'),
+}));
 
 onMounted(async () => {
     useFluentPlayerCopyText('.fplayer-copy', 'Shortcode copied to clipboard!');
@@ -260,6 +364,7 @@ const onRowClick = (row, column, event) => {
     if (event?.target?.closest?.('.fplayer-copy')) return;
     if (event?.target?.closest?.('.fplayer-table-title-link')) return;
     if (event?.target?.closest?.('.fplayer-actions-column')) return;
+    if (event?.target?.closest?.('.el-checkbox') || event?.target?.closest?.('.fplayer-selection-column')) return;
     handleEdit(row, event);
 };
 
@@ -269,8 +374,26 @@ const statusFilters = computed(() => [
 	{ key: 'all', label: instance?.proxy.$t('All') },
 	{ key: 'publish', label: instance?.proxy.$t('Public') },
 	{ key: 'private', label: instance?.proxy.$t('Private') },
-	{ key: 'draft', label: instance?.proxy.$t('Draft') },
 ]);
+
+const moreStatusFilters = computed(() => [
+	{ key: 'draft', label: instance?.proxy.$t('Draft') },
+	{ key: 'future', label: instance?.proxy.$t('Scheduled') },
+	{ key: 'trash', label: instance?.proxy.$t('Trash') },
+]);
+
+const statusLabel = (status) => {
+	const $t = instance?.proxy.$t;
+	const labels = {
+		publish: $t('Public'),
+		private: $t('Private'),
+		draft: $t('Draft'),
+		pending: $t('Pending'),
+		future: $t('Scheduled'),
+		trash: $t('Trash'),
+	};
+	return labels[status] || $t('Draft');
+};
 
 const showSourceColumn = computed(() => props.editPostType === 'fluent_player_media');
 
@@ -315,6 +438,22 @@ const sourceInfoByProvider = computed(() => {
             icon: IconMux,
             label: $t('Mux Live'),
         },
+        gumlet: {
+            icon: IconGumlet,
+            label: $t('Gumlet'),
+        },
+        gumlet_live: {
+            icon: IconGumlet,
+            label: $t('Gumlet Live'),
+        },
+        cloudflare_r2: {
+            icon: IconCloudflare,
+            label: $t('Cloudflare R2'),
+        },
+        cloudflare_stream: {
+            icon: IconCloudflare,
+            label: $t('Cloudflare Stream'),
+        },
         wordpress: {
             icon: IconUploaded,
             label: $t('Uploaded'),
@@ -347,6 +486,10 @@ const mediaListFilters = computed(() => {
                 { value: 'bunny_storage', label: sourceInfoByProvider.value.bunny_storage.label },
                 { value: 'mux', label: sourceInfoByProvider.value.mux.label },
                 { value: 'mux_stream', label: sourceInfoByProvider.value.mux_stream.label },
+                { value: 'gumlet', label: sourceInfoByProvider.value.gumlet.label },
+                { value: 'gumlet_live', label: sourceInfoByProvider.value.gumlet_live.label },
+                { value: 'cloudflare_r2', label: sourceInfoByProvider.value.cloudflare_r2.label },
+                { value: 'cloudflare_stream', label: sourceInfoByProvider.value.cloudflare_stream.label },
             ]
         }
     ];
@@ -370,6 +513,11 @@ const getMediaType = (row) => {
 };
 
 const getMediaTypeIcon = (row) => (getMediaType(row) === 'audio' ? IconAudio : IconVideo);
+
+const getPosterSrc = (row) => {
+    const s = row.settings || {};
+    return s.posterSrc || s.bunny?.thumbnail || s.mux?.thumbnail || s.gumlet?.thumbnail || '';
+};
 
 const syncRouteQuery = () => {
     const router = getCurrentInstance()?.proxy.$router;

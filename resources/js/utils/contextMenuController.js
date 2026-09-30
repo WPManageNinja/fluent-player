@@ -14,6 +14,17 @@ const DEFAULT_CONTEXT_MENU_CONFIG = {
 
 const DEFAULT_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
+const FP_LOGO_ICON = '<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28.8 0H3.2C1.43269 0 0 1.43269 0 3.2V28.8C0 30.5673 1.43269 32 3.2 32H28.8C30.5673 32 32 30.5673 32 28.8V3.2C32 1.43269 30.5673 0 28.8 0Z" fill="#DD1F13"/><path d="M19.2289 11.3156L11.9206 7.09616C10.5631 6.31241 8.86624 7.29209 8.86624 8.85959V13.7716C8.86624 15.3391 10.5631 16.3188 11.9206 15.535L19.2289 11.3156ZM22.7029 18.6774C24.7644 17.4872 24.7644 14.5115 22.7028 13.3213C22.488 13.1973 22.2234 13.1973 22.0086 13.3213L10.1126 20.1895C9.34137 20.6348 8.86624 21.4577 8.86624 22.3483C8.86624 24.2673 10.9436 25.4667 12.6054 24.5072L22.7029 18.6774Z" fill="white"/></svg>';
+
+const ICONS = {
+    link: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M18.364 15.536L16.95 14.12l1.414-1.414a5 5 0 0 0-7.071-7.071L9.878 7.05L8.464 5.636l1.414-1.414a7 7 0 0 1 9.9 9.9zm-2.829 2.828l-1.414 1.414a7 7 0 0 1-9.9-9.9l1.415-1.414L7.05 9.88l-1.414 1.414a5 5 0 0 0 7.07 7.071l1.415-1.414zm-.707-10.607l1.415 1.415l-7.072 7.07l-1.414-1.414z"/></svg>',
+    repeat: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M6 4h15a1 1 0 0 1 1 1v7h-2V6H6v3L1 5l5-4zm12 16H3a1 1 0 0 1-1-1v-7h2v6h14v-3l5 4l-5 4z"/></svg>',
+    speed: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M20 13c0 2.21-.895 4.21-2.343 5.657l1.414 1.414A9.97 9.97 0 0 0 22 13c0-5.523-4.477-10-10-10S2 7.477 2 13a9.97 9.97 0 0 0 2.929 7.071l1.414-1.414A8 8 0 1 1 20 13m-4.707-4.707l-4.5 4.5l1.414 1.414l4.5-4.5z"/></svg>',
+    captions: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm-1 2H4v14h16zM9 8c1.104 0 2.105.448 2.829 1.173l-1.414 1.414a2 2 0 1 0 0 2.828l1.413 1.413A4.001 4.001 0 0 1 5 12c0-2.208 1.792-4 4-4m7 0c1.105 0 2.105.448 2.829 1.173l-1.414 1.414a2 2 0 1 0 0 2.828l1.413 1.413A4.001 4.001 0 0 1 12 12c0-2.208 1.792-4 4-4"/></svg>',
+    pip: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 3a1 1 0 0 1 1 1v7h-2V5H4v14h6v2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm0 10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm-1 2h-6v4h6zM6.707 6.293l2.25 2.25L11 6.5V12H5.5l2.043-2.043l-2.25-2.25z"/></svg>',
+    back: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.828 11H20v2H7.828l5.364 5.364l-1.414 1.414L4 12l7.778-7.778l1.414 1.414z"/></svg>'
+};
+
 function toBoolean(value, fallback = false) {
     return typeof value === 'boolean' ? value : fallback;
 }
@@ -68,6 +79,14 @@ function createMenuButton(item) {
         button.setAttribute('aria-checked', item.checked ? 'true' : 'false');
     }
 
+    if (item.icon) {
+        const icon = document.createElement('span');
+        icon.className = 'fp-context-menu__icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.innerHTML = item.icon;
+        button.appendChild(icon);
+    }
+
     const label = document.createElement('span');
     label.className = 'fp-context-menu__label';
     label.textContent = item.label;
@@ -86,6 +105,26 @@ function createMenuButton(item) {
     }
 
     return button;
+}
+
+function createBrandingFooter() {
+    const footer = document.createElement('div');
+    footer.className = 'fp-context-menu__footer';
+    footer.setAttribute('role', 'presentation');
+
+    const logo = document.createElement('span');
+    logo.className = 'fp-context-menu__footer-logo';
+    logo.setAttribute('aria-hidden', 'true');
+    logo.innerHTML = FP_LOGO_ICON;
+
+    const label = document.createElement('span');
+    label.className = 'fp-context-menu__footer-label';
+    label.textContent = $t('Powered by FluentPlayer');
+
+    footer.appendChild(logo);
+    footer.appendChild(label);
+
+    return footer;
 }
 
 export function normalizeContextMenuConfig(config) {
@@ -245,7 +284,7 @@ export default class ContextMenuController {
         if (this.currentView !== 'root') {
             const backButton = createMenuButton({
                 label: $t('Back'),
-                meta: '‹'
+                icon: ICONS.back
             });
             backButton.classList.add('fp-context-menu__item--back');
             backButton.addEventListener('click', () => {
@@ -278,6 +317,10 @@ export default class ContextMenuController {
 
             menu.appendChild(button);
         });
+
+        if (this.currentView === 'root' && (window.fluent_player?.show_powered_by ?? true)) {
+            menu.appendChild(createBrandingFooter());
+        }
 
         this.positionMenu(menu);
     }
@@ -320,6 +363,7 @@ export default class ContextMenuController {
         if (config.items.copy_link && playerUrl) {
             items.push({
                 label: $t('Copy Link'),
+                icon: ICONS.link,
                 action: () => copyText(playerUrl)
             });
         }
@@ -327,6 +371,7 @@ export default class ContextMenuController {
         if (config.items.copy_link_at_time && this.adapter?.canCopyPlaybackUrlAtTime?.(surface)) {
             items.push({
                 label: $t('Copy Link at Current Time'),
+                icon: ICONS.link,
                 action: () => copyText(this.adapter?.buildPlaybackUrl?.(surface, { includeTime: true }) || '')
             });
         }
@@ -334,6 +379,7 @@ export default class ContextMenuController {
         if (config.items.loop && this.adapter?.supportsLoop?.(surface)) {
             items.push({
                 label: $t('Loop'),
+                icon: ICONS.repeat,
                 role: 'menuitemcheckbox',
                 checked: !!this.adapter?.isLoopEnabled?.(surface),
                 action: () => this.adapter?.setLoopEnabled?.(surface, !this.adapter?.isLoopEnabled?.(surface))
@@ -346,6 +392,7 @@ export default class ContextMenuController {
                 type: 'submenu',
                 view: 'speed',
                 label: $t('Playback Speed'),
+                icon: ICONS.speed,
                 meta: `${currentRate}x`
             });
         }
@@ -355,6 +402,7 @@ export default class ContextMenuController {
             if (captionTracks.length === 1) {
                 items.push({
                     label: $t('Captions'),
+                    icon: ICONS.captions,
                     role: 'menuitemcheckbox',
                     checked: !!captionTracks[0].selected,
                     action: () => this.adapter?.toggleSingleCaptionTrack?.(surface)
@@ -363,7 +411,8 @@ export default class ContextMenuController {
                 items.push({
                     type: 'submenu',
                     view: 'captions',
-                    label: $t('Captions')
+                    label: $t('Captions'),
+                    icon: ICONS.captions
                 });
             }
         }
@@ -371,6 +420,7 @@ export default class ContextMenuController {
         if (config.items.pip && this.adapter?.canTogglePictureInPicture?.(surface)) {
             items.push({
                 label: $t('Picture-in-Picture'),
+                icon: ICONS.pip,
                 role: 'menuitemcheckbox',
                 checked: !!this.adapter?.isPictureInPictureActive?.(surface),
                 action: () => this.adapter?.togglePictureInPicture?.(surface)

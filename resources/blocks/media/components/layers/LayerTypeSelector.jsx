@@ -1,12 +1,13 @@
 const {__} = wp.i18n;
 const {useMemo} = wp.element;
-import { getIconByName, getLayerIconKey } from "@share/helper.js";
+import { getIconByName, getLayerIconKey, isFluentCommunityEditor } from "@share/helper.js";
 
 /**
  * Layer Type Selector Component
  */
 const LayerTypeSelector = ({ onSelect, activeTab, setActiveTab }) => {
     const hasPro = !!window.fluentPlayerBlockVars?.hasPro;
+    const isFluentCommunity = isFluentCommunityEditor();
 
     const lockIcon = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
@@ -66,7 +67,7 @@ const LayerTypeSelector = ({ onSelect, activeTab, setActiveTab }) => {
             type: 'shortcode',
             requiresPro: true
         }
-    ];
+    ].filter((layerType) => !isFluentCommunity || layerType.type !== 'form');
 
     // Get unique categories for tabs
     const uniqueCategories = useMemo(() => {

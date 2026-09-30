@@ -2,10 +2,9 @@ const { __, sprintf } = wp.i18n;
 const { TextControl, BaseControl } = wp.components;
 const { useState, useEffect, useImperativeHandle, forwardRef, useRef } = wp.element;
 
-import { InfoIconSVG } from '../common/Icons.jsx';
 import { formatTime, secondsToTime, timeToSeconds } from '@share/helper.js';
 import { useNotification } from '../common/useNotification.js';
-import TooltipPortal from '../common/TooltipPortal.jsx';
+import InfoIcon from '../common/InfoIcon.jsx';
 import TimeInput from '../common/TimeInput.jsx';
 import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
 import ColorPickerInput from '../common/ColorPickerInput.jsx';
@@ -25,11 +24,7 @@ const ShortcodeLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, e
 	const { showNotification } = useNotification();
 	const initialTime = editingLayer?.displayTime || currentTime || 0;
 	const initialTimeParts = secondsToTime(initialTime);
-	const [showTitleHelp, setShowTitleHelp] = useState(false);
-	const [showShortcodeHelp, setShowShortcodeHelp] = useState(false);
-	const titleHelpIconRef = useRef(null);
 	const titleInputRef = useRef(null);
-	const shortcodeHelpIconRef = useRef(null);
 	const isTimeInputChangeRef = useRef(false);
 	const lastSyncedTimeRef = useRef(initialTime);
 
@@ -192,22 +187,10 @@ const ShortcodeLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, e
 						<div className="custom-range-control-header">
 							<label className="custom-range-control-label components-base-control__label">
 								{__('Title', 'fluent-player')} *
-								<button
-									type="button"
-									ref={titleHelpIconRef}
-									className="custom-range-control-info-icon"
-									aria-label={__('Show help for title', 'fluent-player')}
-									onClick={() => setShowTitleHelp(!showTitleHelp)}
-									onMouseEnter={() => setShowTitleHelp(true)}
-									onMouseLeave={() => setShowTitleHelp(false)}
-									onFocus={() => setShowTitleHelp(true)}
-									onBlur={() => setShowTitleHelp(false)}
-								>
-									<InfoIconSVG />
-								</button>
-								<TooltipPortal isOpen={showTitleHelp} anchorRef={titleHelpIconRef}>
-									{__('Title for the shortcode layer', 'fluent-player')}
-								</TooltipPortal>
+								<InfoIcon
+									label={__('Show help for title', 'fluent-player')}
+									tooltip={__('Title for the shortcode layer', 'fluent-player')}
+								/>
 							</label>
 						</div>
 						<div className="fp-input-with-suffix">
@@ -232,22 +215,10 @@ const ShortcodeLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, e
 						<div className="custom-range-control-header">
 							<label className="custom-range-control-label components-base-control__label">
 								{__('Shortcode', 'fluent-player') + ' *'}
-								<button
-									type="button"
-									ref={shortcodeHelpIconRef}
-									className="custom-range-control-info-icon"
-									aria-label={__('Show help for shortcode', 'fluent-player')}
-									onClick={() => setShowShortcodeHelp(!showShortcodeHelp)}
-									onMouseEnter={() => setShowShortcodeHelp(true)}
-									onMouseLeave={() => setShowShortcodeHelp(false)}
-									onFocus={() => setShowShortcodeHelp(true)}
-									onBlur={() => setShowShortcodeHelp(false)}
-								>
-									<InfoIconSVG />
-								</button>
-								<TooltipPortal isOpen={showShortcodeHelp} anchorRef={shortcodeHelpIconRef}>
-									{__('Enter the shortcode to be rendered in the layer', 'fluent-player')}
-								</TooltipPortal>
+								<InfoIcon
+									label={__('Show help for shortcode', 'fluent-player')}
+									tooltip={__('Enter the shortcode to be rendered in the layer', 'fluent-player')}
+								/>
 							</label>
 						</div>
 						<TextControl

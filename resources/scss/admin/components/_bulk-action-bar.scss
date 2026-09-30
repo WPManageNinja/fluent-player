@@ -1,0 +1,128 @@
+@use "../../variables" as *;
+
+.#{$slug} {
+    &-bulk-action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0;
+        padding: 10px 20px 16px;
+        flex-wrap: wrap;
+        border-bottom: var(--fp-border-width) solid var(--fp-border-light);
+        background: var(--fp-primary-background-color);
+
+        &-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+
+        &-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+        }
+    }
+
+    &-bulk-action-select {
+        width: 200px;
+    }
+
+    &-bulk-action-param {
+        width: 200px;
+
+        &--wide {
+            width: 280px;
+        }
+    }
+
+    &-bulk-action-count {
+        color: #525866;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    &-bulk-action-clear {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #525866;
+        cursor: pointer;
+
+        &:hover {
+            background: #F0F0F1;
+            color: #2F3448;
+        }
+    }
+
+    &-bulk-action-confirm--danger {
+        --el-button-bg-color: #F04438;
+        --el-button-border-color: #F04438;
+        --el-button-hover-bg-color: #D92D20;
+        --el-button-hover-border-color: #D92D20;
+        --el-button-active-bg-color: #D92D20;
+        --el-button-active-border-color: #D92D20;
+    }
+}
+
+.#{$slug}-list-table-container.#{$slug}-bulk-active .#{$slug}-header-filters {
+    border-bottom-color: transparent;
+}
+
+// Align the selection checkbox with the filter/bulk row content (20px inset).
+.#{$slug}-list-table .#{$slug}-selection-column .cell {
+    padding-left: 20px;
+}
+
+.#{$slug}-list-table .el-checkbox,
+.#{$slug}-bulk-action-bar .el-checkbox,
+.#{$slug}-column-visibility-popover .el-checkbox {
+    --el-checkbox-checked-bg-color: var(--fp-button-bg-color);
+    --el-checkbox-checked-input-border-color: var(--fp-button-bg-color);
+    --el-checkbox-input-border-color-hover: var(--fp-button-bg-color);
+    --el-checkbox-input-width: 16px;
+    --el-checkbox-input-height: 16px;
+    --el-checkbox-border-radius: 4px;
+}
+
+.#{$slug}-list-table .el-checkbox__inner::after,
+.#{$slug}-column-visibility-popover .el-checkbox__inner::after {
+    width: 3px;
+    height: 7px;
+    left: 5px;
+    top: 2px;
+    border-right-width: 1.5px;
+    border-bottom-width: 1.5px;
+}
+
+.#{$slug}-list-table .el-checkbox__input.is-indeterminate .el-checkbox__inner::before {
+    top: 6px;
+}
+
+.#{$slug}-bulk-action-bar {
+    --el-color-primary: var(--fp-button-bg-color);
+    --el-color-primary-light-3: color-mix(in srgb, var(--fp-button-bg-color) 70%, white);
+    --el-color-primary-light-5: color-mix(in srgb, var(--fp-button-bg-color) 50%, white);
+    --el-color-primary-light-7: color-mix(in srgb, var(--fp-button-bg-color) 30%, white);
+    --el-color-primary-light-9: color-mix(in srgb, var(--fp-button-bg-color) 10%, white);
+}
+
+.#{$slug}-bulk-dropdown {
+    --el-color-primary: var(--fp-button-bg-color);
+
+    .el-select-dropdown__item.selected,
+    .el-select-dropdown__item.is-selected {
+        color: var(--fp-button-bg-color);
+        font-weight: 600;
+    }
+}

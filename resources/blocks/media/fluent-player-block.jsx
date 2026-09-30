@@ -60,6 +60,12 @@ registerBlockType("fluent-player/media", {
         mediaId: {
             type: "number"
         },
+        isFcomFeatureMedia: {
+            // Marks a block inserted by FluentCommunity as a lesson's feature
+            // media so it can manage its lifecycle without touching normal blocks
+            type: "boolean",
+            default: false
+        },
         timedContentStyle: {
             type: "object",
             default: {
@@ -135,14 +141,27 @@ registerBlockType('fluent-player/timed-content', {
 if (typeof wp !== 'undefined' && wp.data && typeof wp.data.subscribe === 'function') {
     const WIDE_SIDEBAR_BODY_CLASS = 'fluent-player-block-selected';
     const WIDEN_FOR_BLOCKS = ['fluent-player/media', 'fluent-player/timed-content', 'fluent-player/playlist'];
+
+    // Widen while a player block exists anywhere in the content (not just while
+    // selected) so the sidebar width doesn't jump between block selections.
+    const containsPlayerBlock = (blocks) => blocks.some((block) =>
+        WIDEN_FOR_BLOCKS.includes(block.name) ||
+        (block.innerBlocks && block.innerBlocks.length && containsPlayerBlock(block.innerBlocks))
+    );
+
     let lastWide = null;
+    let lastBlocks = null;
     wp.data.subscribe(() => {
         const blockEditor = wp.data.select('core/block-editor');
-        if (!blockEditor || typeof blockEditor.getSelectedBlock !== 'function') {
+        if (!blockEditor || typeof blockEditor.getBlocks !== 'function') {
             return;
         }
-        const selected = blockEditor.getSelectedBlock();
-        const wide = !!selected?.name && WIDEN_FOR_BLOCKS.includes(selected.name);
+        const blocks = blockEditor.getBlocks();
+        if (blocks === lastBlocks) {
+            return;
+        }
+        lastBlocks = blocks;
+        const wide = containsPlayerBlock(blocks);
         if (wide === lastWide) {
             return;
         }

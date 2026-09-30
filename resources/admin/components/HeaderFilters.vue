@@ -1,7 +1,7 @@
 <template>
     <div class="fplayer-header-filters">
         <div class="fplayer-header-filters-tabs">
-            <button 
+            <button
                 v-for="filter in statusFilters"
                 :key="filter.key"
                 type="button"
@@ -11,6 +11,40 @@
             >
                 {{ filter.label }}
             </button>
+            <el-dropdown
+                v-if="moreStatusFilters.length"
+                key="more-views"
+                trigger="click"
+                popper-class="fplayer-header-filters-more-dropdown"
+                class="fplayer-header-filters-more"
+                @command="handleFilterChange"
+                @visible-change="moreOpen = $event"
+            >
+                <button
+                    type="button"
+                    :class="['fplayer-header-filters-tab', 'fplayer-header-filters-more-trigger', { 'fplayer-header-filters-tab-active': isMoreActive }]"
+                    :aria-pressed="isMoreActive"
+                >
+                    {{ moreViewLabel }}
+                    <IconChevronDown
+                        :size="14"
+                        class="fplayer-header-filters-more-caret"
+                        :class="{ 'is-open': moreOpen }"
+                    />
+                </button>
+                <template #dropdown>
+                    <el-dropdown-menu>
+                        <el-dropdown-item
+                            v-for="filter in moreStatusFilters"
+                            :key="filter.key"
+                            :command="filter.key"
+                            :class="{ 'is-active': currentFilter === filter.key }"
+                        >
+                            {{ filter.label }}
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
         </div>
         <div class="fplayer-header-filters-actions">
             <el-popover
@@ -159,15 +193,18 @@
                     <icon-search v-else :size="16" />
                 </button>
             </div>
+            <slot name="toolbar-extra" />
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, nextTick, onBeforeUnmount, getCurrentInstance } from 'vue';
 import debounce from 'lodash/debounce';
+import { ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus';
 import IconSearch from './icons/IconSearch.vue';
 import IconCloseLine from './icons/IconCloseLine.vue';
+import IconChevronDown from './icons/IconChevronDown.vue';
 
 const props = defineProps({
     currentFilter: {
@@ -179,6 +216,10 @@ const props = defineProps({
         required: true
     },
     statusFilters: {
+        type: Array,
+        default: () => []
+    },
+    moreStatusFilters: {
         type: Array,
         default: () => []
     },
@@ -213,6 +254,15 @@ const popoverContentRef = ref(null);
 const popoverVisible = ref(false);
 const popoverTriggerRef = ref(null);
 const searchTriggerRef = ref(null);
+
+const instance = getCurrentInstance();
+
+const moreOpen = ref(false);
+const isMoreActive = computed(() => props.moreStatusFilters.some((f) => f.key === props.currentFilter));
+const moreViewLabel = computed(() => {
+    const active = props.moreStatusFilters.find((f) => f.key === props.currentFilter);
+    return active ? active.label : instance?.proxy.$t('More');
+});
 
 const hasSearchValue = computed(() => props.searchQuery.trim() !== '');
 const hasCombinedFilters = computed(() => props.extraFilters.length > 0 || props.tagFilters.length > 0);

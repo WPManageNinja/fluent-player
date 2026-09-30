@@ -172,7 +172,50 @@
       color: #409EFF;
     }
   }
-  
+
+  /* Post-submit confirmation state */
+  .email-capture-confirmation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .email-capture-confirmation-text {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: center;
+    color: #ffffff;
+  }
+
+  .email-capture-confirmation-dismiss {
+    padding: 8px 24px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--email-capture-border-radius, 0px);
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.28);
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: var(--media-focus-ring, var(--fp-focus-ring, 0 0 0 2px var(--fp-bg-white, #FFF), 0 0 0 4px var(--fp-alpha-slate-16, rgba(153, 160, 174, 0.16))));
+    }
+  }
+
+  .email-capture-countdown-text {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.75;
+    color: #ffffff;
+  }
+
   .email-capture-bottom-text {
     font-size: 14px;
     opacity: 0.8;

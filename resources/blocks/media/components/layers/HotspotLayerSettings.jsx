@@ -482,7 +482,7 @@ const HotspotLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, edi
                                                                 style={{ backgroundColor: isValidHotspotColor(hotspot.background_color) ? hotspot.background_color : 'transparent' }}
                                                             >
                                                                 {hotspot.icon && (
-                                                                    <IconRenderer iconName={hotspot.icon} style={{ fill: '#fff', width: 20, height: 20 }} />
+                                                                    <IconRenderer iconName={hotspot.icon} style={{ fill: isValidHotspotColor(hotspot.background_color) ? '#fff' : 'currentColor', width: 20, height: 20 }} />
                                                                 )}
                                                             </div>
                                     <Dropdown

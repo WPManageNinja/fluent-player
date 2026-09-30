@@ -32,6 +32,7 @@ const statusFilters = [
 	{ key: 'all', label: 'All' },
 	{ key: 'bunny', label: 'BunnyCDN' },
 	{ key: 'mux', label: 'Mux' },
+	{ key: 'gumlet', label: 'Gumlet' },
 ];
 
 const availableStorages = computed(() => {
@@ -50,6 +51,9 @@ const filteredStorages = computed(() => {
 	}
 	if (activeFilter.value === 'mux') {
 		list = list.filter(item => item.key === 'mux');
+	}
+	if (activeFilter.value === 'gumlet') {
+		list = list.filter(item => item.key === 'gumlet');
 	}
 	if (searchQuery.value) {
 		const q = searchQuery.value.toLowerCase();

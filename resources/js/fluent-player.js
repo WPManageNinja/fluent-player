@@ -1,8 +1,21 @@
 import FluentPlayer from './FluentPlayer';
 import './BrowserStorage';
+import { delegateMediaUnlockForms } from './utils/unlock';
 
 // Track initialized players — Map<playerId, { instance, container, varName }>
 const playerInstances = new Map();
+
+// A throwing destroy (e.g. already-disposed Vidstack element) must never abort
+// initialization of the remaining/new players.
+function destroyInstance(entry) {
+    if (entry?.instance && typeof entry.instance.destroy === 'function') {
+        try {
+            entry.instance.destroy();
+        } catch (error) {
+            console.error('FluentPlayer: instance destroy failed:', error);
+        }
+    }
+}
 
 /**
  * Destroy and remove instances whose DOM containers have been removed from the
@@ -12,9 +25,7 @@ const playerInstances = new Map();
 function cleanupOrphanedInstances() {
     for (const [playerId, entry] of playerInstances) {
         if (!document.body.contains(entry.container)) {
-            if (entry.instance && typeof entry.instance.destroy === 'function') {
-                entry.instance.destroy();
-            }
+            destroyInstance(entry);
             // Remove the window global that was cached during init
             if (entry.varName && window[entry.varName]) {
                 try { delete window[entry.varName]; } catch (_) { /* non-configurable */ }
@@ -53,10 +64,7 @@ async function initFluentPlayers(force = false) {
 
         // Destroy previous instance before creating a new one
         if (playerId && playerInstances.has(playerId)) {
-            const oldEntry = playerInstances.get(playerId);
-            if (oldEntry.instance && typeof oldEntry.instance.destroy === 'function') {
-                oldEntry.instance.destroy();
-            }
+            destroyInstance(playerInstances.get(playerId));
         }
 
         const instance = new FluentPlayer(container, playerData);
@@ -83,10 +91,7 @@ async function initFluentPlayer(event) {
 
     // Destroy previous instance before creating a new one
     if (playerId && playerInstances.has(playerId)) {
-        const oldEntry = playerInstances.get(playerId);
-        if (oldEntry.instance && typeof oldEntry.instance.destroy === 'function') {
-            oldEntry.instance.destroy();
-        }
+        destroyInstance(playerInstances.get(playerId));
     }
 
     const instance = new FluentPlayer(container, playerData);
@@ -150,11 +155,17 @@ async function fetchMediaData(container) {
     }
 }
 
+delegateMediaUnlockForms();
+
 // Auto-initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initFluentPlayers);
-} else {
+function bootFluentPlayers() {
     initFluentPlayers();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootFluentPlayers);
+} else {
+    bootFluentPlayers();
 }
 
 document.addEventListener('FComMediaReady', function(_) {

@@ -23,7 +23,7 @@
     "test:build": "cd dev/wp-browser && vendor/bin/codecept build",
     "test:integration": "cd dev/wp-browser && vendor/bin/codecept run Integration",
     "test:functional": "cd dev/wp-browser && vendor/bin/codecept run Functional",
-    "test:codecept": "cd dev/wp-browser && vendor/bin/codecept run",
+    "test:codecept": "npm run test:functional && npm run test:integration",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
@@ -33,11 +33,11 @@
     "test:e2e:live": "E2E_VISUAL_DELAY_MS=${E2E_VISUAL_DELAY_MS:-3000} NODE_TLS_REJECT_UNAUTHORIZED=0 playwright test --project=chromium --headed --workers=1",
     "test:e2e:ui": "NODE_TLS_REJECT_UNAUTHORIZED=0 playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:isolated": "node e2e/run-isolated.js",
-    "test:e2e:isolated:live": "E2E_VISUAL_DELAY_MS=${E2E_VISUAL_DELAY_MS:-3000} node e2e/run-isolated.js --headed --workers=1",
-    "test:e2e:isolated:ui": "node e2e/run-isolated.js --ui",
-    "test:e2e:isolated:debug": "node e2e/run-isolated.js --debug",
-    "test:e2e:isolated:teardown": "bash e2e/teardown-isolated.sh"
+    "test:e2e:isolated": "node dev/e2e/run-isolated.js",
+    "test:e2e:isolated:live": "E2E_VISUAL_DELAY_MS=${E2E_VISUAL_DELAY_MS:-3000} node dev/e2e/run-isolated.js --headed --workers=1",
+    "test:e2e:isolated:ui": "node dev/e2e/run-isolated.js --ui",
+    "test:e2e:isolated:debug": "node dev/e2e/run-isolated.js --debug",
+    "test:e2e:isolated:teardown": "bash dev/e2e/teardown-isolated.sh"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.0.9",

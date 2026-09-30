@@ -1,10 +1,8 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
-import { ElSwitch, ElInput } from 'element-plus';
+import { ref, computed } from 'vue';
 import ProUpgrade from '@/components/ProUpgrade.vue';
 import { FEATURES, useProFeatures } from "@/composables/useFeatures.js";
 import { useSettings } from '@/composables/useSettings.js';
-import { toggleAnalyticsMenu } from '@/utils/analyticsMenu.js';
 
 const props = defineProps({
     settings: {
@@ -25,17 +23,6 @@ const activeTab = ref('fluent_player');
 // Pro features integration
 const { isProActive, getFeatureConfig } = useProFeatures();
 const analyticsProConfig = getFeatureConfig(FEATURES.ANALYTICS);
-
-// Toggle the analytics menu link in real-time when the switch changes
-watch(() => props.settings?.enabled, (newVal) => {
-    toggleAnalyticsMenu(newVal);
-});
-
-// Keep the sidebar menu link matching the current toggle on leave, so it
-// stays in sync across tab switches and after the change is saved.
-onBeforeUnmount(() => {
-    toggleAnalyticsMenu(!!props.settings?.enabled);
-});
 </script>
 
 <template>

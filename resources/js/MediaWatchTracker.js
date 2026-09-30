@@ -1,3 +1,5 @@
+import { mergeSegments, sumWatched, computeCoverage } from './progression/coverage.js';
+
 class MediaWatchTracker {
     constructor(player, options = {}) {
         this.player = player;
@@ -138,20 +140,7 @@ class MediaWatchTracker {
     }
 
     mergeOverlappingSegments() {
-        if (this.segments.length <= 1) return;
-
-        this.segments.sort((a, b) => a.start - b.start);
-
-        for (let i = 0; i < this.segments.length - 1; i++) {
-            const current = this.segments[i];
-            const next = this.segments[i + 1];
-
-            if (current.end + 0.1 >= next.start) {
-                current.end = Math.max(current.end, next.end);
-                this.segments.splice(i + 1, 1);
-                i--;
-            }
-        }
+        this.segments = mergeSegments(this.segments);
     }
 
     checkCompletion() {
@@ -201,22 +190,11 @@ class MediaWatchTracker {
     }
 
     getWatchedPercentage() {
-        if (!this.duration) return 0;
-
-        let totalWatched = 0;
-        for (const segment of this.segments) {
-            totalWatched += (segment.end - segment.start);
-        }
-
-        return Math.min((totalWatched / this.duration) * 100, 100);
+        return computeCoverage(this.segments, this.duration) * 100;
     }
 
     getTotalWatchedTime() {
-        let totalWatched = 0;
-        for (const segment of this.segments) {
-            totalWatched += (segment.end - segment.start);
-        }
-        return totalWatched;
+        return sumWatched(this.segments);
     }
 
     loadProgress(segments) {

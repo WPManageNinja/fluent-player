@@ -276,8 +276,28 @@ class Playlist extends Model {
         }
     }
 
+    async bulkAction(action, ids, payload = {}) {
+        const response = await Rest.post('playlist/do-bulk-action', {
+            action,
+            playlist_ids: ids,
+            ...payload,
+        });
+        await this.get();
+        return response;
+    }
+
     async delete(data) {
         await Rest.delete(`playlist/${data.ID}`);
+        await this.get();
+    }
+
+    async restore(data) {
+        await Rest.put(`playlist/${data.ID}/restore`, {});
+        await this.get();
+    }
+
+    async forceDelete(data) {
+        await Rest.delete(`playlist/${data.ID}/force`);
         await this.get();
     }
 

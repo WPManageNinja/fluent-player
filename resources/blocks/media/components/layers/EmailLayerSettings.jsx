@@ -2,11 +2,10 @@
 const { BaseControl } = wp.components;
 const { useState, useEffect, useImperativeHandle, forwardRef, useRef } = wp.element;
 
-import { InfoIconSVG } from '../common/Icons.jsx';
 import { formatTime, secondsToTime, timeToSeconds } from '@share/helper.js';
 import { useNotification } from '../common/useNotification.js';
 import { EmailProviderSettings } from '../EmailProviderSettings.jsx';
-import TooltipPortal from '../common/TooltipPortal.jsx';
+import InfoIcon from '../common/InfoIcon.jsx';
 import TimeInput from '../common/TimeInput.jsx';
 import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
 import ColorPickerInput from '../common/ColorPickerInput.jsx';
@@ -51,12 +50,11 @@ const EmailLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editi
 		start_time_seconds: initialTimeParts.seconds
 	});
 	const [providersMeta, setProvidersMeta] = useState({});
-	const [showHeadlineHelp, setShowHeadlineHelp] = useState(false);
-	const headlineHelpIconRef = useRef(null);
 	const placeholderInputRef = useRef(null);
 	const headlineInputRef = useRef(null);
 	const buttonTextInputRef = useRef(null);
 	const bottomTextInputRef = useRef(null);
+	const confirmationMessageRef = useRef(null);
 	const isTimeInputChangeRef = useRef(false);
 	const lastSyncedTimeRef = useRef(initialTime);
 
@@ -312,22 +310,10 @@ const EmailLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editi
 							<div className="fp-label-with-inserter">
 								<div className="fp-label-with-inserter-content">
 									<span>{__("Headline", "fluent-player") + ' *'}</span>
-										<button
-											type="button"
-											ref={headlineHelpIconRef}
-											className="custom-range-control-info-icon"
-											aria-label={__('Show help for headline', 'fluent-player')}
-											onClick={() => setShowHeadlineHelp(!showHeadlineHelp)}
-											onMouseEnter={() => setShowHeadlineHelp(true)}
-											onMouseLeave={() => setShowHeadlineHelp(false)}
-											onFocus={() => setShowHeadlineHelp(true)}
-											onBlur={() => setShowHeadlineHelp(false)}
-										>
-											<InfoIconSVG />
-										</button>
-									<TooltipPortal isOpen={showHeadlineHelp} anchorRef={headlineHelpIconRef}>
-										{__("Form headline text", "fluent-player")}
-									</TooltipPortal>
+										<InfoIcon
+											label={__('Show help for headline', 'fluent-player')}
+											tooltip={__("Form headline text", "fluent-player")}
+										/>
 								</div>
 								<ShortcodeInserter
 									inputRef={headlineInputRef}
@@ -382,6 +368,70 @@ const EmailLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editi
 						</div>
 					</BaseControl>
 				</div>
+
+				<div className="fluent-player-form-row">
+					<BaseControl
+						label={
+							<div className="fp-label-with-inserter">
+								<div className="fp-label-with-inserter-content">
+									<span>{__("Confirmation Message", "fluent-player")}</span>
+									<InfoIcon
+										label={__('Show help for confirmation message', 'fluent-player')}
+										tooltip={__("Shown after a successful submit. Leave empty to hide the form immediately with no message.", "fluent-player")}
+									/>
+								</div>
+								<ShortcodeInserter
+									inputRef={confirmationMessageRef}
+									onInsert={(value) => updateSettings("email_capture", "confirmation_message", value)}
+								/>
+							</div>
+						}
+					>
+						<textarea
+							ref={confirmationMessageRef}
+							className="components-textarea-control__input"
+							value={settings.email_capture.confirmation_message || ''}
+							onChange={(e) => updateSettings("email_capture", "confirmation_message", e.target.value)}
+							placeholder={__("e.g. Thanks! Please check your inbox to confirm.", "fluent-player")}
+							rows={3}
+						/>
+					</BaseControl>
+				</div>
+
+				<div className="fluent-player-form-row">
+					<BaseControl
+						label={
+							<div className="fp-label-with-inserter-content">
+								<span>{__("Auto-dismiss After (seconds)", "fluent-player")}</span>
+								<InfoIcon
+									label={__('Show help for auto-dismiss', 'fluent-player')}
+									tooltip={__("Set to 0 to keep the message until the viewer dismisses it.", "fluent-player")}
+								/>
+							</div>
+						}
+					>
+						<input
+							type="number"
+							min={0}
+							max={60}
+							className="components-text-control__input"
+							value={settings.email_capture.confirmation_countdown ?? 10}
+							onChange={(e) => updateSettings("email_capture", "confirmation_countdown", e.target.value === '' ? '' : Math.min(60, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+						/>
+					</BaseControl>
+				</div>
+
+				<div className="fluent-player-form-row">
+					<BaseControl label={__("Dismiss Button Text", "fluent-player")}>
+						<input
+							type="text"
+							className="components-text-control__input"
+							value={settings.email_capture.confirmation_dismiss_text || ''}
+							onChange={(e) => updateSettings("email_capture", "confirmation_dismiss_text", e.target.value)}
+							placeholder={__("Continue", "fluent-player")}
+						/>
+					</BaseControl>
+				</div>
 			</SettingsSectionCard>
 
 			<SettingsSectionCard
@@ -399,6 +449,17 @@ const EmailLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, editi
 						name="allow_skip"
 					/>
 				</div>
+				{window.fluentPlayerBlockVars?.has_fluentcrm && (
+					<div className="fluent-player-form-row">
+						<CustomToggle
+							checked={settings.skip_if_crm_contact !== false}
+							onChange={(value) => updateSettings("skip_if_crm_contact", null, value)}
+							label={__("Skip for Subscribed CRM Contacts", "fluent-player")}
+							help={__("When enabled, logged-in users who are already subscribed FluentCRM contacts will not see this email capture.", "fluent-player")}
+							name="skip_if_crm_contact"
+						/>
+					</div>
+				)}
 			</SettingsSectionCard>
 
 			<SettingsSectionCard

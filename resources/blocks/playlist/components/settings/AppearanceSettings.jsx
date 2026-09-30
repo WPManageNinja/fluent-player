@@ -2,6 +2,7 @@ const { __ } = wp.i18n;
 const { SelectControl, BaseControl } = wp.components;
 import CustomToggle from '../../../media/components/common/CustomToggle.jsx';
 import CustomRangeSlider from '../../../media/components/common/CustomRangeSlider.jsx';
+import CustomRadioGroup from '../../../media/components/common/CustomRadioGroup.jsx';
 import ColorPickerInput from '../../../media/components/common/ColorPickerInput.jsx';
 import CollapsiblePanel from '../../../media/components/common/CollapsiblePanel.jsx';
 
@@ -13,6 +14,8 @@ const AppearanceSettings = ({ playlistData, updatePlaylistData }) => {
     const appearance = settings.appearance || {};
     const typography = settings.typography || {};
     const isCarousel = settings.layout?.type === 'carousel';
+    const separator = appearance.separator || { type: 'line', size: { value: 1, unit: 'px' } };
+    const updateSeparator = (patch) => updateAppearance('separator', { ...separator, ...patch });
 
     const updateAppearance = (key, value) => {
         updatePlaylistData({
@@ -167,6 +170,46 @@ const AppearanceSettings = ({ playlistData, updatePlaylistData }) => {
                                 max={10}
                             />
                         </div>
+
+                        <div className="fluent-player-form-row">
+                            <CustomRadioGroup
+                                label={__('Player / Playlist Separator', 'fluent-player')}
+                                options={[
+                                    { value: 'none', label: __('None', 'fluent-player') },
+                                    { value: 'line', label: __('Line', 'fluent-player') },
+                                    { value: 'space', label: __('Space', 'fluent-player') }
+                                ]}
+                                selected={separator.type || 'line'}
+                                onChange={(value) => {
+                                    const max = value === 'space' ? 40 : 8;
+                                    const size = separator.size || { value: 1, unit: 'px' };
+                                    updateSeparator({
+                                        type: value,
+                                        size: { ...size, value: Math.min(size.value ?? 1, max), unit: size.unit || 'px' }
+                                    });
+                                }}
+                            />
+                        </div>
+
+                        {separator.type !== 'none' && (
+                            <div className="fluent-player-form-row">
+                                <CustomRangeSlider
+                                    label={separator.type === 'space'
+                                        ? __('Spacing (PX)', 'fluent-player')
+                                        : __('Line Width (PX)', 'fluent-player')}
+                                    value={separator.size?.value ?? 1}
+                                    onChange={(value) => updateSeparator({
+                                        size: {
+                                            ...separator.size,
+                                            value,
+                                            unit: separator.size?.unit || 'px'
+                                        }
+                                    })}
+                                    min={0}
+                                    max={separator.type === 'space' ? 40 : 8}
+                                />
+                            </div>
+                        )}
                     </>
                 )}
 

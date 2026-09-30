@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
-import { ElButton, ElIcon, ElInput } from 'element-plus';
+import { ElIcon } from 'element-plus';
 import { CircleCheckFilled, WarningFilled, Lock, Refresh, DocumentCopy } from '@element-plus/icons-vue';
 import Rest from '@/utils/http/Rest.js';
 import Notify from '@/utils/Notify.js';
@@ -258,6 +258,7 @@ onMounted(() => {
                             type="password"
                             show-password
                             placeholder="Enter your new license key"
+                            :aria-label="$t('License Key')"
                             autocomplete="off"
                         />
                     </div>
@@ -270,6 +271,7 @@ onMounted(() => {
                         type="password"
                         show-password
                         placeholder="License Key"
+                        :aria-label="$t('License Key')"
                         autocomplete="off"
                     />
                     <p>

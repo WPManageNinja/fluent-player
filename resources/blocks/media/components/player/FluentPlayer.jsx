@@ -7,9 +7,11 @@ import 'vidstack/player/styles/base.css';
 import 'vidstack/player';
 import 'vidstack/player/ui';
 import '@icons'; // Custom icon loader - only imports icons we actually use
+import { isFluentCommunityEditor } from '@share/helper.js';
 import VideoLayout from './VideoLayout';
 import CenterControls from './CenterControls';
 import VideoErrorOverlay from '../common/VideoErrorOverlay';
+import { resolveCrossOrigin } from './crossOrigin.js';
 import '../PresetStyles.scss';
 
 const {useRef, useEffect, useState, useCallback, useMemo} = wp.element;
@@ -43,10 +45,13 @@ function getEditorPosterCandidate(mediaData) {
     return mediaData?.posterSrc || mediaData?.settings?.posterSrc || '';
 }
 
-const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false, presetData, onPlayerReady }) => {
+const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false, presetData, onPlayerReady, revealOnSeek = false }) => {
     const [currentTime, setCurrentTime] = useState(0);
+    const [posterDismissed, setPosterDismissed] = useState(false);
     const [brandingColor, setBrandingColor] = useState('');
     const [controlBarColor, setControlBarColor] = useState('');
+    const [playButtonColor, setPlayButtonColor] = useState('');
+    const [playButtonBgColor, setPlayButtonBgColor] = useState('');
     const playerRef = useRef(null);
     const onPlayerReadyCalled = useRef(false);
     const [trackKey, setTrackKey] = useState(0);
@@ -80,7 +85,22 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
             ? (mediaData?.controlBarColor || '')
             : (blockVars.defaultSettings?.controlBarColor || '');
         setControlBarColor(controlBarColorValue);
-    }, [mediaData?.useCustomBranding, mediaData?.brandingColor, mediaData?.controlBarColor]);
+
+        // Play button colour + bg: if custom branding ON use the media's own colours
+        // (empty = CSS default), otherwise use global — same precedence as above.
+        setPlayButtonColor(useCustomBranding
+            ? (mediaData?.playButtonColor || '')
+            : (blockVars.defaultSettings?.playButtonColor || ''));
+        setPlayButtonBgColor(useCustomBranding
+            ? (mediaData?.playButtonBgColor || '')
+            : (blockVars.defaultSettings?.playButtonBgColor || ''));
+    }, [
+        mediaData?.useCustomBranding,
+        mediaData?.brandingColor,
+        mediaData?.controlBarColor,
+        mediaData?.playButtonColor,
+        mediaData?.playButtonBgColor,
+    ]);
 
     const formatVTTTime = (seconds) => {
         const date = new Date(seconds * 1000);
@@ -131,7 +151,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         ]
     );
 
-    const videoSrc = useMemo(() => {
+    const baseSrc = useMemo(() => {
         let src = mediaData.provider === 'wordpress' ? (mediaData.url || mediaData.src) : mediaData.src;
         if (!muxPlaybackToken) return src;
         const useToken =
@@ -142,21 +162,14 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         return src;
     }, [mediaData.provider, mediaData.url, mediaData.src, muxPlaybackToken]);
 
-    const shouldUseCrossOrigin = useMemo(() => {
-        if (mediaData?.crossorigin !== undefined && mediaData?.crossorigin !== null) {
-            return !!mediaData.crossorigin;
-        }
+    // Cloudflare R2 is public-only: the stored src is the public-URL delivery
+    // address, used directly here just like any other provider.
+    const videoSrc = baseSrc;
 
-        const src = String(videoSrc || '');
-        const isYouTubeSource =
-            src.includes('youtube.com') ||
-            src.includes('youtu.be') ||
-            src.includes('youtube-nocookie.com');
-
-        // YouTube storyboard sprites do not expose ACAO headers. If we force crossorigin here,
-        // Vidstack inherits it onto hover thumbnail images and the browser blocks them.
-        return !isYouTubeSource;
-    }, [mediaData?.crossorigin, videoSrc]);
+    const shouldUseCrossOrigin = useMemo(
+        () => resolveCrossOrigin(mediaData, videoSrc),
+        [mediaData?.crossorigin, mediaData?.provider, videoSrc]
+    );
 
     const posterSrcWithToken = useMemo(() => {
         const p = getEditorPosterCandidate(mediaData);
@@ -254,7 +267,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                 // In FluentCommunity, skip the bridge + custom relay entirely.
                 // The extra iframe layer prevents user gesture propagation (YouTube auto-pauses).
                 // Vidstack handles YouTube directly — multiple videos work natively.
-                const isFluentCommunity = !!window.fluentPlayerBlockVars?.isFluentCommunity;
+                const isFluentCommunity = isFluentCommunityEditor();
 
                 // Send commands from editor-canvas context so e.source = editor-canvas = window.parent.
                 // new relayWin.Function() creates a closure whose `window` is the editor-canvas window.
@@ -520,6 +533,10 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
             player.addEventListener('playing', handlePlaying);
         }
 
+        // A completed seek means the frame is ready; clear the buffering loader (a paused seek never fires 'playing', so it would otherwise stick).
+        const handleSeeked = () => setIsLoading(false);
+        player.addEventListener('seeked', handleSeeked);
+
         // Handle time-update event
         player.addEventListener('time-update', handleTimeUpdate);
 
@@ -569,6 +586,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
             player.removeEventListener('error', handleError);
             player.removeEventListener('waiting', handleWaiting);
             player.removeEventListener('playing', handlePlaying);
+            player.removeEventListener('seeked', handleSeeked);
             player.removeEventListener('time-update', handleTimeUpdate);
             player.removeEventListener('volume-change', handleVolumeChange);
         };
@@ -590,6 +608,22 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
         player.addEventListener('play', handler, { once: true });
         return () => player.removeEventListener('play', handler);
     }, [playerRef, mediaData?.src, videoSrc, isPosterOnlyPreview]);
+
+    // The poster only auto-hides once playback starts, so it masks the seeked frame; drop it on first seek.
+    // Skipped for audio (keeps artwork) and YouTube (can't render a paused seeked frame — keep its poster).
+    useEffect(() => {
+        if (!revealOnSeek) return;
+        setPosterDismissed(false);
+        const player = playerRef.current;
+        if (!player) return;
+        const provider = mediaData?.provider || mediaData?.settings?.provider;
+        const viewType = mediaData?.viewType || mediaData?.settings?.viewType;
+        if (provider === 'youtube' || viewType === 'audio') return;
+        const dismiss = () => setPosterDismissed(true);
+        if (player.currentTime > 0) { dismiss(); return; }
+        player.addEventListener('seeked', dismiss, { once: true });
+        return () => player.removeEventListener('seeked', dismiss);
+    }, [revealOnSeek, videoSrc, mediaData?.viewType, mediaData?.provider]);
 
     const handleRetry = useCallback(() => {
         setVideoError(null);
@@ -653,6 +687,8 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                     style={{
                         '--media-brand': brandingColor,
                         '--fp-control-bar-bg': controlBarColor || undefined,
+                        '--media-play-color': playButtonColor || undefined,
+                        '--media-play-bg': playButtonBgColor || undefined,
                         aspectRatio: !isPresetPreview && !isAudioLayout && aspectRatio,
                         pointerEvents: 'none'
                     }}
@@ -693,17 +729,21 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                 style={{
                     '--media-brand': brandingColor,
                     '--fp-control-bar-bg': controlBarColor || undefined,
+                    '--media-play-color': playButtonColor || undefined,
+                    '--media-play-bg': playButtonBgColor || undefined,
                     // Don't apply aspect ratio for audio layout
                     'aspectRatio': !isPresetPreview && !isAudioLayout && aspectRatio,
                     ...captionStyle
                 }}
             >
                 <media-provider>
-                    <media-poster
-                        src={posterSrcWithToken}
-                        alt={mediaData.title}
-                        {...(loadStrategy === 'play' && posterSrcWithToken ? { load: 'eager' } : {})}
-                    ></media-poster>
+                    {!(revealOnSeek && posterDismissed) && (
+                        <media-poster
+                            src={posterSrcWithToken}
+                            alt={mediaData.title}
+                            {...(loadStrategy === 'play' && posterSrcWithToken ? { load: 'eager' } : {})}
+                        ></media-poster>
+                    )}
 
                     {mediaData.chapters && mediaData.chapters.length > 0 && (
                         <track

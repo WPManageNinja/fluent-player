@@ -5,6 +5,8 @@ const {useState, useEffect, useRef} = wp.element;
 import FluentPlayer from '../player/FluentPlayer.jsx';
 import LayersSidebar from './LayersSidebar.jsx';
 import VideoTimeSlider from '../common/VideoTimeSlider.jsx';
+import { seekPreviewPlayer } from '../common/seekPreviewPlayer.js';
+import { isFluentCommunityEditor } from '@share/helper.js';
 import './LayersStyles.scss';
 import LayerPreview from './LayerPreview.jsx';
 import useNotification from '../common/useNotification.js';
@@ -39,6 +41,9 @@ const LayersManageModal = ({
     const layerSettingsRef = useRef(null);
     
     const layers = mediaData?.settings?.layers || [];
+    const isFluentCommunity = isFluentCommunityEditor();
+    // Display-only filter: form layers stay in `layers` so updateLayers() doesn't wipe them.
+    const visibleLayers = isFluentCommunity ? layers.filter((layer) => layer?.type !== 'form') : layers;
 
     const canUseLayerWithoutPro = (layer) => {
         if (layer?.type === 'form') {
@@ -97,10 +102,7 @@ const LayersManageModal = ({
             setSidebarView('layer-settings');
             const layerTime = initialEditingLayer.displayTime || 0;
             setCurrentTime(layerTime);
-            if (playerRef) {
-                playerRef.currentTime = layerTime;
-                playerRef.pause();
-            }
+            seekPreviewPlayer(playerRef, layerTime);
         }
     }, [initialEditingLayer, playerRef, hasPro]);
 
@@ -221,10 +223,7 @@ const LayersManageModal = ({
         setSidebarView('layer-settings');
         const layerTime = layer.displayTime || 0;
         setCurrentTime(layerTime);
-        if (playerRef) {
-            playerRef.currentTime = layerTime;
-            pausePlayer();
-        }
+        seekPreviewPlayer(playerRef, layerTime);
     };
 
     // Handle back navigation
@@ -262,9 +261,8 @@ const LayersManageModal = ({
             
             const setPlayerTime = () => {
                 if (playerRef) {
-                    playerRef.currentTime = layerTime;
+                    seekPreviewPlayer(playerRef, layerTime);
                     setCurrentTime(layerTime);
-                    playerRef.pause();
                 }
             };
 
@@ -318,9 +316,7 @@ const LayersManageModal = ({
     // Update the time change handler
     const handleTimeChange = (time) => {
         setCurrentTime(Math.floor(time));
-        if (playerRef && document.contains(playerRef)) {
-            playerRef.currentTime = time;
-        }
+        seekPreviewPlayer(playerRef, time);
     };
 
     // Update the pause player function
@@ -340,8 +336,7 @@ const LayersManageModal = ({
                 if (playerElement.duration) {
                     setDuration(playerElement.duration);
                     if (editingLayer && editingLayer.displayTime != null) {
-                        playerElement.currentTime = editingLayer.displayTime;
-                        playerElement.pause();
+                        seekPreviewPlayer(playerElement, editingLayer.displayTime);
                         setCurrentTime(editingLayer.displayTime);
                     }
                     clearInterval(interval);
@@ -376,6 +371,7 @@ const LayersManageModal = ({
                                 <FluentPlayer
                                     mediaData={mediaSettings}
                                     isPresetPreview={true}
+                                    revealOnSeek={true}
                                 />
                                 {previewLayer && previewLayer.type && <LayerPreview layer={previewLayer} requestPath={requestPath}/>}
                             </div>
@@ -383,7 +379,7 @@ const LayersManageModal = ({
                             <VideoTimeSlider
                                 currentTime={currentTime}
                                 duration={duration}
-                                items={layers}
+                                items={visibleLayers}
                                 type="layers"
                                 onTimeChange={handleTimeChange}
                                 onItemEdit={handleLayerEdit}

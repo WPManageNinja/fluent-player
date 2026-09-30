@@ -7,6 +7,7 @@ import PresetEditModal from './PresetEditModal';
 import ProModal from './common/ProModal.jsx';
 import ConfirmPopover from './common/ConfirmPopover.jsx';
 import { EditIconSVG, DeleteIconSVG, PlusIconSVG, LockIconSVG } from './common/Icons.jsx';
+import InfoIcon from './common/InfoIcon.jsx';
 import { PresetPreview } from './common/PresetCardGrid.jsx';
 import { isAmbientPreset } from './common/ambientPreset.js';
 import { NotificationProvider } from './common/NotificationContext.jsx';
@@ -131,9 +132,6 @@ const PresetSelectorContent = ({
 				playsInline: hasBehavior('plays_inline')
 					? !!behaviors.plays_inline
 					: currentSettings.playsInline,
-				save_play_position: hasBehavior('save_play_position')
-					? !!behaviors.save_play_position
-					: currentSettings.save_play_position,
 				video_end_option: hasBehavior('on_video_end')
 					? (behaviors.on_video_end === 'loop' ? 'loop' : 'default')
 					: currentSettings.video_end_option,
@@ -234,8 +232,7 @@ const PresetSelectorContent = ({
 				font_size: 16,
 				background: 'rgba(0,0,0,0.8)',
 				color: '#ffffff'
-			},
-			brand_color: '#000000'
+			}
 		};
 		const newPreset = {
 			id: 'new',
@@ -516,11 +513,7 @@ const PresetSelectorContent = ({
 									<span className="fplayer-preset-name">
 										{preset.name}
 										{preset.description && (
-											<Tooltip text={preset.description}>
-												<span className="fplayer-preset-info-icon">
-													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-												</span>
-											</Tooltip>
+											<InfoIcon tooltip={preset.description} />
 										)}
 									</span>
 									<div className="fplayer-preset-actions">

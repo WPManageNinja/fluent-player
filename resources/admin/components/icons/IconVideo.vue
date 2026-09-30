@@ -9,8 +9,8 @@
             aria-hidden="true"
         >
             <title>{{ title }}</title>
-            <circle cx="12" cy="12" r="9" stroke="#525866" stroke-width="1.6" />
-            <path d="M10.2 8.6 16 12l-5.8 3.4V8.6Z" fill="#525866" />
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+            <path d="M10.2 8.6 16 12l-5.8 3.4V8.6Z" fill="currentColor" />
         </svg>
     </span>
 </template>

@@ -101,28 +101,31 @@ const ChapterSettings = ({ mediaData, setMediaData, presets, onVideoModalOpen })
 							const originalIndex = chapters.indexOf(chapter);
 							return (
 							<div key={`chapter-${index}-${chapter.startTime}`} className="chapter-card">
-								<div className="chapter-info">
-									<div className="chapter-title-row">
-										<span className="chapter-title">{chapter.title}</span>
-										<div className="chapter-start-time">
+								<div className="fp-card-body">
+									<div className="chapter-title-wrap fp-card-title-wrap">
+										<span className="chapter-title fp-card-title">{chapter.title}</span>
+									</div>
+									<div className="chapter-meta fp-card-meta">
+										<span className="chapter-start-time fp-card-meta-item">
 											<TimeIconSVG />
 											<span>{formatTime(chapter.startTime)}</span>
-										</div>
-									</div>
-									<div className="chapter-duration-row">
-										<StopwatchIconSVG />
-										<span>{formatDuration(chapter.startTime, chapter.endTime)}</span>
+										</span>
+										<span className="chapter-duration fp-card-meta-item">
+											<StopwatchIconSVG />
+											<span>{formatDuration(chapter.startTime, chapter.endTime)}</span>
+										</span>
 									</div>
 								</div>
-								<div className="chapter-actions">
+								<div className="chapter-actions fp-card-actions">
 									<Button
-										className="fp-btn-secondary chapter-edit-btn"
+										className="fp-icon-btn chapter-edit-btn fp-card-edit-btn"
+										aria-label={__('Edit chapter', 'fluent-player')}
 										onClick={() => openModal({ ...chapter, index: originalIndex })}>
 										<EditIconSVG />
-										{__('Edit', 'fluent-player')}
 									</Button>
 									<Button
-										className="fp-icon-btn fp-icon-btn--secondary"
+										className="fp-icon-btn chapter-delete-btn fp-card-delete-btn"
+										aria-label={__('Delete chapter', 'fluent-player')}
 										onClick={(e) => showDeleteConfirm(e, originalIndex)}>
 										<DeleteIconSVG />
 									</Button>

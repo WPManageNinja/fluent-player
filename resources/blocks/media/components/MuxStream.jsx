@@ -194,7 +194,6 @@ const MuxStream = ({
                 playsInline: true,
                 mutedAutoplay: false,
                 aspectRatio: 'default',
-                save_play_position: !isLive,
                 preset_slug: defaultPresetSlug,
                 duration: vodDuration,
                 mux: {

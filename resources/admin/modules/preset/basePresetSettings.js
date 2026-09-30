@@ -54,7 +54,10 @@ export const basePresetSettings = {
         placeholder: 'Email Address',
         headline: 'Sign up to continue watching',
         bottom_text: 'We respect your privacy. Unsubscribe at any time.',
-        button_text: 'Subscribe'
+        button_text: 'Subscribe',
+        confirmation_message: '',
+        confirmation_countdown: 10,
+        confirmation_dismiss_text: ''
     },
     cta: {
         enabled: false,

@@ -4,6 +4,7 @@ const { useState, useEffect, useRef } = wp.element;
 
 import FluentPlayer from '../player/FluentPlayer.jsx';
 import VideoTimeSlider from '../common/VideoTimeSlider.jsx';
+import { seekPreviewPlayer } from '../common/seekPreviewPlayer.js';
 import TimeInput from '../common/TimeInput.jsx';
 import OverlayPreview from './OverlayPreview.jsx';
 import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
@@ -162,9 +163,7 @@ const OverlayManageModal = ({
 
 	const handleTimeChange = (time) => {
 		setCurrentTime(Math.floor(time));
-		if (playerRef && playerRef.currentTime !== undefined) {
-			playerRef.currentTime = time;
-		}
+		seekPreviewPlayer(playerRef, time);
 		const totalSeconds = Math.floor(time);
 		const hours = Math.floor(totalSeconds / 3600);
 		const mins = Math.floor((totalSeconds % 3600) / 60);
@@ -366,6 +365,7 @@ const OverlayManageModal = ({
                             <FluentPlayer
                                 mediaData={mediaSettings}
                                 isPresetPreview={true}
+                                revealOnSeek={true}
                             />
                                 <OverlayPreview overlay={previewOverlay} />
                         </div>

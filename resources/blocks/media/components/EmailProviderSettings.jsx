@@ -1,39 +1,20 @@
 const {__} = wp.i18n;
-const { Button, SelectControl, TextControl, ToggleControl, TextareaControl, Spinner, Notice, CheckboxControl, Dropdown, FormTokenField } = wp.components;
+const { Button, SelectControl, TextControl, TextareaControl, Spinner, Notice, CheckboxControl, Dropdown, FormTokenField } = wp.components;
 const { MediaUpload, MediaUploadCheck } = wp.blockEditor;
 const {useState, useEffect, useCallback, useRef} = wp.element;
 const {apiFetch} = wp;
 
-import { InfoIconSVG, PlusIconSVG, DeleteIconSVG, EditIconSVG, ChevronDownSVG, CloseIconSVG } from './common/Icons.jsx';
-import TooltipPortal from './common/TooltipPortal.jsx';
+import { PlusIconSVG, DeleteIconSVG, EditIconSVG, ChevronDownSVG, CloseIconSVG } from './common/Icons.jsx';
+import InfoIcon from './common/InfoIcon.jsx';
 import CRMInactiveWarning from './common/CRMInactiveWarning.jsx';
-
-const HelpIconSVG = InfoIconSVG;
+import CustomToggle from './common/CustomToggle.jsx';
 
 const LabelWithHelpTooltip = ({ label, help, children, labelClassName = 'fp-form-token-field__label components-base-control__label' }) => {
-	const helpIconRef = useRef(null);
-	const [showHelp, setShowHelp] = useState(false);
 	return (
 		<>
 			<label className={labelClassName}>
 				{label}
-				{help && (
-					<>
-						<span
-							ref={helpIconRef}
-							className="custom-range-control-info-icon"
-							onClick={() => setShowHelp((prev) => !prev)}
-							onMouseEnter={() => setShowHelp(true)}
-							onMouseLeave={() => setShowHelp(false)}
-							aria-hidden
-						>
-							<InfoIconSVG />
-						</span>
-						<TooltipPortal isOpen={showHelp} anchorRef={helpIconRef}>
-							{help}
-						</TooltipPortal>
-					</>
-				)}
+				{help && <InfoIcon tooltip={help} />}
 			</label>
 			{children}
 		</>
@@ -44,8 +25,6 @@ const MultiSelectDropdown = ({ label, value, options, placeholder, help, onChang
     const [search, setSearch] = useState('');
     const containerRef = useRef(null);
     const [popoverWidth, setPopoverWidth] = useState(null);
-    const helpIconRef = useRef(null);
-    const [showHelp, setShowHelp] = useState(false);
 
     const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
 
@@ -89,21 +68,7 @@ const MultiSelectDropdown = ({ label, value, options, placeholder, help, onChang
                     <div className="components-flex-item">
                         <label className="custom-range-control-label components-base-control__label">
                             {label}
-                            {help && (
-                                <>
-                                    <span
-                                        ref={helpIconRef}
-                                        className="custom-range-control-info-icon"
-                                        onMouseEnter={() => setShowHelp(true)}
-                                        onMouseLeave={() => setShowHelp(false)}
-                                    >
-                                        <HelpIconSVG />
-                                    </span>
-                                    <TooltipPortal isOpen={showHelp} anchorRef={helpIconRef}>
-                                        {help}
-                                    </TooltipPortal>
-                                </>
-                            )}
+                            {help && <InfoIcon tooltip={help} />}
                         </label>
                     </div>
                     <Dropdown
@@ -217,8 +182,6 @@ export const EmailProviderSettings = ({ settings, updateSettings, requestPath, u
     const [providerData, setProviderData] = useState({});
     const [fieldLoading, setFieldLoading] = useState({});
     const [errors, setErrors] = useState({});
-    const [showEmailBodyHelp, setShowEmailBodyHelp] = useState({});
-    const emailBodyHelpIconRefs = useRef({});
     const [editingIndex, setEditingIndex] = useState(null);
     const [isNewProvider, setIsNewProvider] = useState(false);
     const [showAddProviderButton, setShowAddProviderButton] = useState(true);
@@ -778,11 +741,14 @@ export const EmailProviderSettings = ({ settings, updateSettings, requestPath, u
             case 'toggle':
             case 'checkbox':
                 fieldComponent = (
-                    <ToggleControl
+                    <CustomToggle
                         label={field.label}
                         checked={!!fieldValue}
                         help={field.help || ''}
                         onChange={(value) => updateProviderSettings(index, configPath, value)}
+                        name={fieldKey}
+                        switchPosition="left"
+                        justify="start"
                     />
                 );
                 break;
@@ -899,11 +865,6 @@ export const EmailProviderSettings = ({ settings, updateSettings, requestPath, u
         const emailBodyLength = emailBodyValue.length;
         const maxLength = 200;
         const attachments = provider.config?.attachments || [];
-        
-        if (!emailBodyHelpIconRefs.current[index]) {
-            emailBodyHelpIconRefs.current[index] = { current: null };
-        }
-        const emailBodyHelpIconRef = emailBodyHelpIconRefs.current[index];
 
         const getMediaType = (media) => {
             if (media.type) {
@@ -960,18 +921,7 @@ export const EmailProviderSettings = ({ settings, updateSettings, requestPath, u
                         <div className="custom-range-control-header">
                             <label className="custom-range-control-label components-base-control__label">
                                 {__('Email Body', 'fluent-player')}*
-                                <span
-                                    ref={emailBodyHelpIconRef}
-                                    className="custom-range-control-info-icon"
-                                    onClick={() => setShowEmailBodyHelp(prev => ({...prev, [index]: !prev[index]}))}
-                                    onMouseEnter={() => setShowEmailBodyHelp(prev => ({...prev, [index]: true}))}
-                                    onMouseLeave={() => setShowEmailBodyHelp(prev => ({...prev, [index]: false}))}
-                                >
-                                    <InfoIconSVG />
-                                </span>
-                                <TooltipPortal isOpen={showEmailBodyHelp[index]} anchorRef={emailBodyHelpIconRef}>
-                                    {__('Email body content', 'fluent-player')}
-                                </TooltipPortal>
+                                <InfoIcon tooltip={__('Email body content', 'fluent-player')} />
                             </label>
                         </div>
                         <div className="email-body-textarea-wrapper">

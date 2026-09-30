@@ -358,7 +358,6 @@ const EditInner = (props) => {
                         preload: playerDefaultSettings.preload || 'metadata',
                         aspectRatio: playerDefaultSettings.aspectRatio || playerDefaultSettings.default_aspect_ratio || 'default',
                         brandingColor: playerDefaultSettings.brandColor,
-                        save_play_position: playerDefaultSettings.resume_playback === 'true',
                         video_end_option: playerDefaultSettings.video_end_option || 'default'
                     }
                 };
@@ -553,7 +552,6 @@ const EditInner = (props) => {
                             preload: playerDefaultSettings.preload || 'metadata',
                             aspectRatio: playerDefaultSettings.aspectRatio || playerDefaultSettings.default_aspect_ratio || 'default',
                             brandingColor: playerDefaultSettings.brandColor,
-                            save_play_position: playerDefaultSettings.resume_playback === 'true',
                             video_end_option: playerDefaultSettings.video_end_option || 'default',
                             ...(currentMediaToSave.settings || {})
                         },

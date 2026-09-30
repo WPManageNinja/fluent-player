@@ -21,8 +21,7 @@ class Media extends Model {
             loadStrategy: 'visible',
             preload: 'metadata',
             post_status: 'draft',
-			preset_slug: null,
-            save_play_position: false
+			preset_slug: null
         },
         playerSettings: null,
     	errors: {},
@@ -69,7 +68,6 @@ class Media extends Model {
             post_status: 'draft',
             brandingColor: '',
             preset_slug: null,
-            save_play_position: false,
             bunny: {
                 library_id: '',
                 video_id: '',
@@ -135,9 +133,35 @@ class Media extends Model {
     async delete(data) {
         await Rest.delete(`media/${data.ID}`);
         await this.get();
-        Notify.success('Media successfully deleted', {
+        Notify.success('Media moved to trash', {
             position: 'bottom-right'
         });
+    }
+
+    async restore(data) {
+        await Rest.put(`media/${data.ID}/restore`, {});
+        await this.get();
+        Notify.success('Media restored', {
+            position: 'bottom-right'
+        });
+    }
+
+    async forceDelete(data) {
+        await Rest.delete(`media/${data.ID}/force`);
+        await this.get();
+        Notify.success('Media permanently deleted', {
+            position: 'bottom-right'
+        });
+    }
+
+    async bulkAction(action, ids, payload = {}) {
+        const response = await Rest.post('media/do-bulk-action', {
+            action,
+            media_ids: ids,
+            ...payload,
+        });
+        await this.get();
+        return response;
     }
 
 	applyPreset(preset) {

@@ -114,6 +114,11 @@ export function useProFeatures() {
                     __('BunnyCDN Storage'),
                     __('BunnyCDN Stream'),
                     __('Mux Video'),
+                    __('Mux Stream'),
+                    __('Gumlet Video'),
+                    __('Gumlet Stream'),
+                    __('Cloudflare R2 Storage'),
+                    __('Cloudflare Stream'),
                 ],
                 upgradeUrl: getUpgradeUrl(FEATURES.STORAGE)
             },

@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue';
-import { ElForm, ElSelect, ElOption, ElDialog } from 'element-plus';
 import { useProFeatures } from '@/composables/useFeatures.js';
 import { usePreset } from '@/composables/usePreset.js';
 import PresetCardGrid from './PresetCardGrid.vue';
@@ -137,7 +136,7 @@ onMounted(() => {
 
 <template>
     <div class="fplayer-settings-section fplayer-general-settings-section">
-        <ElForm label-position="top">
+        <el-form label-position="top">
             <div class="fplayer-form-item fplayer-form-item-full-width">
                 <div class="fplayer-form-label-wrapper">
                     <label class="fplayer-form-label">Default Preset</label>
@@ -161,14 +160,14 @@ onMounted(() => {
                     <div class="fplayer-form-help">Default aspect ratio for all players (can be overridden per media)</div>
                 </div>
                 <div class="fplayer-form-control">
-                    <ElSelect v-model="props.settings.default_aspect_ratio" placeholder="Select Aspect Ratio" aria-label="Default Aspect Ratio">
-                        <ElOption
+                    <el-select v-model="props.settings.default_aspect_ratio" placeholder="Select Aspect Ratio" aria-label="Default Aspect Ratio">
+                        <el-option
                             v-for="item in aspectRatios"
                             :key="item.value"
                             :label="item.label"
                             :value="item.value"
                         />
-                    </ElSelect>
+                    </el-select>
                 </div>
             </div>
 
@@ -221,9 +220,9 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
-        </ElForm>
+        </el-form>
 
-        <ElDialog
+        <el-dialog
             v-model="showPresetProModal"
             :show-close="true"
             width="640px"
@@ -241,7 +240,7 @@ onMounted(() => {
                     $t('Distraction-free, no player controls'),
                 ]"
             />
-        </ElDialog>
+        </el-dialog>
     </div>
 </template>
 

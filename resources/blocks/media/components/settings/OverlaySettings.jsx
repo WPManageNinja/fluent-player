@@ -122,28 +122,30 @@ const OverlaySettings = ({ mediaData, setMediaData, presets, onVideoModalOpen })
 					<div className="overlays-section">
 						{overlaysSorted.map((overlay) => (
 							<div key={overlay.id} className="overlay-card">
-								<div className="overlay-info">
-									<div className="overlay-title-row">
-										<span className="overlay-title">{overlay.text || __('Untitled Overlay', 'fluent-player')}</span>
-										<div className="overlay-time">
+								<div className="fp-card-body">
+									<div className="overlay-title-wrap fp-card-title-wrap">
+										<span className="overlay-title fp-card-title">{overlay.text || __('Untitled Overlay', 'fluent-player')}</span>
+									</div>
+									<div className="overlay-meta fp-card-meta">
+										<span className="overlay-position fp-card-meta-item">
+											<PinMarkerSVG />
+											<span>{overlay.dynamic_position ? __('Dynamic', 'fluent-player') : getPositionLabel(overlay.position)}</span>
+										</span>
+										<span className="overlay-time fp-card-meta-item">
 											<TimeIconSVG />
 											<span>{formatTime(overlay.displayTime)}</span>
-										</div>
-									</div>
-									<div className="overlay-position-row">
-										<PinMarkerSVG />
-										<span>{overlay.dynamic_position ? __('Dynamic', 'fluent-player') : getPositionLabel(overlay.position)}</span>
+										</span>
 									</div>
 								</div>
-								<div className="overlay-actions">
+								<div className="overlay-actions fp-card-actions">
 									<Button
-										className="fp-btn-secondary overlay-edit-btn"
+										className="fp-icon-btn overlay-edit-btn fp-card-edit-btn"
+										aria-label={__('Edit overlay', 'fluent-player')}
 										onClick={() => openModal(overlay)}>
 										<EditIconSVG />
-										{__('Edit', 'fluent-player')}
 									</Button>
 									<Button
-										className="fp-icon-btn fp-icon-btn--secondary"
+										className="fp-icon-btn overlay-delete-btn fp-card-delete-btn"
 										aria-label={__('Delete overlay', 'fluent-player')}
 										onClick={(e) => showDeleteConfirm(e, overlay.id)}>
 										<DeleteIconSVG />

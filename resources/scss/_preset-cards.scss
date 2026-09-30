@@ -503,15 +503,5 @@
 	white-space: nowrap;
 	display: inline-flex;
 	align-items: center;
-	gap: 0;
-}
-
-.fplayer-preset-info-icon {
-	display: inline-flex;
-	align-items: center;
-	margin-left: 3px;
-	color: #9CA3AF;
-	cursor: default;
-	vertical-align: middle;
-	flex-shrink: 0;
+	gap: 4px;
 }

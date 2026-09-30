@@ -5,7 +5,7 @@ const { apiFetch } = wp;
 
 import LayersManageModal from "../layers/LayersManageModal.jsx";
 import ProModal from "../common/ProModal.jsx";
-import { formatTime, getIconByName, getLayerIconKey, getLayerSubType } from "@share/helper.js";
+import { formatTime, getIconByName, getLayerIconKey, getLayerSubType, isFluentCommunityEditor } from "@share/helper.js";
 import { EditIconSVG, DeleteIconSVG, PlusIconSVG, TimeIconSVG } from '../common/Icons.jsx';
 import CRMInactiveWarning from '../common/CRMInactiveWarning.jsx';
 import ConfirmPopover from '../common/ConfirmPopover.jsx';
@@ -21,9 +21,12 @@ const LayersSettings = ({ mediaData, setMediaData, requestPath, presets, onVideo
 	const [isProModalOpen, setIsProModalOpen] = useState(false);
 	const [proFeature, setProFeature] = useState(__('This feature', 'fluent-player'));
 
+	const isFluentCommunity = isFluentCommunityEditor();
 	const layers = mediaData?.settings?.layers || [];
-	const layersSorted = [...layers].sort((a, b) => (a.displayTime || 0) - (b.displayTime || 0));
-	const hasLayers = layers.length > 0;
+	// Display-only filter: form layers stay in mediaData so saves don't wipe them.
+	const visibleLayers = isFluentCommunity ? layers.filter((layer) => layer?.type !== 'form') : layers;
+	const layersSorted = [...visibleLayers].sort((a, b) => (a.displayTime || 0) - (b.displayTime || 0));
+	const hasLayers = visibleLayers.length > 0;
 
 	const hasInactiveCRMProvider = (layer) => {
 		if (window.fluentPlayerBlockVars?.has_fluentcrm) return false;
@@ -113,28 +116,27 @@ const LayersSettings = ({ mediaData, setMediaData, requestPath, presets, onVideo
 				{hasLayers && (
 					<div className="layers-section">
 						{layersSorted.map((layer, index) => (
-							<div key={layer.id || index} className="layer-card">
-								<div className="layer-info">
-									<div className="layer-title-row">
-										<div className="layer-type-info">
-											<span
-												className="layer-icon"
-												dangerouslySetInnerHTML={{
-													__html: getIconByName(getLayerIconKey(layer)),
-												}}
-											/>
-											<span className="layer-title">{getLayerSubType(layer, providersMeta)}</span>
-										</div>
-										<div className="layer-time">
+							<div key={layer.id || index} className="layer-list-card fp-compact-card">
+								<div className="fp-card-body">
+									<div className="layer-title-wrap fp-card-title-wrap">
+										<span
+											className="layer-icon"
+											dangerouslySetInnerHTML={{ __html: getIconByName(getLayerIconKey(layer)) }}
+										/>
+										<span className="layer-title fp-card-title">{getLayerSubType(layer, providersMeta)}</span>
+									</div>
+									<div className="layer-meta fp-card-meta">
+										<span className="layer-time fp-card-meta-item">
 											<TimeIconSVG />
 											<span>{formatTime(layer.displayTime)}</span>
-										</div>
+										</span>
 									</div>
 									{hasInactiveCRMProvider(layer) && <CRMInactiveWarning hasOtherProviders={layer.email_capture?.providers?.some(p => p.enabled && p.type !== 'fluentcrm')} />}
 								</div>
-								<div className="layer-actions">
+								<div className="layer-actions fp-card-actions">
 									<Button
-										className="fp-btn-secondary layer-edit-btn"
+										className="fp-icon-btn layer-edit-btn fp-card-edit-btn"
+										aria-label={__('Edit layer', 'fluent-player')}
 										onClick={() => {
 											if (!hasPro && !canUseLayerWithoutPro(layer)) {
 												openProModal(layer);
@@ -143,10 +145,10 @@ const LayersSettings = ({ mediaData, setMediaData, requestPath, presets, onVideo
 											openModal(layer);
 										}}>
 										<EditIconSVG />
-										{__('Edit', 'fluent-player')}
 									</Button>
 									<Button
-										className="fp-icon-btn fp-icon-btn--secondary"
+										className="fp-icon-btn layer-delete-btn fp-card-delete-btn"
+										aria-label={__('Delete layer', 'fluent-player')}
 										onClick={(e) => {
 											if (!hasPro && !canUseLayerWithoutPro(layer)) {
 												openProModal(layer);

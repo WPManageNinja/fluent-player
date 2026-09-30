@@ -4,6 +4,7 @@ import {
     hasEnabledConditionals,
     mergeConditionStates,
 } from './utils/conditions.js';
+import { getPlayerModalGate } from './utils/playerKeyboardGate.js';
 
 /**
  * Layers Manager for CTA, Hotspot, and Ad layers only
@@ -46,7 +47,10 @@ class LayersManager {
         if (!this.settings.layers || !Array.isArray(this.settings.layers)) {
             return [];
         }
+        // Backstop for FC data paths that bypass the PHP-side layer strip.
+        const isFluentCommunity = window.fluent_player?.context === 'fluent-community';
         return this.settings.layers
+            .filter((layer) => !isFluentCommunity || layer?.type !== 'form')
             .sort((a, b) => a.displayTime - b.displayTime);
     }
 
@@ -339,6 +343,12 @@ class LayersManager {
         layerEl.classList.add('layer-active');
         if (this.hasBlockingLayer()) {
             layerEl.classList.add('blocking-layer');
+            // A blocking layer (form, CTA…) owns the keyboard: disable the
+            // player's shortcuts and move focus into the layer so typing goes to
+            // the overlay, not the player behind it. Focus is deferred since the
+            // layer's own setup may inject the form markup. Shared with the
+            // email-capture overlay (FluentPlayer) via the same player gate.
+            getPlayerModalGate(this.player)?.open(layerEl, { focusDelay: 50 });
         }
 
         // Setup interactions
@@ -680,10 +690,14 @@ class LayersManager {
 
     async handleLayerEmailSubmit(emailInput, layer) {
         const layerEl = this.activeLayerEls.get(layer.id);
-        const result = await this.payerClass.handleEmailSubmit(emailInput, layerEl || this.container, { layer_id: layer.id, type: 'layer' });
-        if (result.success) {
-            this.handleLayerComplete(layer);
-        } else {
+        // Defer completion to the confirmation dismiss so the message shows first.
+        const result = await this.payerClass.handleEmailSubmit(
+            emailInput,
+            layerEl || this.container,
+            { layer_id: layer.id, type: 'layer' },
+            () => this.handleLayerComplete(layer)
+        );
+        if (!result.success) {
             this.payerClass.showMessage(layerEl || this.container, result.message, 'error');
         }
     }
@@ -900,6 +914,10 @@ class LayersManager {
         const layerEl = this.activeLayerEls.get(layer.id);
         if (layerEl) {
             layerEl.classList.remove('layer-active', 'blocking-layer');
+            // Hand the keyboard/focus back unless another overlay (a sibling
+            // blocking layer or the email-capture overlay) is still open — the
+            // shared gate ref-counts that.
+            getPlayerModalGate(this.player)?.close(layerEl);
         }
         this.currentDisplayedLayers.delete(layer.id);
 
@@ -1027,6 +1045,8 @@ class LayersManager {
      */
     destroy({ skipResume = false } = {}) {
         clearTimeout(this._seekSettleTimeout);
+        const gate = getPlayerModalGate(this.player);
+        this.activeLayerEls?.forEach((el) => gate?.close(el));
         if (this._seekPlayingHandler && this.player) {
             this.player.removeEventListener('playing', this._seekPlayingHandler);
         }

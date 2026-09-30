@@ -56,8 +56,12 @@
             padding: 20px;
             box-sizing: border-box;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
 
             .cta-text-content {
+                margin: auto;
+                width: 100%;
                 font-size: 16px;
                 line-height: 1.6;
                 color: #333;

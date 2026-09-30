@@ -4,7 +4,7 @@
  * (Load Strategy does; Visibility / Animation pass none and stay icon-free).
  *
  * Pure seam — unit-tested in dev/test/js/blocks/radioOptionHelp.test.js. The
- * DOM wiring is proven by e2e/admin/load-strategy-tooltip.spec.js.
+ * DOM wiring is proven by dev/e2e/admin/load-strategy-tooltip.spec.js.
  */
 export const hasOptionHelp = (option) =>
     !!option &&

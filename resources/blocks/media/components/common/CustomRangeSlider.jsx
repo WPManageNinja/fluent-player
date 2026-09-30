@@ -1,6 +1,6 @@
-const { useRef, useState } = wp.element;
-import { InfoIconSVG, SliderThumbSVG } from './Icons.jsx';
-import TooltipPortal from './TooltipPortal.jsx';
+const { useRef } = wp.element;
+import { SliderThumbSVG } from './Icons.jsx';
+import InfoIcon from './InfoIcon.jsx';
 import { useSliderDrag } from './useSliderDrag.js';
 
 const CustomRangeSlider = ({
@@ -15,9 +15,7 @@ const CustomRangeSlider = ({
 	formatValue,
 	parseValue
 }) => {
-	const [showHelp, setShowHelp] = useState(false);
 	const sliderRef = useRef(null);
-	const helpIconRef = useRef(null);
 	const sliderIdRef = useRef(`slider-${Math.random().toString(36).substr(2, 9)}`);
 
 	const { isDragging, handleMouseDown } = useSliderDrag(sliderRef, {
@@ -55,22 +53,7 @@ const CustomRangeSlider = ({
 			<div className="custom-range-control-header">
 				<label className="custom-range-control-label components-base-control__label">
 					{label}
-					{helpText && (
-						<>
-							<span
-								ref={helpIconRef}
-								className="custom-range-control-info-icon"
-								onClick={() => setShowHelp(!showHelp)}
-								onMouseEnter={() => setShowHelp(true)}
-								onMouseLeave={() => setShowHelp(false)}
-							>
-								<InfoIconSVG />
-							</span>
-							<TooltipPortal isOpen={showHelp} anchorRef={helpIconRef}>
-								{helpText}
-							</TooltipPortal>
-						</>
-					)}
+					{helpText && <InfoIcon tooltip={helpText} />}
 				</label>
 			</div>
 			<div className="custom-range-control-content">

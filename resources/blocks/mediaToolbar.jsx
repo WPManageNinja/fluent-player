@@ -20,11 +20,15 @@ const EditApp = () => {
 };
 
 /**
- * Replace the editor's top-left close/site-icon with a Back button that returns
- * to the Fluent Player admin app. The destination is localized per plugin
- * (free → #/, Pro → #/playlists) via window.fluentPlayerToolbar, so this stays
- * post-type-agnostic. Rendered as a real link so the editor's native
- * unsaved-changes prompt fires on navigation.
+ * Add a Back button to the editor header that returns to the Fluent Player
+ * admin app. The destination is localized per plugin (free → #/, Pro →
+ * #/playlists) via window.fluentPlayerToolbar, so this stays post-type-agnostic.
+ * Rendered as a real link so the editor's native unsaved-changes prompt fires
+ * on navigation.
+ *
+ * In fullscreen mode we replace the native close/site-icon. Outside fullscreen
+ * that button does not exist, so we prepend into the header toolbar instead —
+ * otherwise the Back button would only ever show in fullscreen.
  *
  * @return {boolean} true once mounted (or nothing to do), false to retry.
  */
@@ -38,20 +42,27 @@ function mountBackButton() {
         return true;
     }
 
+    const rootDiv = document.createElement("div");
+    rootDiv.classList.add("fluent-player-back-root");
+
     const native =
         document.querySelector(".editor-header__back-button") ||
         document.querySelector(".edit-post-fullscreen-mode-close");
-    if (!native) {
-        return false; // header not ready yet — retry
+
+    if (native) {
+        native.style.display = "none";
+        native.setAttribute("aria-hidden", "true");
+        native.setAttribute("tabindex", "-1");
+        native.parentNode.insertBefore(rootDiv, native);
+    } else {
+        const toolbar =
+            document.querySelector(".edit-post-header__toolbar") ||
+            document.querySelector(".editor-header__toolbar");
+        if (!toolbar) {
+            return false; // header not ready yet — retry
+        }
+        toolbar.prepend(rootDiv);
     }
-
-    native.style.display = "none";
-    native.setAttribute("aria-hidden", "true");
-    native.setAttribute("tabindex", "-1");
-
-    const rootDiv = document.createElement("div");
-    rootDiv.classList.add("fluent-player-back-root");
-    native.parentNode.insertBefore(rootDiv, native);
 
     createRoot(rootDiv).render(
         <BackButton url={resolved.url} label={resolved.label} ariaLabel={resolved.ariaLabel} />

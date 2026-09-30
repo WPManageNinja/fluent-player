@@ -18,7 +18,6 @@
     import IconLicensing from '@/components/icons/settings/IconLicensing.vue';
     import IconSidebar from '@/components/icons/settings/IconSidebar.vue';
     import Storage from '@/utils/Storage.js';
-    import { toggleAnalyticsMenu } from '@/utils/analyticsMenu.js';
 
     const router = useRouter();
     const route = useRoute();
@@ -151,7 +150,7 @@
 
     const persistSettings = async () => {
 	    await Settings.save();
-	    // Persist analytics enabled state so revert won't undo analytics menu link
+	    // Keep appVars in sync so the router's analytics guard reflects the saved state without a reload
 	    const appVars = window.fluentFrameworkAdmin || {};
 	    if (!appVars.analytics) appVars.analytics = {};
 	    appVars.analytics.enabled = !!Settings.settings?.analytics?.enabled;
@@ -201,9 +200,6 @@
 
     const discardAndLeave = () => {
 	    Settings.discard();
-	    // Re-sync the Analytics nav link to the restored value, since
-	    // AnalyticsSettings may be unmounted (e.g. discarding from another tab).
-	    toggleAnalyticsMenu(!!Settings.settings?.analytics?.enabled);
 	    finishLeaveDialog(true);
     };
 

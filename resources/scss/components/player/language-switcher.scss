@@ -1,6 +1,8 @@
 // Language Switcher Component
 
 .fluent-player-language-controls {
+    z-index: 20;
+
     // Override pointer-events for all child elements
     * {
         pointer-events: auto !important;

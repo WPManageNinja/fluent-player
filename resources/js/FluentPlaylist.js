@@ -3,10 +3,13 @@ import 'vidstack/player/ui';
 import '@icons'; // Custom icon loader - only imports icons we actually use
 import { getBestVideoSrc, applyYouTubePrivacyMode, privacyEnhanceYouTubePoster } from './utils/videoSrc';
 import { getAjaxUrl as _getAjaxUrl, getNonce as _getNonce } from './utils/ajax';
+import { bindUnlockForm } from './utils/unlock';
 import { formatDuration as formatDurationUtil } from './utils/formatDuration';
 import { audioContainerState } from './utils/playlistAudioState';
-import { submitEmailCapture } from './utils/emailCapture.js';
+import { submitEmailCapture, showEmailConfirmation } from './utils/emailCapture.js';
 import { enablePlayerControlsDOM, disablePlayerControlsDOM } from './utils/playerControls';
+
+const escapeHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Import layout managers
 import LearningPlaylistManager from './managers/LearningPlaylistManager.js';
@@ -21,6 +24,7 @@ import {
     matchesUrlPlaybackRef,
     scrollPlaybackTargetIntoView
 } from './utils/urlPlaybackTarget.js';
+import { resolveSidebarTransition } from './utils/playlistSidebarState.js';
 
 class FluentPlaylist {
     constructor(container, options = {}) {
@@ -54,8 +58,8 @@ class FluentPlaylist {
         this._perVideoListeners = [];
         this._perVideoStateMap  = new Map();  // mediaId → saved feature state
         this.layersManager       = null;
-        this.emailCaptureShown   = false;
-        this.emailSubmitted      = false;
+        this.emailCaptureShown        = false;
+        this.emailSubmitted           = false;
         this.ctaShown            = false;
         this.ctaCompleted        = false;
         this.actionBarShown      = false;
@@ -630,6 +634,12 @@ class FluentPlaylist {
         const playerContainer = this.container.querySelector('.playlist-player-container');
         const isMobile = window.innerWidth <= 768;
         const isAudioPlaylist = this.container.classList.contains('fp-playlist-audio');
+        // Only an actual breakpoint crossing changes the collapsed state; staying
+        // on the same side preserves the user's manual toggle. (Previously the
+        // desktop branch force-expanded on every resize, which — combined with the
+        // resize handler's self-perpetuating loop — made the toggle unusable once
+        // DevTools/any resize had fired.)
+        const { collapse, restore } = resolveSidebarTransition(isMobile, this._wasMobile);
 
         if (isMobile) {
             if (!isAudioPlaylist && sidebar && playerContainer && sidebar.parentNode !== playerContainer) {
@@ -637,7 +647,7 @@ class FluentPlaylist {
                 this._sidebarOriginalNext = sidebar.nextSibling;
                 playerContainer.appendChild(sidebar);
             }
-            if (this._wasMobile !== true) {
+            if (collapse) {
                 inner.classList.add('sidebar-collapsed');
                 if (this.backdrop) {
                     this.backdrop.classList.remove('fp-backdrop-visible');
@@ -647,7 +657,9 @@ class FluentPlaylist {
             this._wasMobile = true;
         } else {
             this._wasMobile = false;
-            inner.classList.remove('sidebar-collapsed');
+            if (restore) {
+                inner.classList.remove('sidebar-collapsed');
+            }
             if (this.backdrop) {
                 this.backdrop.classList.remove('fp-backdrop-visible');
             }
@@ -953,22 +965,30 @@ class FluentPlaylist {
                 }
                 playlistSidebar.style.maxHeight = '';
                 playlistSidebar.style.height = '';
+                playerContainer.style.maxWidth = '';
+                playerContainer.style.marginInline = '';
             } else {
                 const ratio = this.getEffectiveAspectRatio();
                 const isPortrait = this.isPortraitRatio(ratio);
                 const playerHeight = mediaPlayer.getBoundingClientRect().height;
                 const playerWidth = playerContainer.getBoundingClientRect().width;
+                // Landscape/square fill the available width and grow as tall as the
+                // ratio needs (no height cap) so there is never empty space beside
+                // the player. Portrait would become absurdly tall if it filled a
+                // wide area, so its width is capped (and the player centers).
                 const widthForRatio = isPortrait ? this.getPortraitWidthCap(playerWidth) : playerWidth;
+                // Portrait can't fill a wide area without becoming absurdly tall, so
+                // its width is capped and it's centred (symmetric side space).
+                // Landscape/square fill the width (no cap, no auto-margin gap).
+                playerContainer.style.maxWidth = isPortrait ? `${widthForRatio}px` : '';
+                playerContainer.style.marginInline = isPortrait ? 'auto' : '';
                 const desiredHeight = this.getHeightFromRatio(ratio, widthForRatio);
 
                 if (playerHeight > 0 || desiredHeight > 0) {
                     let finalHeight = desiredHeight || playerHeight;
-                    finalHeight = Math.max(finalHeight, 400);
-
-                    if (!isPortrait) {
-                        const maxHeight = Math.min(window.innerHeight * 0.8, 600);
-                        finalHeight = Math.min(finalHeight, maxHeight);
-                    }
+                    // Keep in step with the player-container's CSS min-height so the
+                    // sidebar and player never end up a few px different in height.
+                    finalHeight = Math.max(finalHeight, 280);
 
                     playlistSidebar.style.height = `${finalHeight}px`;
                     playlistSidebar.style.maxHeight = `${finalHeight}px`;
@@ -1028,13 +1048,10 @@ class FluentPlaylist {
                 this.setupResponsiveLayout();
                 this.applyMobileSidebarState();
                 this.setupHeaderHeight();
-                setTimeout(() => {
-                    const mediaPlayer = this.container.querySelector('media-player');
-                    if (mediaPlayer) {
-                        const event = new Event('resize');
-                        window.dispatchEvent(event);
-                    }
-                }, 100);
+                // NOTE: do NOT re-dispatch a window 'resize' here — it re-triggers
+                // this very handler, creating a self-perpetuating resize loop that
+                // ran forever after any resize. Media-player size changes are
+                // already handled by the ResizeObserver in setupPlaylistHeight().
             }, 250);
         };
         window.addEventListener('resize', this._windowResizeHandler);
@@ -1161,6 +1178,51 @@ class FluentPlaylist {
         }
     }
 
+    hideTrackUnlock() {
+        const container = this.player.closest('.playlist-player-container')
+            || this.player.closest('.grid-modal-player')
+            || this.player.parentElement;
+        const overlay = container && container.querySelector('.fp-playlist-unlock');
+        if (overlay) overlay.remove();
+    }
+
+    showTrackUnlock(index) {
+        const media = this.medias[index];
+        if (!media) return;
+
+        this.hideTrackUnlock();
+
+        const container = this.player.closest('.playlist-player-container')
+            || this.player.closest('.grid-modal-player')
+            || this.player.parentElement;
+        if (!container) return;
+
+        const cfg = window.fluent_player || {};
+        const trans = cfg.trans || {};
+        const lockedMessage = cfg.locked_message || 'This media is password protected.';
+        const overlay = document.createElement('div');
+        overlay.className = 'fp-playlist-unlock fp-media-locked';
+        overlay.innerHTML =
+            '<form class="fp-unlock-form">'
+            + '<p class="fp-unlock-message">' + escapeHtml(lockedMessage) + '</p>'
+            + '<p class="fp-unlock-row"><input type="password" name="password" autocomplete="off" required placeholder="'
+            + escapeHtml(trans.password || 'Password') + '" /> <button type="submit">' + escapeHtml(trans.unlock || 'Unlock') + '</button></p>'
+            + '<p class="fp-unlock-error" role="alert" hidden></p>'
+            + '</form>';
+        container.appendChild(overlay);
+
+        const form = overlay.querySelector('.fp-unlock-form');
+        bindUnlockForm(form, media.ID, () => {
+            // Deep-link the unlocked track so the reload doesn't reset to index 0.
+            const url = new URL(window.location.href);
+            const playerRef = (this.container && this.container.dataset) ? this.container.dataset.flpRef : '';
+            const mediaRef = this.getMediaDeepLinkRef(media, index);
+            if (playerRef) url.searchParams.set('flp_r', playerRef);
+            if (mediaRef) url.searchParams.set('flp_v', mediaRef);
+            window.location.href = url.toString();
+        });
+    }
+
     // Simple and reliable media loading
     loadMedia(index, autoplay = false) {
         if (index < 0 || index >= this.medias.length) return;
@@ -1179,6 +1241,17 @@ class FluentPlaylist {
         this.updateFooterCompletionButton();
 
         const settings = this.currentMedia.settings;
+
+        // Clear any leftover unlock overlay from a previously-selected locked track.
+        this.hideTrackUnlock();
+
+        // Locked track — show the unlock form instead of loading.
+        if (settings && settings.locked) {
+            this.isLoading = false;
+            this.showTrackUnlock(index);
+            return;
+        }
+
         // YouTube Privacy-Enhanced Mode is applied on the provider (cookies flag),
         // not by rewriting the URL — Vidstack discards the host and rebuilds the
         // embed from the video id. See setupYouTubePrivacyMode().
@@ -1372,6 +1445,7 @@ class FluentPlaylist {
 
     /** Tear down all per-video feature state before loading a new video. */
     destroyPerVideoFeatures() {
+
         // Save current video's state before resetting
         const currentMediaId = this.currentMedia?.ID;
         this._savePerVideoState(currentMediaId);
@@ -1820,7 +1894,7 @@ class FluentPlaylist {
         }
     }
 
-    async handleEmailSubmit(emailInput, containerEl, data = null) {
+    async handleEmailSubmit(emailInput, containerEl, data = null, onComplete = null) {
         return submitEmailCapture({
             emailInput,
             messageTarget: containerEl,
@@ -1837,8 +1911,17 @@ class FluentPlaylist {
             onSuccess: () => {
                 this.emailSubmitted = true;
                 const emailCaptureEl = containerEl.querySelector('.media-email-capture-overlay') || containerEl;
-                this.hideEmailCapture(emailCaptureEl);
-                this.layersManager?.checkLayersAtTime(this.player?.currentTime || 0);
+                showEmailConfirmation({
+                    overlayEl: emailCaptureEl,
+                    onDismiss: () => {
+                        if (onComplete) {
+                            onComplete();
+                            return;
+                        }
+                        this.hideEmailCapture(emailCaptureEl);
+                        this.layersManager?.checkLayersAtTime(this.player?.currentTime || 0);
+                    },
+                });
             },
         });
     }
@@ -2481,11 +2564,15 @@ class FluentPlaylist {
 
     isSavePlayPositionEnabled() {
         if (!window.fluent_player?.has_pro) return false;
+        if (this.isCurrentMediaLiveStream()) return false;
         const settings = this.currentMedia?.settings || {};
         if (Object.prototype.hasOwnProperty.call(settings, 'save_play_position')) {
             return !!settings.save_play_position;
         }
-        if (settings.behaviors?.save_play_position) return true;
+        const behaviors = settings.behaviors;
+        if (behaviors && Object.prototype.hasOwnProperty.call(behaviors, 'save_play_position')) {
+            return !!behaviors.save_play_position;
+        }
         return !!window.fluent_player?.resume_playback;
     }
 

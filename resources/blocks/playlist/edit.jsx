@@ -47,6 +47,7 @@ const DEFAULT_PLAYLIST_SETTINGS = {
         borderRadius: { value: 8, unit: 'px' },
         borderColor: '#e1e5e9',
         borderWidth: { value: 0, unit: 'px' },
+        separator: { type: 'line', size: { value: 1, unit: 'px' } },
         boxShadow: {
             enabled: false,
             horizontal: 0,
@@ -263,6 +264,12 @@ const getAppearanceStyles = (settings, getBrandColor, medias = []) => {
 
     // Border width - default to 0 if not set
     styles['--fp-playlist-border-width'] = formatCssValue(appearance.borderWidth || { value: 0, unit: 'px' });
+
+    // Separator between player and playlist: a line (border) or whitespace (gap).
+    const separator = appearance.separator || { type: 'line', size: { value: 1, unit: 'px' } };
+    const separatorSize = formatCssValue(separator.size || { value: 1, unit: 'px' });
+    styles['--fp-playlist-divider-width'] = separator.type === 'line' ? separatorSize : '0';
+    styles['--fp-playlist-divider-gap'] = separator.type === 'space' ? separatorSize : '0';
 
     // Box shadow - always set (defaults to 'none' if disabled)
     styles['--fp-playlist-box-shadow'] = getBoxShadowValue(appearance.boxShadow);

@@ -5,6 +5,11 @@ import BunnyCDN from './BunnyCDN';
 import BunnyStorage from './BunnyStorage';
 import MuxProvider from './MuxProvider';
 import MuxStream from './MuxStream';
+import GumletProvider from './GumletProvider';
+import GumletStream from './GumletStream';
+import { isProProviderUsable, shouldOfferProProvider } from './common/providerAvailability.js';
+import R2 from './R2';
+import CloudflareStream from './CloudflareStream';
 import { BackArrowSmallSVG, PlusIconSVG, FluentPlayerBlockIconSVG, LockIconSVG } from './common/Icons';
 import MediaSelectDropdown from './common/MediaSelectDropdown';
 import ProModal from './common/ProModal';
@@ -17,6 +22,10 @@ const getMediaSourceLabel = (mediaSource) => {
         case 'bunny_storage':return __('BunnyCDN Storage', 'fluent-player');
         case 'mux':          return __('Mux', 'fluent-player');
         case 'mux_stream':     return __('Mux Live', 'fluent-player');
+        case 'gumlet':       return __('Gumlet', 'fluent-player');
+        case 'gumlet_live':  return __('Gumlet Live', 'fluent-player');
+        case 'cloudflare_r2':return __('Cloudflare R2', 'fluent-player');
+        case 'cloudflare_stream': return __('Cloudflare Stream', 'fluent-player');
         case 'audio':        return __('Audio', 'fluent-player');
         default:             return __('Media', 'fluent-player');
     }
@@ -55,6 +64,10 @@ const MediaSelector = ({
     saveMediaToServer
 }) => {
     const hasPro = !!window.fluentPlayerBlockVars?.hasPro;
+    // Providers the running Pro build actually supports (has REST routes for).
+    // Guards the free-first merge window: newer free + older Pro must not offer
+    // providers whose endpoints don't exist yet.
+    const proProviders = window.fluentPlayerBlockVars?.pro_providers || [];
     const [proModalFeature, setProModalFeature] = useState(null);
     const handleProSource = (sourceKey, label) => {
         if (hasPro) {
@@ -186,6 +199,53 @@ const MediaSelector = ({
                         saveMediaToServer={saveMediaToServer}
                     />
                 )}
+
+                {isProProviderUsable('gumlet', hasPro, proProviders) && mediaSource === 'gumlet' && (
+                    <GumletProvider
+                        attributes={attributes}
+                        setAttributes={setAttributes}
+                        mediaData={mediaData}
+                        setMediaData={setMediaData}
+                        onCancel={() => setMediaSource(null)}
+                        setSelectedMedia={setSelectedMedia}
+                        defaultSettings={defaultSettings}
+                        saveMediaToServer={saveMediaToServer}
+                    />
+                )}
+
+                {hasPro && mediaSource === 'cloudflare_r2' && (
+                    <R2
+                        attributes={attributes}
+                        setAttributes={setAttributes}
+                        mediaData={mediaData}
+                        setMediaData={setMediaData}
+                        onCancel={() => setMediaSource(null)}
+                        setSelectedMedia={setSelectedMedia}
+                        defaultSettings={defaultSettings}
+                        saveMediaToServer={saveMediaToServer}
+                    />
+                )}
+
+                {isProProviderUsable('gumlet_live', hasPro, proProviders) && mediaSource === 'gumlet_live' && (
+                    <GumletStream
+                        attributes={attributes}
+                        setAttributes={setAttributes}
+                        mediaData={mediaData}
+                        setMediaData={setMediaData}
+                        onCancel={() => setMediaSource(null)}
+                        setSelectedMedia={setSelectedMedia}
+                        defaultSettings={defaultSettings}
+                        saveMediaToServer={saveMediaToServer}
+                    />
+                )}
+
+                {hasPro && mediaSource === 'cloudflare_stream' && (
+                    <CloudflareStream
+                        defaultSettings={defaultSettings}
+                        saveMediaToServer={saveMediaToServer}
+                        onCancel={() => setMediaSource(null)}
+                    />
+                )}
             </Placeholder>
         );
     }
@@ -253,6 +313,42 @@ const MediaSelector = ({
                         >
                             {!hasPro && <LockIconSVG size={14} />}
                             {__('Mux Live', 'fluent-player')}
+                        </Button>
+                        {shouldOfferProProvider('gumlet', hasPro, proProviders) && (
+                            <Button
+                                className="components-button fp-btn-secondary"
+                                style={!hasPro ? { opacity: 0.5 } : {}}
+                                onClick={() => handleProSource('gumlet', __('Gumlet', 'fluent-player'))}
+                            >
+                                {!hasPro && <LockIconSVG size={14} />}
+                                {__('Gumlet', 'fluent-player')}
+                            </Button>
+                        )}
+                        {shouldOfferProProvider('gumlet_live', hasPro, proProviders) && (
+                            <Button
+                                className="components-button fp-btn-secondary"
+                                style={!hasPro ? { opacity: 0.5 } : {}}
+                                onClick={() => handleProSource('gumlet_live', __('Gumlet Live', 'fluent-player'))}
+                            >
+                                {!hasPro && <LockIconSVG size={14} />}
+                                {__('Gumlet Live', 'fluent-player')}
+                            </Button>
+                        )}
+                        <Button
+                            className="components-button fp-btn-secondary"
+                            style={!hasPro ? { opacity: 0.5 } : {}}
+                            onClick={() => handleProSource('cloudflare_r2', __('Cloudflare R2', 'fluent-player'))}
+                        >
+                            {!hasPro && <LockIconSVG size={14} />}
+                            {__('Cloudflare R2', 'fluent-player')}
+                        </Button>
+                        <Button
+                            className="components-button fp-btn-secondary"
+                            style={!hasPro ? { opacity: 0.5 } : {}}
+                            onClick={() => handleProSource('cloudflare_stream', __('Cloudflare Stream', 'fluent-player'))}
+                        >
+                            {!hasPro && <LockIconSVG size={14} />}
+                            {__('Cloudflare Stream', 'fluent-player')}
                         </Button>
                         <Button
                             className="components-button fp-btn-secondary"

@@ -13,8 +13,7 @@ import CustomToggle from './common/CustomToggle.jsx';
 import CustomRangeSlider from './common/CustomRangeSlider.jsx';
 import ConditionSettings from './common/ConditionSettings.jsx';
 import ShortcodeInserter from './common/ShortcodeInserter.jsx';
-import { InfoIconSVG } from './common/Icons.jsx';
-import TooltipPortal from './common/TooltipPortal.jsx';
+import InfoIcon from './common/InfoIcon.jsx';
 import WPEditor from './common/WPEditor.jsx';
 import SettingsSectionCard from './common/SettingsSectionCard.jsx';
 import useAccordionState from './common/useAccordionState.js';
@@ -111,11 +110,10 @@ const PresetEditModalContent = ({
 	const emailHeadlineRef = useRef(null);
 	const emailButtonTextRef = useRef(null);
 	const emailBottomTextRef = useRef(null);
+	const emailConfirmationMessageRef = useRef(null);
 	const actionBarTextRef = useRef(null);
 	const actionBarButtonTextRef = useRef(null);
 	const actionBarButtonLinkRef = useRef(null);
-	const [showHeadlineHelp, setShowHeadlineHelp] = useState(false);
-	const headlineHelpIconRef = useRef(null);
 	const isAmbientPresetMode = useMemo(
 		() => isAmbientPresetSettings(presetData.settings || {}),
 		[
@@ -773,22 +771,10 @@ const PresetEditModalContent = ({
 															<div className="fp-label-with-inserter">
 																<div className="fp-label-with-inserter-content">
 																	<span>{__('Headline', 'fluent-player') + ' *'}</span>
-																	<button
-																		type="button"
-																		ref={headlineHelpIconRef}
-																		className="custom-range-control-info-icon"
-																		aria-label={__('Show help for headline', 'fluent-player')}
-																		onClick={() => setShowHeadlineHelp(!showHeadlineHelp)}
-																		onMouseEnter={() => setShowHeadlineHelp(true)}
-																		onMouseLeave={() => setShowHeadlineHelp(false)}
-																		onFocus={() => setShowHeadlineHelp(true)}
-																		onBlur={() => setShowHeadlineHelp(false)}
-																	>
-																		<InfoIconSVG />
-																	</button>
-																	<TooltipPortal isOpen={showHeadlineHelp} anchorRef={headlineHelpIconRef}>
-																		{__('Form headline text', 'fluent-player')}
-																	</TooltipPortal>
+																	<InfoIcon
+																		label={__('Show help for headline', 'fluent-player')}
+																		tooltip={__('Form headline text', 'fluent-player')}
+																	/>
 																</div>
 																<ShortcodeInserter
 																	inputRef={emailHeadlineRef}
@@ -838,6 +824,64 @@ const PresetEditModalContent = ({
 															/>
 														</div>
 													</BaseControl>
+
+													<BaseControl
+														label={
+															<div className="fp-label-with-inserter">
+																<div className="fp-label-with-inserter-content">
+																	<span>{__('Confirmation Message', 'fluent-player')}</span>
+																	<InfoIcon
+																		label={__('Show help for confirmation message', 'fluent-player')}
+																		tooltip={__("Shown after a successful submit. Leave empty to hide the form immediately with no message.", 'fluent-player')}
+																	/>
+																</div>
+																<ShortcodeInserter
+																	inputRef={emailConfirmationMessageRef}
+																	onInsert={(value) => updateSettings('email_capture', 'confirmation_message', value)}
+																/>
+															</div>
+														}
+													>
+														<textarea
+															ref={emailConfirmationMessageRef}
+															className="components-textarea-control__input"
+															value={presetData.settings?.email_capture?.confirmation_message || ''}
+															onChange={(e) => updateSettings('email_capture', 'confirmation_message', e.target.value)}
+															placeholder={__('e.g. Thanks! Please check your inbox to confirm.', 'fluent-player')}
+															rows={3}
+														/>
+													</BaseControl>
+
+													<BaseControl
+														label={
+															<div className="fp-label-with-inserter-content">
+																<span>{__('Auto-dismiss After (seconds)', 'fluent-player')}</span>
+																<InfoIcon
+																	label={__('Show help for auto-dismiss', 'fluent-player')}
+																	tooltip={__('Set to 0 to keep the message until the viewer dismisses it.', 'fluent-player')}
+																/>
+															</div>
+														}
+													>
+														<input
+															type="number"
+															min={0}
+															max={60}
+															className="components-text-control__input"
+															value={presetData.settings?.email_capture?.confirmation_countdown ?? 10}
+															onChange={(e) => updateSettings('email_capture', 'confirmation_countdown', e.target.value === '' ? '' : Math.min(60, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+														/>
+													</BaseControl>
+
+													<BaseControl label={__('Dismiss Button Text', 'fluent-player')}>
+														<input
+															type="text"
+															className="components-text-control__input"
+															value={presetData.settings?.email_capture?.confirmation_dismiss_text || ''}
+															onChange={(e) => updateSettings('email_capture', 'confirmation_dismiss_text', e.target.value)}
+															placeholder={__('Continue', 'fluent-player')}
+														/>
+													</BaseControl>
 												</SettingsSectionCard>
 
 												<SettingsSectionCard
@@ -866,6 +910,16 @@ const PresetEditModalContent = ({
 														switchPosition="left"
 														justify="start"
 													/>
+													{window.fluentPlayerBlockVars?.has_fluentcrm && (
+														<CustomToggle
+															label={__('Skip for Subscribed CRM Contacts', 'fluent-player')}
+															help={__('When enabled, logged-in users who are already subscribed FluentCRM contacts will not see this email capture.', 'fluent-player')}
+															checked={presetData.settings?.email_capture?.skip_if_crm_contact !== false}
+															onChange={(value) => updateSettings('email_capture', 'skip_if_crm_contact', value)}
+															switchPosition="left"
+															justify="start"
+														/>
+													)}
 												</SettingsSectionCard>
 
 												<SettingsSectionCard

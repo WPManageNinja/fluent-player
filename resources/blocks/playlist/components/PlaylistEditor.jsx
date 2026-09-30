@@ -625,6 +625,12 @@ const PlaylistEditor = ({
         style['--fp-playlist-border-width'] = borderWidth?.value != null
             ? `${borderWidth.value}${borderWidth.unit || 'px'}`
             : '0';
+        const separator = appearance.separator || { type: 'line', size: { value: 1, unit: 'px' } };
+        const separatorSize = separator.size?.value != null
+            ? `${separator.size.value}${separator.size.unit || 'px'}`
+            : '1px';
+        style['--fp-playlist-divider-width'] = separator.type === 'line' ? separatorSize : '0';
+        style['--fp-playlist-divider-gap'] = separator.type === 'space' ? separatorSize : '0';
         const borderRadius = appearance.borderRadius;
         if (borderRadius?.value != null) {
             style['--fp-playlist-border-radius'] = `${borderRadius.value}${borderRadius.unit || 'px'}`;
@@ -1053,7 +1059,7 @@ const PlaylistEditor = ({
     // Standard/Learning layout - match frontend structure
     return (
         <div className={getContainerClass()}>
-            <div className={`fluent-playlist-container ${getPositionClass()}${isAllAudio ? ' fp-playlist-audio' : ''}`}>
+            <div className={`fluent-playlist-container ${getPositionClass()} fp-separator-${playlistData?.settings?.appearance?.separator?.type || 'line'}${isAllAudio ? ' fp-playlist-audio' : ''}`}>
                 <div className={`playlist-player-container${isAllAudio ? ' fp-audio' : ''}`}>
                     {renderPlayerPreview()}
                 </div>

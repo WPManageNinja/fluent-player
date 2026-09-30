@@ -29,6 +29,121 @@
 @use './components/settings-section-card' as section-card;
 @use './blocks/bunny';
 
+@mixin fp-compact-media-card {
+	background: $bg-white-0;
+	border: 1px solid $stroke-soft-200;
+	border-radius: var(--fp-radius-12, 12px);
+	padding: 12px;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+	box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
+
+	// Left column: title on top, meta below.
+	.fp-card-body {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.fp-card-title-wrap {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+
+		.layer-icon {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 16px;
+			height: 16px;
+			flex-shrink: 0;
+
+			svg,
+			img {
+				width: 16px;
+				height: 16px;
+				display: block;
+				object-fit: contain;
+			}
+		}
+	}
+
+	.fp-card-title {
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 20px;
+		color: $text-strong-950;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		min-width: 0;
+	}
+
+	.fp-card-meta {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	.fp-card-meta-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 12px;
+		line-height: 16px;
+		color: $text-sub-600;
+
+		svg {
+			flex-shrink: 0;
+		}
+	}
+
+	// Right column: icon-only actions, top-aligned with the title.
+	.fp-card-actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		flex-shrink: 0;
+
+		.fp-icon-btn,
+		.fp-icon-btn.components-button {
+			padding: 2px 6px;
+			border-color: transparent;
+			background: transparent;
+			box-shadow: none;
+
+			svg {
+				width: 20px;
+				height: 20px;
+			}
+
+			&:hover {
+				background: $bg-weak-50;
+				border-color: $stroke-soft-200;
+			}
+
+			&:focus-visible {
+				border-color: $stroke-sub-300;
+			}
+		}
+
+		.fp-card-delete-btn:hover {
+			background: $state-error-light;
+			border-color: $state-error-light;
+
+			svg path {
+				fill: $state-error-base;
+			}
+		}
+	}
+}
+
 // Variables
 $color-border: #e0e0e0;
 $color-background-light: #f5f5f5;
@@ -578,7 +693,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 
 		&-search-icon {
 			position: absolute;
-			left: 8px;
+			right: 8px;
 			pointer-events: none;
 			flex-shrink: 0;
 		}
@@ -587,7 +702,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 			width: 100%;
 			border: 1px solid $stroke-soft-200;
 			border-radius: var(--fp-radius-8);
-			padding: 6px 8px 6px 30px;
+			padding: 6px 30px 6px 8px;
 			height: 36px;
 			font-size: 13px;
 			line-height: 1.4;
@@ -706,8 +821,62 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	.wp-block-fluent-player-media .fluent-player-vimeo-form,
 	.wp-block-fluent-player-media .fluent-player-audio-form,
 	.wp-block-fluent-player-media .fluent-player-media-options,
+	.fluent-player-cf-stream {
+		// Reuses the bunny source styling; these are the Stream-only extras.
+		&-progress {
+			position: relative;
+			height: 24px;
+			margin: 8px 0 12px;
+			background: #f0f0f1;
+			border-radius: 4px;
+			overflow: hidden;
+		}
+		&-progress-bar {
+			position: absolute;
+			inset: 0 auto 0 0;
+			height: 100%;
+			background: var(--wp-admin-theme-color, #3858e9);
+			transition: width .2s ease;
+		}
+		&-progress-label {
+			position: relative;
+			z-index: 1;
+			display: flex;
+			align-items: center;
+			height: 100%;
+			padding: 0 10px;
+			font-size: 12px;
+			color: #1e1e1e;
+		}
+		&-badge {
+			display: inline-block;
+			margin-left: 6px;
+			padding: 1px 6px;
+			font-size: 10px;
+			font-weight: 600;
+			border-radius: 3px;
+			background: #e7e7ff;
+			color: #3858e9;
+		}
+		.fluent-player-bunny-video-grid-item-thumbnail img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			border-radius: inherit;
+		}
+		// Stream has no folder breadcrumb, so keep the search right-aligned like R2.
+		.fluent-player-bunny-toolbar {
+			display: flex;
+			justify-content: flex-end;
+		}
+		.fluent-player-bunny-search {
+			width: 300px;
+			max-width: 100%;
+		}
+	}
+
 	.fluent-player-bunny {
-	
+
 		.components-base-control__field {
 			.components-base-control__label {
 				color: $text-strong-950;
@@ -907,87 +1076,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	}
 	
 	.chapter-card {
-		background: $bg-white-0;
-		border: 1px solid $stroke-soft-200;
-		border-radius: var(--fp-radius-12, 12px);
-		padding: 16px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
-	
-		.chapter-info {
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
-		}
-	
-		.chapter-title-row {
-			display: flex;
-			justify-content: space-between;
-			align-items: flex-start;
-			min-width: 0;
-	
-			.chapter-title {
-				font-size: 14px;
-				font-weight: 500;
-				line-height: 20px;
-				color: $text-strong-950;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-				min-width: 0;
-				flex: 1 1 0;
-				transform: translateY(-2px);
-			}
-	
-			.chapter-start-time {
-				display: flex;
-				align-items: center;
-				gap: 4px;
-				font-size: 12px;
-				line-height: 16px;
-				color: $text-sub-600;
-	
-				svg {
-					flex-shrink: 0;
-				}
-			}
-		}
-	
-		.chapter-duration-row {
-			display: flex;
-			align-items: center;
-			gap: 4px;
-			font-size: 12px;
-			line-height: 16px;
-			color: $text-sub-600;
-	
-			svg {
-				flex-shrink: 0;
-			}
-		}
-	
-		.chapter-actions {
-			display: flex;
-			gap: 8px;
-	
-			.chapter-edit-btn {
-				flex: 1;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 2px;
-				padding: 6px;
-				font-size: 14px;
-				font-weight: 500;
-	
-				svg {
-					width: 20px;
-					height: 20px;
-				}
-			}
-		}
+		@include fp-compact-media-card;
 	}
 	
 	/* Overlay Settings */
@@ -999,87 +1088,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	}
 	
 	.overlay-card {
-		background: $bg-white-0;
-		border: 1px solid $stroke-soft-200;
-		border-radius: var(--fp-radius-12, 12px);
-		padding: 16px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
-	
-		.overlay-info {
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
-		}
-	
-		.overlay-title-row {
-			display: flex;
-			justify-content: space-between;
-			align-items: flex-start;
-			min-width: 0;
-	
-			.overlay-title {
-				font-size: 14px;
-				font-weight: 500;
-				line-height: 20px;
-				color: $text-strong-950;
-				overflow: hidden;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-				min-width: 0;
-				flex: 1 1 0;
-				transform: translateY(-2px);
-			}
-	
-			.overlay-time {
-				display: flex;
-				align-items: center;
-				gap: 4px;
-				font-size: 12px;
-				line-height: 16px;
-				color: $text-sub-600;
-	
-				svg {
-					flex-shrink: 0;
-				}
-			}
-		}
-	
-		.overlay-position-row {
-			display: flex;
-			align-items: center;
-			gap: 4px;
-			font-size: 12px;
-			line-height: 16px;
-			color: $text-sub-600;
-	
-			svg {
-				flex-shrink: 0;
-			}
-		}
-	
-		.overlay-actions {
-			display: flex;
-			gap: 8px;
-	
-			.overlay-edit-btn {
-				flex: 1;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 2px;
-				padding: 6px;
-				font-size: 14px;
-				font-weight: 500;
-	
-				svg {
-					width: 20px;
-					height: 20px;
-				}
-			}
-		}
+		@include fp-compact-media-card;
 	}
 	
 	.fluent-player-overlay-modal {
@@ -1163,6 +1172,8 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		margin-bottom: 16px;
 	}
 	
+	// Shared Pro-upsell placeholder card (used by Tag/Subtitle/General/Overlay
+	// pro-gates + TimedContent). Distinct from the compact list-item card below.
 	.layer-card {
 		background: $bg-white-0;
 		border: 1px solid $stroke-soft-200;
@@ -1172,26 +1183,26 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		flex-direction: column;
 		gap: 14px;
 		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
-	
+
 		.layer-info {
 			display: flex;
 			flex-direction: column;
 			gap: 4px;
 		}
-	
+
 		.layer-title-row {
 			display: flex;
 			justify-content: space-between;
 			align-items: flex-start;
 			min-width: 0;
-	
+
 			.layer-type-info {
 				display: flex;
 				align-items: center;
 				gap: 8px;
 				min-width: 0;
 				flex: 1 1 0;
-	
+
 				.layer-icon {
 					display: flex;
 					align-items: center;
@@ -1200,7 +1211,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 					height: 16px;
 					flex-shrink: 0;
 					transform: translateY(-2px);
-	
+
 					svg,
 					img {
 						width: 16px;
@@ -1209,7 +1220,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 						object-fit: contain;
 					}
 				}
-	
+
 				.layer-title {
 					font-size: 14px;
 					font-weight: 500;
@@ -1222,7 +1233,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 					transform: translateY(-2px);
 				}
 			}
-	
+
 			.layer-time {
 				display: flex;
 				align-items: center;
@@ -1230,17 +1241,17 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 				font-size: 12px;
 				line-height: 16px;
 				color: $text-sub-600;
-	
+
 				svg {
 					flex-shrink: 0;
 				}
 			}
 		}
-	
+
 		.layer-actions {
 			display: flex;
 			gap: 8px;
-	
+
 			.layer-edit-btn {
 				flex: 1;
 				display: flex;
@@ -1250,13 +1261,18 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 				padding: 6px;
 				font-size: 14px;
 				font-weight: 500;
-	
+
 				svg {
 					width: 20px;
 					height: 20px;
 				}
 			}
 		}
+	}
+
+	// Compact list-item card — overlays/chapters/layers list rows.
+	.fp-compact-card {
+		@include fp-compact-media-card;
 	}
 	
 	/* Language Settings */
@@ -1286,53 +1302,15 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	}
 	
 	.language-card {
-		background: $bg-white-0;
-		border: 1px solid $stroke-soft-200;
-		border-radius: var(--fp-radius-12, 12px);
-		padding: 16px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
-	
-		.language-info {
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
-	
-			.language-name {
-				font-size: 14px;
-				font-weight: 500;
-				line-height: 20px;
-				color: $text-strong-950;
-			}
-	
-			.language-video {
-				font-size: 12px;
-				line-height: 16px;
-				color: $text-sub-600;
-			}
-		}
-	
-		.language-actions {
-			display: flex;
-			gap: 8px;
-	
-			.language-edit-btn {
-				flex: 1;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 2px;
-				padding: 6px;
-				font-size: 14px;
-				font-weight: 500;
-	
-				svg {
-					width: 20px;
-					height: 20px;
-				}
-			}
+		@include fp-compact-media-card;
+
+		// The mapped video name can be long — truncate rather than wrap.
+		.language-video {
+			display: block;
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 	}
 	
@@ -1607,54 +1585,7 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 	}
 	
 	.subtitle-card {
-		background: $bg-white-0;
-		border: 1px solid $stroke-soft-200;
-		border-radius: var(--fp-radius-12, 12px);
-		padding: 16px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		box-shadow: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
-	
-		.subtitle-info {
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
-	
-			.subtitle-name {
-				font-size: 14px;
-				font-weight: 500;
-				line-height: 20px;
-				color: $text-strong-950;
-			}
-	
-			.subtitle-filename {
-				font-size: 12px;
-				line-height: 16px;
-				color: $text-sub-600;
-			}
-		}
-	
-		.subtitle-actions {
-			display: flex;
-			gap: 8px;
-	
-			.subtitle-edit-btn {
-				flex: 1;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 2px;
-				padding: 6px;
-				font-size: 14px;
-				font-weight: 500;
-	
-				svg {
-					width: 20px;
-					height: 20px;
-				}
-			}
-		}
+		@include fp-compact-media-card;
 	}
 	
 	.subtitle-edit-form {
@@ -4608,20 +4539,8 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 			align-items: center;
 			gap: 6px;
 			width: 100%;
-			padding: 16px;
 			background: $bg-white-0;
-			border-radius: var(--fp-radius-12);
-			border: 1px solid $stroke-soft-200;
 			cursor: pointer;
-			transition: all 0.3s ease;
-
-			&:hover {
-				border: 1px solid $stroke-sub-300;
-			}
-
-			&.is-selected {
-				border: 1px solid $stroke-strong-950;
-			}
 
 			.custom-radio-option {
 				flex: 0 1 auto;
@@ -5017,6 +4936,11 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		margin-top: 8px;
 		margin-bottom: 0;
 	}
+}
+
+.fp-color-trigger + .components-base-control__help {
+	margin: 0;
+	padding: 0 12px 10px;
 }
 
 .fp-color-trigger {
@@ -5788,10 +5712,10 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 			display: block;
 
 			path {
-				fill: $text-sub-600;
+				fill: $icon-soft-400;
 			}
 		}
-	
+
 		&:hover {
 			opacity: 0.8;
 		}
@@ -6867,8 +6791,12 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 		top: auto;
 		left: auto;
 		max-width: 100%;
+		display: flex;
+		flex-direction: column;
 
 		.cta-text-content {
+			margin: auto;
+			width: 100%;
 			word-wrap: break-word;
 			overflow-wrap: break-word;
 
@@ -7909,10 +7837,35 @@ $fp-block-container: ".wp-block-fluent-player-media, .wp-block-fluent-player-pla
 			font-weight: 600;
 		}
 
+		&.has-overlap {
+			box-shadow: inset 2px 0 0 0 $state-warning-base;
+		}
+
+		.fp-tc-tab-warning {
+			display: inline-flex;
+			align-items: center;
+			color: $state-warning-base;
+		}
+
+		.fp-tc-tab-edit {
+			display: inline-flex;
+			align-items: center;
+			color: $text-sub-600;
+			cursor: pointer;
+			padding: 0 2px;
+			border: none;
+			background: none;
+			border-radius: var(--fp-radius-4);
+
+			&:hover {
+				color: $text-strong-950;
+				background: $bg-weak-50;
+			}
+		}
+
 		.fp-tc-tab-delete {
 			display: inline-flex;
-			font-size: 16px;
-			line-height: 1;
+			align-items: center;
 			color: $text-sub-600;
 			cursor: pointer;
 			padding: 0 2px;

@@ -4,18 +4,29 @@ const { useState, useRef } = wp.element;
 const { __ } = wp.i18n;
 import CustomRadioGroup from "../../media/components/common/CustomRadioGroup.jsx";
 
+const STATUS_META = {
+    publish: { label: __("Public", "fluent-player"), bg: "rgba(2, 184, 13, 0.1)", border: "rgba(2, 184, 13, 0.3)", color: "#02b80d" },
+    private: { label: __("Private", "fluent-player"), bg: "rgba(196, 144, 0, 0.1)", border: "rgba(196, 144, 0, 0.3)", color: "#c49000" },
+    draft: { label: __("Draft", "fluent-player"), bg: "rgba(113, 119, 132, 0.1)", border: "rgba(113, 119, 132, 0.3)", color: "#717784" },
+    pending: { label: __("Pending", "fluent-player"), bg: "rgba(53, 122, 232, 0.1)", border: "rgba(53, 122, 232, 0.3)", color: "#357ae8" },
+    future: { label: __("Scheduled", "fluent-player"), bg: "rgba(123, 97, 255, 0.1)", border: "rgba(123, 97, 255, 0.3)", color: "#7b61ff" },
+};
+
+// Only public/private are toggleable; other statuses show read-only.
+const SETTABLE = ["publish", "private"];
+
 const ToolbarApp = () => {
     const { editPost } = useDispatch("core/editor");
-    const mediaVisibility = useSelect((select) => {
+    const status = useSelect((select) => {
         const editorStore = select("core/editor");
-        const status = editorStore.getEditedPostAttribute("status");
-        return status === "publish";
+        return editorStore ? editorStore.getEditedPostAttribute("status") : "draft";
     }, []);
 
-    const onVisibilityChange = (newValue) => {
-        editPost({
-            status: newValue === "public" ? "publish" : "private"
-        });
+    const meta = STATUS_META[status] || STATUS_META.draft;
+    const selectedValue = SETTABLE.includes(status) ? status : "";
+
+    const onStatusChange = (newValue) => {
+        editPost({ status: newValue });
     };
 
     const [isVisible, setIsVisible] = useState(false);
@@ -60,6 +71,10 @@ const ToolbarApp = () => {
         }
     };
 
+    const helpText = status === "future"
+        ? __("Scheduled to publish automatically. Change the date in the editor's Publish panel.", "fluent-player")
+        : __("Private media is only visible to logged-in editors. Draft and Pending are hidden from the public.", "fluent-player");
+
     return (
         <div onKeyDown={ handleKeyDown }>
             <Button
@@ -72,14 +87,14 @@ const ToolbarApp = () => {
                     gap: 0,
                     alignItems: "center",
                     padding: "4px 12px",
-                    backgroundColor: mediaVisibility ? "rgba(2, 184, 13, 0.1)" : "rgba(196, 144, 0, 0.1)",
-                    borderColor: mediaVisibility ? "rgba(2, 184, 13, 0.3)" : "rgba(196, 144, 0, 0.3)",
-                    color: mediaVisibility ? "#02b80d" : "#c49000",
+                    backgroundColor: meta.bg,
+                    borderColor: meta.border,
+                    color: meta.color,
                     transition: "all 0.2s ease",
                     fontWeight: "400"
                 } }
             >
-                { mediaVisibility ? __("Public", "fluent-player") : __("Private", "fluent-player") }
+                { meta.label }
             </Button>
             { isVisible && (
                 <Popover
@@ -98,14 +113,30 @@ const ToolbarApp = () => {
                         <CustomRadioGroup
                             className="fp-radio-borderless"
                             label={ __("Visibility", "fluent-player") }
-                            selected={ mediaVisibility ? "public" : "private" }
+                            selected={ selectedValue }
                             options={ [
-                                { value: "public", label: __("Make it Public", "fluent-player") },
+                                { value: "publish", label: __("Make it Public", "fluent-player") },
                                 { value: "private", label: __("Make it Private", "fluent-player") }
                             ] }
-                            onChange={ onVisibilityChange }
-                            help={ __("Private media is only visible to logged-in editors.", "fluent-player") }
+                            onChange={ onStatusChange }
+                            help={ helpText }
                         />
+                        { selectedValue === "" && status !== "future" && (
+                            <p
+                                className="fp-status-current-note"
+                                style={ { margin: "8px 0 0", fontSize: "12px", color: meta.color } }
+                            >
+                                { __("Current status:", "fluent-player") } { meta.label }
+                            </p>
+                        ) }
+                        { status === "future" && (
+                            <p
+                                className="fp-status-scheduled-note"
+                                style={ { margin: "8px 0 0", fontSize: "12px", color: STATUS_META.future.color } }
+                            >
+                                { __("Currently Scheduled — selecting a status above will unschedule it.", "fluent-player") }
+                            </p>
+                        ) }
                     </div>
                 </Popover>
             ) }

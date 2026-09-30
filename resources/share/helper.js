@@ -1,5 +1,16 @@
 const {__} = wp.i18n;
 
+// URL param and body class are fallbacks: FC's no-conflict pipeline can drop the blockVars flag.
+let fcEditorDetected;
+export const isFluentCommunityEditor = () => {
+    if (fcEditorDetected === undefined) {
+        fcEditorDetected = !!window.fluentPlayerBlockVars?.isFluentCommunity
+            || /[?&]fluent_community_block_editor=/.test(window.location.search)
+            || !!document.body?.classList?.contains('fcom_custom_editor');
+    }
+    return fcEditorDetected;
+};
+
 export const secondsToTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);

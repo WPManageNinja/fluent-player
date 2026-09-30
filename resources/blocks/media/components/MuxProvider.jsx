@@ -140,7 +140,6 @@ const MuxProvider = ({
                 autoplay: false,
                 loadStrategy: 'visible',
                 aspectRatio: 'default',
-                save_play_position: false,
                 preset_slug: defaultPresetSlug,
                 mux: muxSettings,
                 streamType: 'on-demand',

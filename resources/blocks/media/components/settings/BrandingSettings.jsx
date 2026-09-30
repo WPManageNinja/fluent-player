@@ -1,13 +1,13 @@
 const {__} = wp.i18n;
-const {useState, useRef} = wp.element;
 const {Button, SelectControl, BaseControl, TextControl} = wp.components;
 const {MediaUpload, MediaUploadCheck} = wp.blockEditor || wp.editor;
 import CustomToggle from '../common/CustomToggle.jsx';
 import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
 import ColorPickerInput from '../common/ColorPickerInput.jsx';
 import PositionGrid from '../common/PositionGrid.jsx';
-import TooltipPortal from '../common/TooltipPortal.jsx';
-import {DeleteIconSVG, InfoIconSVG} from '../common/Icons.jsx';
+import InfoIcon from '../common/InfoIcon.jsx';
+import {DeleteIconSVG} from '../common/Icons.jsx';
+import {colorHasAlpha, DEFAULT_PLAY_BUTTON_BG} from '@share/color.js';
 
 /**
  * Branding settings component for media
@@ -22,6 +22,11 @@ const BrandingSettings = ({mediaData, setMediaData}) => {
     // Check if using custom branding
     const isUsingCustomBranding = mediaData.settings?.useCustomBranding || false;
 
+    const playBtnBgDefault = blockVars.defaultSettings?.playButtonBgColor || DEFAULT_PLAY_BUTTON_BG;
+    const playBtnBg = mediaData.settings?.playButtonBgColor;
+    const showBlurHint = mediaData.settings?.provider === 'youtube'
+        && colorHasAlpha(playBtnBg === undefined || playBtnBg === null ? playBtnBgDefault : playBtnBg);
+
     const toggleCustomBranding = (value) => {
         setMediaData({
             ...mediaData,
@@ -32,9 +37,6 @@ const BrandingSettings = ({mediaData, setMediaData}) => {
             }
         });
     };
-
-    const [showColorHelp, setShowColorHelp] = useState(false);
-    const colorHelpIconRef = useRef(null);
 
     const handleColorChange = (value) => {
         setMediaData({
@@ -169,18 +171,7 @@ const BrandingSettings = ({mediaData, setMediaData}) => {
                         <div className="fp-color-section">
                             <label className="fp-color-section-label components-base-control__label custom-range-control-label">
                                 {__('Color', 'fluent-player')}
-                                <span
-                                    ref={colorHelpIconRef}
-                                    className="custom-range-control-info-icon"
-                                    onClick={() => setShowColorHelp(!showColorHelp)}
-                                    onMouseEnter={() => setShowColorHelp(true)}
-                                    onMouseLeave={() => setShowColorHelp(false)}
-                                >
-                                    <InfoIconSVG />
-                                </span>
-                                <TooltipPortal isOpen={showColorHelp} anchorRef={colorHelpIconRef}>
-                                    {__('Background color of the player controls. Use transparency for blur effect.', 'fluent-player')}
-                                </TooltipPortal>
+                                <InfoIcon tooltip={__('Background color of the player controls. Use transparency for blur effect.', 'fluent-player')} />
                             </label>
                             <div className="fp-color-trigger-list">
                                 <ColorPickerInput
@@ -198,6 +189,28 @@ const BrandingSettings = ({mediaData, setMediaData}) => {
                                     onChange={(value) => setMediaData({
                                         ...mediaData,
                                         settings: {...mediaData.settings, controlBarColor: value}
+                                    })}
+                                    enableAlpha={true}
+                                />
+                                <ColorPickerInput
+                                    asTrigger
+                                    label={__('Play Button Color', 'fluent-player')}
+                                    value={mediaData.settings?.playButtonColor || ''}
+                                    defaultValue={blockVars.defaultSettings?.playButtonColor || '#DD1F13'}
+                                    onChange={(value) => setMediaData({
+                                        ...mediaData,
+                                        settings: {...mediaData.settings, playButtonColor: value}
+                                    })}
+                                />
+                                <ColorPickerInput
+                                    asTrigger
+                                    label={__('Play Button Background Color', 'fluent-player')}
+                                    help={showBlurHint ? __('Transparency in this color appears as a frosted blur while paused', 'fluent-player') : undefined}
+                                    value={mediaData.settings?.playButtonBgColor || ''}
+                                    defaultValue={playBtnBgDefault}
+                                    onChange={(value) => setMediaData({
+                                        ...mediaData,
+                                        settings: {...mediaData.settings, playButtonBgColor: value}
                                     })}
                                     enableAlpha={true}
                                 />

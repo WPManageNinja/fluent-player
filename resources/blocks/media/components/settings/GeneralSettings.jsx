@@ -23,6 +23,19 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
         setMediaData({...mediaData, settings: newSettings});
     };
 
+    const removeMediaSetting = (key) => {
+        const newSettings = {...mediaData.settings};
+        delete newSettings[key];
+        setMediaData({...mediaData, settings: newSettings});
+    };
+
+    const globalResumeDefault = (() => {
+        const v = window.fluentPlayerBlockVars?.defaultSettings?.resume_playback;
+        return v === true || v === 'true' || v === 1 || v === '1';
+    })();
+    const hasOwnResume = Object.prototype.hasOwnProperty.call(mediaData.settings || {}, 'save_play_position');
+    const effectiveResume = hasOwnResume ? !!mediaData.settings.save_play_position : globalResumeDefault;
+
     const onSelectPoster = (media) => {
         updateMediaSettings('posterSrc', media.url);
     };
@@ -109,8 +122,8 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
 
                 {mediaData.settings?.viewType === 'audio' && (
                     <CustomToggle
-                        label={__('Show Poster Image', 'fluent-player')}
-                        help={__('Display album art / poster image on the audio player', 'fluent-player')}
+                        label={__('Show Thumbnail', 'fluent-player')}
+                        help={__('Display album art / thumbnail on the audio player', 'fluent-player')}
                         checked={mediaData.settings.show_poster !== false}
                         onChange={(value) => updateMediaSettings('show_poster', value)}
                     />
@@ -119,7 +132,7 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
                 {(!mediaData.settings?.viewType || mediaData.settings?.viewType !== 'audio' || mediaData.settings?.show_poster !== false) && (
                 <div className="fluent-player-form-row">
                     <label className="components-base-control__label">
-                        {__('Poster Image', 'fluent-player')}
+                        {__('Thumbnail', 'fluent-player')}
                     </label>
                     <MediaUploadCheck>
                         <MediaUpload
@@ -139,7 +152,7 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
                                             <Button
                                                 className="fp-delete-button fp-icon-btn fp-icon-btn--danger"
                                                 onClick={removePoster}
-                                                aria-label={__('Remove poster', 'fluent-player')}
+                                                aria-label={__('Remove thumbnail', 'fluent-player')}
                                             >
                                                 <DeleteIconSVG />
                                             </Button>
@@ -202,12 +215,25 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
                 />
 
                 {hasPro ? (
-                    <CustomToggle
-                        label={__('Remember Playback Position', 'fluent-player')}
-                        help={__('Allow viewers to resume playback from where they left off', 'fluent-player')}
-                        checked={!!mediaData.settings.save_play_position}
-                        onChange={(value) => updateMediaSettings('save_play_position', value)}
-                    />
+                    <>
+                        <CustomToggle
+                            label={__('Remember Playback Position', 'fluent-player')}
+                            help={hasOwnResume
+                                ? __('Overriding the site default for this media.', 'fluent-player')
+                                : __('Following the site default. Toggle to override for this media.', 'fluent-player')}
+                            checked={effectiveResume}
+                            onChange={(value) => updateMediaSettings('save_play_position', value)}
+                        />
+                        {hasOwnResume && (
+                            <Button
+                                variant="link"
+                                className="fp-reset-to-default"
+                                onClick={() => removeMediaSetting('save_play_position')}
+                            >
+                                {__('Reset to default', 'fluent-player')}
+                            </Button>
+                        )}
+                    </>
                 ) : (
                     <div className="components-base-control">
                         <div
@@ -250,7 +276,7 @@ const GeneralSettings = ({attributes, setAttributes, mediaData, setMediaData}) =
                         label={__('Video End Screen', 'fluent-player')}
                         value={mediaData.settings.video_end_option || 'default'}
                         options={[
-                            {label: __('Show Poster Image', 'fluent-player'), value: 'default'},
+                            {label: __('Show Thumbnail', 'fluent-player'), value: 'default'},
                             {label: __('Loop Video', 'fluent-player'), value: 'loop'},
                         ]}
                         onChange={(value) => updateMediaSettings('video_end_option', value)}

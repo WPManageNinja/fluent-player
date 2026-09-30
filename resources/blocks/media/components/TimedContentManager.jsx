@@ -3,11 +3,12 @@ import ShortcodeInserter from './common/ShortcodeInserter.jsx';
 import { TimedContentContext } from './TimedContentContext.js';
 import ProModal from './common/ProModal.jsx';
 import { LockIconSVG } from './common/Icons.jsx';
+import { findOverlappingSectionIds } from '../utils/timedContentOverlap.js';
 
 const { __ } = wp.i18n;
 const { useState, useEffect, useCallback, useMemo, useRef } = wp.element;
 const { useSelect, useDispatch } = wp.data;
-const { Button, Popover } = wp.components;
+const { Button, Popover, Tooltip } = wp.components;
 
 const EMPTY_ARRAY = [];
 
@@ -87,6 +88,31 @@ const PlusIcon = () => (
         strokeWidth="2.5" strokeLinecap="round">
         <line x1="12" y1="5" x2="12" y2="19" />
         <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+);
+
+const PencilIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+);
+
+const WarningIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M10.29 3.86 1.82 18a1 1 0 0 0 .86 1.5h16.64a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+);
+
+const XIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
 );
 
@@ -195,6 +221,12 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
     const [startInput, setStartInput] = useState('00:00');
     const [endInput, setEndInput] = useState('00:30');
     const [addBtnEl, setAddBtnEl] = useState(null);
+    const [editAnchorEl, setEditAnchorEl] = useState(null);
+
+    // Sections whose range is overlapped by an EARLIER sibling. The frontend
+    // resolves overlaps by list order (first match wins), so the later chip is
+    // the one that loses priority — flag it so the editor surfaces the conflict.
+    const overlappingIds = useMemo(() => findOverlappingSectionIds(childBlocks), [childBlocks]);
 
     // Sync activeClientId when child blocks change
     useEffect(() => {
@@ -287,6 +319,7 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
         setStartInput(secondsToMMSS(start));
         setEndInput(secondsToMMSS(end));
         setEditingTabClientId(null);
+        setEditAnchorEl(null);
         setIsAddingNew(true);
     }, [childBlocks, safeDuration]);
 
@@ -296,7 +329,7 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
         setStartInput(secondsToMMSS(block.attributes.startTime));
         setEndInput(secondsToMMSS(block.attributes.endTime));
         setEditingTabClientId(block.clientId);
-        setAddBtnEl(anchorEl);
+        setEditAnchorEl(anchorEl);
         setIsAddingNew(true);
     }, []);
 
@@ -353,13 +386,14 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
                             {childBlocks.map((block) => {
                                 const { startTime, endTime } = block.attributes;
                                 const isActive = block.clientId === effectiveActiveId;
+                                const hasOverlap = overlappingIds.has(block.clientId);
                                 return (
                                     <div
                                         key={block.clientId}
                                         role="tab"
                                         tabIndex={0}
                                         aria-selected={isActive}
-                                        className={`fp-tc-tab${isActive ? ' is-active' : ''}`}
+                                        className={`fp-tc-tab${isActive ? ' is-active' : ''}${hasOverlap ? ' has-overlap' : ''}`}
                                         onClick={() => {
                                             setActiveClientId(block.clientId);
                                             selectBlock(block.clientId);
@@ -371,11 +405,34 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
                                                 openEditPopover(block, e.currentTarget);
                                             }
                                         }}
-                                        title={__('Double-click or press Enter to edit time', 'fluent-player')}
                                     >
+                                        {hasOverlap && (
+                                            <Tooltip
+                                                text={__('This section overlaps an earlier one. While both are active the earlier section is shown.', 'fluent-player')}
+                                                delay={150}
+                                            >
+                                                <span
+                                                    className="fp-tc-tab-warning"
+                                                    role="img"
+                                                    aria-label={__('Overlaps an earlier section', 'fluent-player')}
+                                                >
+                                                    <WarningIcon />
+                                                </span>
+                                            </Tooltip>
+                                        )}
                                         <span className="fp-tc-tab-time">
                                             {secondsToMMSS(startTime)} → {secondsToMMSS(endTime)}
                                         </span>
+                                        <button
+                                            className="fp-tc-tab-edit"
+                                            aria-label={__('Edit time range', 'fluent-player')}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditPopover(block, e.currentTarget);
+                                            }}
+                                        >
+                                            <PencilIcon />
+                                        </button>
                                         <button
                                             className="fp-tc-tab-delete"
                                             aria-label={__('Remove section', 'fluent-player')}
@@ -384,7 +441,7 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
                                                 handleDeleteTab(block.clientId);
                                             }}
                                         >
-                                            ×
+                                            <XIcon />
                                         </button>
                                     </div>
                                 );
@@ -417,9 +474,9 @@ const TimedContentManager = ({ clientId, duration, timedContentStyle, children }
                 )}
 
                 {/* Popover for add/edit */}
-                {isAddingNew && addBtnEl && (
+                {isAddingNew && (editingTabClientId ? editAnchorEl : addBtnEl) && (
                     <Popover
-                        anchor={addBtnEl}
+                        anchor={editingTabClientId ? editAnchorEl : addBtnEl}
                         placement="bottom-end"
                         onClose={() => { setIsAddingNew(false); setEditingTabClientId(null); }}
                         className="fp-tc-add-popover"

@@ -11,7 +11,8 @@ import { shouldWarnMissingGoogleAnalytics, waitForGoogleAnalytics } from './util
 import { disablePlayerControlsDOM, enablePlayerControlsDOM } from './utils/playerControls';
 import { applyYouTubePrivacyMode, privacyEnhanceYouTubePoster } from './utils/videoSrc.js';
 import ContextMenuController from './utils/contextMenuController.js';
-import { submitEmailCapture } from './utils/emailCapture.js';
+import { submitEmailCapture, showEmailConfirmation } from './utils/emailCapture.js';
+import { getPlayerModalGate } from './utils/playerKeyboardGate.js';
 import { throttle } from './utils/throttle.js';
 import {
     buildPlaybackTargetUrl,
@@ -294,6 +295,14 @@ class FluentPlayer {
 
         // Keyboard detection
         this.addEventListener(this.player, 'keydown', (e) => {
+            // A blocking layer (form/email/CTA) owns the keyboard — don't show
+            // player bezels or react to keys typed into an overlay field.
+            const t = e.target;
+            const typing = t && (t.isContentEditable || (t.matches && t.matches('input, textarea, select, [contenteditable="true"]')));
+            const blockingLayer = this.player.keyDisabled || this.player.querySelector?.('.layer-active.blocking-layer');
+            if (typing || blockingLayer) {
+                return;
+            }
             if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
                 showBezel('forward');
             } else if (e.key === 'ArrowLeft' || e.key === 'j' || e.key === 'J') {
@@ -381,6 +390,14 @@ class FluentPlayer {
         if (this.beforeUnloadHandler) {
             window.removeEventListener('beforeunload', this.beforeUnloadHandler);
             this.beforeUnloadHandler = null;
+        }
+
+        // Release the shared modal gate (its document-level focusout listener
+        // would otherwise leak if an overlay was still open).
+        try {
+            getPlayerModalGate(this.player)?.teardown();
+        } catch (error) {
+            console.error('FluentPlayer: modal gate teardown failed:', error);
         }
 
         // Clear all timeouts
@@ -1239,15 +1256,17 @@ class FluentPlayer {
     // ------------------------------------------------------------------------
 
     isSavePlayPositionEnabled() {
-        const hasPro = !!window.fluent_player?.has_pro;
-        const perPreset = !!this.settings?.behaviors?.save_play_position;
-        const global = !!window.fluent_player?.resume_playback;
-        if (!hasPro) return false;
-        if (Object.prototype.hasOwnProperty.call(this.settings || {}, 'save_play_position')) {
-            return !!this.settings?.save_play_position;
+        if (!window.fluent_player?.has_pro) return false;
+        if (this.isLiveStream()) return false;
+        const settings = this.settings || {};
+        if (Object.prototype.hasOwnProperty.call(settings, 'save_play_position')) {
+            return !!settings.save_play_position;
         }
-        if (perPreset) return true;
-        return global;
+        const behaviors = settings.behaviors;
+        if (behaviors && Object.prototype.hasOwnProperty.call(behaviors, 'save_play_position')) {
+            return !!behaviors.save_play_position;
+        }
+        return !!window.fluent_player?.resume_playback;
     }
 
     clearPendingResumeWork() {
@@ -1669,12 +1688,10 @@ class FluentPlayer {
         this.player?.pause();
         this.emailCaptureShown = true;
 
-        const emailInput = emailCaptureEl.querySelector('.email-capture-input');
-        if (emailInput) {
-            setTimeout(() => emailInput.focus({ preventScroll: true }), CONSTANTS.UI_DELAY_MS);
-        }
-
-        this.player?.classList.add('overlay-active');
+        // The overlay owns the keyboard: disable the player's Vidstack shortcuts,
+        // move focus into the form, and hold it there while open. Shared with the
+        // blocking layers managed by LayersManager — last one out re-enables.
+        getPlayerModalGate(this.player)?.open(emailCaptureEl, { focusDelay: CONSTANTS.UI_DELAY_MS });
 
         this.disablePlayerControls();
     }
@@ -1683,7 +1700,7 @@ class FluentPlayer {
     hideEmailCapture(emailCaptureEl) {
         emailCaptureEl.classList.remove('active');
         this.emailCaptureShown = true;
-        this.player.classList.remove('overlay-active');
+        getPlayerModalGate(this.player)?.close(emailCaptureEl);
 
         this.enablePlayerControls();
 
@@ -1769,7 +1786,7 @@ class FluentPlayer {
     }
 
     // Validate an email address
-    async handleEmailSubmit(emailInput, emailCaptureEl, data = null) {
+    async handleEmailSubmit(emailInput, emailCaptureEl, data = null, onComplete = null) {
         return submitEmailCapture({
             emailInput,
             messageTarget: emailCaptureEl,
@@ -1785,8 +1802,17 @@ class FluentPlayer {
             }),
             onSuccess: () => {
                 this.emailSubmitted = true;
-                this.hideEmailCapture(emailCaptureEl);
-                this.layersManager?.checkLayersAtTime(this.player?.currentTime || 0);
+                showEmailConfirmation({
+                    overlayEl: emailCaptureEl,
+                    onDismiss: () => {
+                        if (onComplete) {
+                            onComplete();
+                            return;
+                        }
+                        this.hideEmailCapture(emailCaptureEl);
+                        this.layersManager?.checkLayersAtTime(this.player?.currentTime || 0);
+                    },
+                });
             },
         });
     }
@@ -1850,7 +1876,7 @@ class FluentPlayer {
 
 
     async setupAnalyticsTracking() {
-        if (!this.mediaId || !this.isAnalyticsEnabled()) {
+        if (!this.mediaId || !this.isAnalyticsEnabled() || this.isExternallyTracked()) {
             return;
         }
 
@@ -1863,6 +1889,14 @@ class FluentPlayer {
     // check if analytics is enabled
     isAnalyticsEnabled() {
         return !!window.fluent_player?.analytics?.enabled && window.fluent_player?.has_pro;
+    }
+
+    // This media's watch analytics are recorded by another flow (e.g. an LMS
+    // progression tracker), so skip the beacon to avoid double-counting the
+    // same watch as two visits.
+    isExternallyTracked() {
+        const ids = window.fluent_player?.external_tracked_media;
+        return Array.isArray(ids) && ids.some((id) => String(id) === String(this.mediaId));
     }
 
     /**

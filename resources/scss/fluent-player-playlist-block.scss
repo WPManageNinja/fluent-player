@@ -231,6 +231,7 @@
                 max-width: var(--fp-playlist-sidebar-width, 40%);
                 background: var(--fp-playlist-background-color, $bg-white-0);
                 border-radius: 0 var(--fp-playlist-border-radius, var(--fp-radius-8)) var(--fp-playlist-border-radius, var(--fp-radius-8)) 0;
+                border-left: var(--fp-playlist-divider-width, 0) solid var(--fp-playlist-border-color, #e1e5e9);
                 position: relative;
                 overflow: hidden;
 
@@ -302,6 +303,7 @@
                 background: var(--fp-playlist-background-color, $bg-white-0);
                 border-radius: var(--fp-playlist-border-radius, var(--fp-radius-8)) 0 0 var(--fp-playlist-border-radius, var(--fp-radius-8));
                 border: none;
+                border-right: var(--fp-playlist-divider-width, 0) solid var(--fp-playlist-border-color, #e1e5e9);
                 position: relative;
                 overflow: hidden;
 
@@ -378,6 +380,7 @@
                 background: var(--fp-playlist-background-color, $bg-white-0);
                 border-radius: var(--fp-playlist-border-radius, var(--fp-radius-8)) var(--fp-playlist-border-radius, var(--fp-radius-8)) 0 0;
                 border: none;
+                border-bottom: var(--fp-playlist-divider-width, 0) solid var(--fp-playlist-border-color, #e1e5e9);
                 overflow-y: auto;
             }
         }
@@ -412,6 +415,7 @@
                 background: var(--fp-playlist-background-color, $bg-white-0);
                 border-radius: 0 0 var(--fp-playlist-border-radius, var(--fp-radius-8)) var(--fp-playlist-border-radius, var(--fp-radius-8));
                 border: none;
+                border-top: var(--fp-playlist-divider-width, 0) solid var(--fp-playlist-border-color, #e1e5e9);
                 overflow-y: auto;
             }
         }
@@ -422,6 +426,7 @@
             .playlist-sidebar {
                 width: 100%;
                 position: relative;
+                flex: 0 0 320px;
             }
 
             .fluent-playlist-add-section {
@@ -442,6 +447,24 @@
             border-top: none;
             border-bottom: 1px solid $border-color;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        // Separator = Space: two independent cards. Nested here so it overrides
+        // the per-position split-radius rules above on source order.
+        .fluent-playlist-container.fp-separator-space {
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+
+            .fluent-playlist-player-container,
+            .playlist-player-container,
+            .fluent-playlist-sidebar,
+            .playlist-sidebar {
+                border: var(--fp-playlist-border-width, 0) solid var(--fp-playlist-border-color, #e1e5e9);
+                box-shadow: var(--fp-playlist-box-shadow, none);
+                border-radius: var(--fp-playlist-border-radius, var(--fp-radius-8));
+                overflow: hidden;
+            }
         }
     }
 
@@ -483,6 +506,7 @@
     box-shadow: var(--fp-playlist-box-shadow, none);
     padding: 0;
     margin: 8px;
+    gap: var(--fp-playlist-divider-gap, 0);
 
     &.playlist-left {
         flex-direction: row-reverse;
@@ -490,12 +514,10 @@
 
     &.playlist-top {
         flex-direction: column-reverse;
-        min-height: 600px;
     }
 
     &.playlist-bottom {
         flex-direction: column;
-        min-height: 600px;
     }
 
     &.playlist-top .playlist-sidebar,

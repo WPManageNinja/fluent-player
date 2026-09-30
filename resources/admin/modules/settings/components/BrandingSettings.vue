@@ -1,6 +1,6 @@
 <script setup>
 import {watch, computed, getCurrentInstance} from 'vue';
-import {ElInput, ElButton} from 'element-plus';
+import {colorHasAlpha, DEFAULT_PLAY_BUTTON_BG} from '@share/color.js';
 
 const instance = getCurrentInstance();
 const $t = instance?.proxy?.$t || ((str) => str);
@@ -11,6 +11,13 @@ const props = defineProps({
         type: Object,
         required: true
     }
+});
+
+const hasPro = computed(() => !!window.fluentFrameworkAdmin?.has_pro);
+
+const showPoweredByModel = computed({
+    get: () => hasPro.value ? !!props.settings.show_powered_by : true,
+    set: (val) => { if (hasPro.value) props.settings.show_powered_by = val; },
 });
 
 // Logo position handling
@@ -53,6 +60,8 @@ const openMediaLibrary = () => {
     mediaFrame.open();
 };
 
+const playBtnBgHasAlpha = computed(() => colorHasAlpha(props.settings.play_button_bg_color ?? DEFAULT_PLAY_BUTTON_BG));
+
 // Computed for preview
 const previewStyle = computed(() => {
     return {
@@ -88,6 +97,25 @@ const previewStyle = computed(() => {
                                 <ElInput v-model="settings.control_bar_color" placeholder="#171717A6" class="color-input" aria-label="Control Bar Color hex value" />
                             </div>
                             <p class="fplayer-form-group-help-text">{{ $t('Background color for the player control bar (leave empty for default)') }}</p>
+                        </div>
+
+                        <div class="fplayer-form-group">
+                            <label class="fplayer-form-group-label">{{ $t('Play Button Color') }}</label>
+                            <div class="color-picker-wrapper">
+                                <ElColorPicker v-model="settings.play_button_color" @active-change="(val) => settings.play_button_color = val" />
+                                <ElInput v-model="settings.play_button_color" placeholder="#DD1F13" class="color-input" :aria-label="$t('Play Button Color hex value')" />
+                            </div>
+                            <p class="fplayer-form-group-help-text">{{ $t('Color of the large center play button icon') }}</p>
+                        </div>
+
+                        <div class="fplayer-form-group">
+                            <label class="fplayer-form-group-label">{{ $t('Play Button Background Color') }}</label>
+                            <div class="color-picker-wrapper">
+                                <ElColorPicker v-model="settings.play_button_bg_color" show-alpha color-format="hex" @active-change="(val) => settings.play_button_bg_color = val" />
+                                <ElInput v-model="settings.play_button_bg_color" placeholder="#FFFFFFD9" class="color-input" :aria-label="$t('Play Button Background Color hex value')" />
+                            </div>
+                            <p class="fplayer-form-group-help-text">{{ $t('Background color of the large center play button') }}</p>
+                            <p v-if="playBtnBgHasAlpha" class="fplayer-form-group-help-text">{{ $t('For YouTube media, transparency in this color appears as a frosted blur while paused') }}</p>
                         </div>
                     </div>
                 </div>
@@ -159,6 +187,29 @@ const previewStyle = computed(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- Powered By Branding Card -->
+                <div class="fplayer-card">
+                    <div class="fplayer-card-header">
+                        <h3>{{ $t('Powered by FluentPlayer') }}</h3>
+                    </div>
+                    <div class="fplayer-card-body">
+                        <div class="fplayer-form-group fplayer-powered-by-row">
+                            <div>
+                                <label class="fplayer-form-group-label">{{ $t("Show 'Powered by FluentPlayer' branding") }}</label>
+                                <p class="fplayer-form-group-help-text">
+                                    {{ hasPro ? $t('Show or hide the FluentPlayer credit in the player menu and capture emails.') : $t('Upgrade to Pro to remove the FluentPlayer branding.') }}
+                                </p>
+                            </div>
+                            <el-switch
+                                class="fplayer-switch"
+                                v-model="showPoweredByModel"
+                                :disabled="!hasPro"
+                                :aria-label="$t(&quot;Show 'Powered by FluentPlayer' branding&quot;)"
+                            />
+                        </div>
+                    </div>
+                </div>
             </el-col>
 
             <!-- Right Column: Preview & Tips -->
@@ -206,10 +257,10 @@ const previewStyle = computed(() => {
 						            </div>
 					            </div>
 
-					            <!-- Big Play Button - white/glass background with brand-colored icon -->
-					            <el-button class="fplayer-branding-preview-video-play-button" style="background-color: rgba(255, 255, 255, 0.85);" aria-hidden="true" tabindex="-1">
+					            <!-- Big Play Button - background + icon driven by dedicated play-button colours -->
+					            <el-button class="fplayer-branding-preview-video-play-button" :style="{ backgroundColor: settings.play_button_bg_color || '#FFFFFFD9' }" aria-hidden="true" tabindex="-1">
 						            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32">
-							            <path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" :fill="settings.brand_color || '#DD1F13'"/>
+							            <path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" :fill="settings.play_button_color || '#DD1F13'"/>
 						            </svg>
 					            </el-button>
 
@@ -248,6 +299,14 @@ const previewStyle = computed(() => {
 </template>
 
 <style scoped lang="scss">
+.fplayer-powered-by-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 0;
+}
+
 .color-picker-wrapper {
     display: flex;
     align-items: center;

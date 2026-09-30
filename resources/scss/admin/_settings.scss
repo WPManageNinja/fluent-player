@@ -298,14 +298,16 @@
     }
 
     &-settings-content-body {
-        padding: 24px 104px;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
         height: calc(100vh - 56px - 120px);
         background: var(--fp-bg-page);
         flex: 1;
         overflow-y: auto;
 
         @media (max-width: 768px) {
-            padding: 24px 32px;
+            padding: 20px;
         }
     }
 
@@ -373,13 +375,13 @@
         }
 
         &-settings-content-body {
-            padding: 24px 32px;
+            padding: 20px;
         }
     }
 
     @media (max-width: 782px) {
         &-settings-content-body {
-            padding: 24px 16px;
+            padding: 20px;
         }
     }
 
@@ -433,6 +435,9 @@
             }
         }
         &.#{$slug}-email-capture-settings-page {
+            .export-format-options {
+                margin-bottom: 16px;
+            }
             .el-radio-button {
                 .el-radio-button__inner {
                     color: var(--fp-text-primary);

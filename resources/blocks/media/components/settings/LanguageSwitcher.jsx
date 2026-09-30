@@ -205,6 +205,7 @@ const LanguageSwitcher = ({ mediaData, setMediaData }) => {
 													</Button>
 													<Button
 														className="fp-icon-btn fp-icon-btn--secondary"
+														aria-label={__('Cancel', 'fluent-player')}
 														onClick={cancelEdit}>
 														<CloseIconSVG />
 													</Button>
@@ -212,19 +213,24 @@ const LanguageSwitcher = ({ mediaData, setMediaData }) => {
 											</div>
 										) : (
 											<div className="language-card">
-												<div className="language-info">
-													<span className="language-name">{getLanguageName(mapping.language)}</span>
-													<span className="language-video">{getMediaName(mapping.media_id)}</span>
+												<div className="fp-card-body">
+													<div className="language-title-wrap fp-card-title-wrap">
+														<span className="language-name fp-card-title">{getLanguageName(mapping.language)}</span>
+													</div>
+													<div className="language-meta fp-card-meta">
+														<span className="language-video fp-card-meta-item">{getMediaName(mapping.media_id)}</span>
+													</div>
 												</div>
-												<div className="language-actions">
+												<div className="language-actions fp-card-actions">
 													<Button
-														className="fp-btn-secondary language-edit-btn"
+														className="fp-icon-btn language-edit-btn fp-card-edit-btn"
+														aria-label={__('Edit language', 'fluent-player')}
 														onClick={() => openEditMapping(index)}>
 														<EditIconSVG />
-														{__('Edit', 'fluent-player')}
 													</Button>
 													<Button
-														className="fp-icon-btn fp-icon-btn--secondary"
+														className="fp-icon-btn language-delete-btn fp-card-delete-btn"
+														aria-label={__('Delete language', 'fluent-player')}
 														onClick={(e) => showDeleteConfirm(e, index)}>
 														<DeleteIconSVG />
 													</Button>
@@ -269,6 +275,7 @@ const LanguageSwitcher = ({ mediaData, setMediaData }) => {
 									</Button>
 									<Button
 										className="fp-icon-btn fp-icon-btn--secondary"
+										aria-label={__('Cancel', 'fluent-player')}
 										onClick={cancelAddNew}>
 										<CloseIconSVG />
 									</Button>

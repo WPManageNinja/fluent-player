@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue';
+import { normalizeSettingBoolean } from './normalizeBoolean.js';
 
 export function useProviderConfig(providerKey) {
 	const settings = ref({});
@@ -10,13 +11,25 @@ export function useProviderConfig(providerKey) {
 
 	const currentConfig = computed(() => fieldsMap.value[providerKey.value] || {});
 
+	// 'enabled' is always a checkbox; other fields are checkboxes per their config.
+	function isCheckboxField(fieldKey) {
+		if (fieldKey === 'enabled') return true;
+		const fieldConfig = fieldsMap.value[providerKey.value];
+		const fields = (fieldConfig && (fieldConfig.fields || fieldConfig.settings_fields)) || [];
+		const f = fields.find(x => x.key === fieldKey);
+		return !!f && (f.type === 'checkbox' || f.type === 'switch');
+	}
+
 	function getValue(fieldKey) {
 		const integration = settings.value[providerKey.value];
-		if (!integration) return fieldKey === 'enabled' ? false : '';
+		if (!integration) return isCheckboxField(fieldKey) ? false : '';
 		const value = integration[fieldKey];
-		if (fieldKey === 'enabled') {
-			if (typeof value === 'boolean') return value;
-			return value === 'yes';
+		// Checkbox/switch values arrive as boolean OR 'true'/'yes'/'1' strings
+		// after REST sanitization — coerce so el-switch reflects the saved state.
+		// normalizeSettingBoolean also handles the 'true' string (dev's inline
+		// coercion missed it — the original toggle bug).
+		if (isCheckboxField(fieldKey)) {
+			return normalizeSettingBoolean(value);
 		}
 		return value;
 	}
@@ -28,12 +41,10 @@ export function useProviderConfig(providerKey) {
 		}
 		const fieldConfig = fieldsMap.value[key];
 		const isStandard = fieldConfig && fieldConfig.source === 'standard';
-		if (fieldKey === 'enabled') {
-			if (isStandard) {
-				settings.value[key][fieldKey] = value ? 'yes' : 'no';
-			} else {
-				settings.value[key][fieldKey] = !!value;
-			}
+		// Store checkboxes as 'yes'/'no' for standard integrations (matches the
+		// PHP side), boolean otherwise.
+		if (isCheckboxField(fieldKey)) {
+			settings.value[key][fieldKey] = isStandard ? (value ? 'yes' : 'no') : !!value;
 		} else {
 			settings.value[key][fieldKey] = value;
 		}

@@ -109,15 +109,65 @@ body {
         }
     }
     &-switch {
+        // Element Plus base el-switch CSS isn't bundled in the admin, so the pill +
+        // knob geometry is defined here; without this every switch renders as a bare blob.
         &.el-switch {
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+            height: 20px;
+            line-height: 20px;
+            vertical-align: middle;
+
+            .el-switch__input {
+                position: absolute;
+                width: 0;
+                height: 0;
+                opacity: 0;
+                margin: 0;
+            }
+
             .el-switch__core {
-                border-color: #E1E4EA;
+                position: relative;
+                display: inline-block;
+                box-sizing: border-box;
+                min-width: 40px;
+                height: 20px;
+                border: 1px solid #E1E4EA;
+                border-radius: 10px;
                 background-color: #E1E4EA;
+                cursor: pointer;
+                transition: border-color .3s, background-color .3s;
+
+                .el-switch__action {
+                    position: absolute;
+                    top: 50%;
+                    left: 2px;
+                    transform: translateY(-50%);
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background-color: #FFFFFF;
+                    transition: left .3s;
+                }
             }
 
             &.is-checked .el-switch__core {
                 border-color: #222530;
                 background-color: #222530;
+
+                .el-switch__action {
+                    left: calc(100% - 18px);
+                }
+            }
+
+            &.is-disabled {
+                opacity: 0.6;
+
+                .el-switch__core,
+                .el-switch__input {
+                    cursor: not-allowed;
+                }
             }
 
             &:focus-visible,

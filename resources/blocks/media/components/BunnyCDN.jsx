@@ -341,7 +341,6 @@ const BunnyCDN = ({
                     autoplay: false,
                     loadStrategy: 'visible',
                     aspectRatio: 'default',
-                    save_play_position: false,
                     preset_slug: defaultPresetSlug || defaultSettings?.defaultPresetSlug || 'course',
                     bunny: {
                         library_id: selectedLibrary,

@@ -512,22 +512,26 @@ const SubtitleSettings = ({ mediaData, setMediaData, setPersistedMediaData = nul
 											</div>
 										) : (
 											<div className="subtitle-card">
-												<div className="subtitle-info">
-													<span className="subtitle-name">{subtitle.label || getLanguageLabel(subtitle.language)}</span>
-													<span className="subtitle-filename">{subtitle.filename}</span>
+												<div className="fp-card-body">
+													<div className="subtitle-title-wrap fp-card-title-wrap">
+														<span className="subtitle-name fp-card-title">{subtitle.label || getLanguageLabel(subtitle.language)}</span>
+													</div>
+													<div className="subtitle-meta fp-card-meta">
+														<span className="subtitle-filename fp-card-meta-item">{subtitle.filename}</span>
+													</div>
 												</div>
-												<div className="subtitle-actions">
+												<div className="subtitle-actions fp-card-actions">
 													<Button
-														className="fp-btn-secondary subtitle-edit-btn"
+														className="fp-icon-btn subtitle-edit-btn fp-card-edit-btn"
+														aria-label={__('Edit subtitle', 'fluent-player')}
 														onClick={() => openEdit(subtitle, index)}>
 														<EditIconSVG />
-														{__('Edit', 'fluent-player')}
 													</Button>
 													<Button
-														className="fp-icon-btn fp-icon-btn--secondary"
+														className="fp-icon-btn subtitle-delete-btn fp-card-delete-btn"
 														aria-label={__('Delete subtitle', 'fluent-player')}
-													onClick={(event) => showDeleteConfirm(event, subtitle.id)}
-													disabled={!hasSubtitleDeleteApi || !subtitle?.id}>
+														onClick={(event) => showDeleteConfirm(event, subtitle.id)}
+														disabled={!hasSubtitleDeleteApi || !subtitle?.id}>
 														<DeleteIconSVG />
 													</Button>
 												</div>

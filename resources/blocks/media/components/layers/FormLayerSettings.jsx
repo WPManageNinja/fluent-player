@@ -3,10 +3,9 @@ const { SelectControl } = wp.components;
 const {useState, useEffect, useImperativeHandle, forwardRef, useRef} = wp.element;
 const {apiFetch} = wp;
 
-import { InfoIconSVG } from '../common/Icons.jsx';
 import { formatTime } from '@share/helper.js';
 import TimeInput from '../common/TimeInput.jsx';
-import TooltipPortal from '../common/TooltipPortal.jsx';
+import InfoIcon from '../common/InfoIcon.jsx';
 import ColorPickerInput from '../common/ColorPickerInput.jsx';
 import CustomToggle from '../common/CustomToggle.jsx';
 import CustomRangeSlider from '../common/CustomRangeSlider.jsx';
@@ -50,10 +49,6 @@ const FormLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, reques
     const hasPro = !!window?.fluentPlayerBlockVars?.hasPro;
     const initialTime = editingLayer?.displayTime || currentTime || 0;
     const initialTimeParts = secondsToTime(initialTime);
-    const [showPositionHelp, setShowPositionHelp] = useState(false);
-    const [showTextColorHelp, setShowTextColorHelp] = useState(false);
-    const positionHelpIconRef = useRef(null);
-    const textColorHelpIconRef = useRef(null);
     const titleInputRef = useRef(null);
     
     const [settings, setSettings] = useState({
@@ -63,7 +58,6 @@ const FormLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, reques
         title: '',
         bg_color: '',
         text_color: '',
-        custom_css: '',
         width: 90,
         height: 90,
         position: 'center',
@@ -382,22 +376,10 @@ const FormLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, reques
                         <div className="custom-range-control-header">
                             <label className="custom-range-control-label">
                                 {__('Position', 'fluent-player')}
-                                <button
-                                    type="button"
-                                    ref={positionHelpIconRef}
-                                    className="custom-range-control-info-icon"
-                                    aria-label={__('Show help for position', 'fluent-player')}
-                                    onClick={() => setShowPositionHelp(!showPositionHelp)}
-                                    onMouseEnter={() => setShowPositionHelp(true)}
-                                    onMouseLeave={() => setShowPositionHelp(false)}
-                                    onFocus={() => setShowPositionHelp(true)}
-                                    onBlur={() => setShowPositionHelp(false)}
-                                >
-                                    <InfoIconSVG />
-                                </button>
-                                <TooltipPortal isOpen={showPositionHelp} anchorRef={positionHelpIconRef}>
-                                    {__('Position of the form container within the player', 'fluent-player')}
-                                </TooltipPortal>
+                                <InfoIcon
+                                    label={__('Show help for position', 'fluent-player')}
+                                    tooltip={__('Position of the form container within the player', 'fluent-player')}
+                                />
                             </label>
                         </div>
                         <div className="custom-range-control-content">
@@ -439,22 +421,10 @@ const FormLayerSettings = forwardRef(({ onAdd, onCancel, setPreviewLayer, reques
                     <div className="fp-color-section">
                         <label className="fp-color-section-label components-base-control__label">
                             {__('Color', 'fluent-player')}
-                            <button
-                                type="button"
-                                ref={textColorHelpIconRef}
-                                className="custom-range-control-info-icon"
-                                aria-label={__('Show help for color', 'fluent-player')}
-                                onClick={() => setShowTextColorHelp(!showTextColorHelp)}
-                                onMouseEnter={() => setShowTextColorHelp(true)}
-                                onMouseLeave={() => setShowTextColorHelp(false)}
-                                onFocus={() => setShowTextColorHelp(true)}
-                                onBlur={() => setShowTextColorHelp(false)}
-                            >
-                                <InfoIconSVG />
-                            </button>
-                            <TooltipPortal isOpen={showTextColorHelp} anchorRef={textColorHelpIconRef}>
-                                {__('Text color applies to the title and form labels that don\'t have their own color set.', 'fluent-player')}
-                            </TooltipPortal>
+                            <InfoIcon
+                                label={__('Show help for color', 'fluent-player')}
+                                tooltip={__('Text color applies to the title and form labels that don\'t have their own color set.', 'fluent-player')}
+                            />
                         </label>
                         <div className="fp-color-trigger-list fp-color-trigger-list--side-by-side">
                             <ColorPickerInput

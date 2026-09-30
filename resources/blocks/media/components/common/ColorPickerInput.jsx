@@ -1,4 +1,5 @@
 const { useState, useRef } = wp.element;
+const { useInstanceId } = wp.compose;
 const { useSelect } = wp.data;
 const { BaseControl, ColorPalette, Popover } = wp.components;
 
@@ -14,6 +15,7 @@ const ColorPickerInput = ({
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const triggerRef = useRef(null);
+	const helpId = useInstanceId(ColorPickerInput, 'fp-color-picker-help');
 
 	const colors = useSelect((select) => {
 		try {
@@ -43,6 +45,7 @@ const ColorPickerInput = ({
 					onClick={() => setIsOpen(true)}
 					aria-expanded={isOpen}
 					aria-haspopup="true"
+					aria-describedby={help ? helpId : undefined}
 				>
 					<span
 						className={`fp-color-trigger-swatch ${!hasValue ? 'is-empty' : ''}`}
@@ -50,6 +53,7 @@ const ColorPickerInput = ({
 					/>
 					<span className="fp-color-trigger-label">{label}</span>
 				</button>
+				{help && <p id={helpId} className="components-base-control__help">{help}</p>}
 				{isOpen && (
 					<Popover
 						anchor={triggerRef.current}

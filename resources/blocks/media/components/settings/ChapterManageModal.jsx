@@ -4,6 +4,7 @@ const { useState, useEffect, useRef } = wp.element;
 
 import FluentPlayer from '../player/FluentPlayer.jsx';
 import VideoTimeSlider from '../common/VideoTimeSlider.jsx';
+import { seekPreviewPlayer } from '../common/seekPreviewPlayer.js';
 import TimeInput from '../common/TimeInput.jsx';
 import { BackArrowSVG } from '../common/Icons.jsx';
 import useNotification from '../common/useNotification.js';
@@ -127,9 +128,7 @@ const ChapterManageModal = ({
 
 	const handleTimeChange = (time) => {
 		setCurrentTime(Math.floor(time));
-		if (playerRef && playerRef.currentTime !== undefined) {
-			playerRef.currentTime = time;
-		}
+		seekPreviewPlayer(playerRef, time);
 		const totalSeconds = Math.floor(time);
 		const hours = Math.floor(totalSeconds / 3600);
 		const mins = Math.floor((totalSeconds % 3600) / 60);
@@ -284,6 +283,7 @@ const ChapterManageModal = ({
 							<FluentPlayer
 								mediaData={mediaSettings}
 								isPresetPreview={true}
+								revealOnSeek={true}
 							/>
 						</div>
 

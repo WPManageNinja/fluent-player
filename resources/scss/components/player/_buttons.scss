@@ -79,6 +79,40 @@ media-play-button {
   }
 }
 
+/* YouTube draws its own centred play button on pause/ended, inside the
+   cross-origin iframe — no YouTube param or Vidstack option removes it (verified:
+   controls=0 only hides the control bar; modestbranding/autohide are deprecated
+   no-ops), so the only fix is to cover it. Our centre play button normally hides
+   with the controls on hover-out, which re-exposes YouTube's button. For YouTube,
+   keep our centre play button visible whenever paused/ended, with a blurred
+   backdrop so YouTube's button behind it is not recognizable.
+   Scoped to .fluent-player-container (present on both the frontend and the
+   block-editor preview) so the editor shows the same treatment. */
+.fluent-player-container media-player[data-paused]:has(iframe.vds-youtube) .fp-media-controls-center,
+.fluent-player-container media-player[data-ended]:has(iframe.vds-youtube) .fp-media-controls-center {
+  opacity: 1 !important;
+}
+
+.fluent-player-container media-player[data-paused]:has(iframe.vds-youtube) .fp-media-controls-center media-play-button,
+.fluent-player-container media-player[data-ended]:has(iframe.vds-youtube) .fp-media-controls-center media-play-button {
+  position: relative;
+  z-index: 11;
+  background: var(--media-play-bg, #FFFFFF);
+  /* the color setting may carry alpha — blur keeps YouTube's button unreadable */
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+/* undo the bottom-bar :last-child -4px offset so the cover centres over YouTube's button */
+.fluent-player-container media-player:has(iframe.vds-youtube) .fp-media-controls-center media-controls-group {
+  margin-top: 0;
+}
+
+/* cancel .fp-media-button's 2.5px control-bar spacing so the cover centres over YouTube's button */
+.fluent-player-container media-player:has(iframe.vds-youtube) .fp-media-controls-center media-play-button {
+  margin-right: 0;
+}
+
 media-pip-button {
   &[data-active] .fp-media-pip-enter-icon,
   &:not([data-active]) .fp-media-pip-exit-icon {
