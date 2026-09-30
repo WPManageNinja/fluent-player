@@ -3,6 +3,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 import vue from '@vitejs/plugin-vue'
 import liveReload from 'vite-plugin-live-reload'
 import path from "path"
+import fs from "fs"
 import AutoImport from 'unplugin-auto-import/vite'
 import { vite as vidstack } from 'vidstack/plugins'
 import Components from 'unplugin-vue-components/vite'
@@ -23,6 +24,46 @@ const muxGlobalGuard = () => ({
         return guarded === code ? null : { code: guarded, map: null };
     },
 });
+
+function getPluginVersion() {
+    const pluginFile = fs.readFileSync(path.resolve(__dirname, 'fluent-player.php'), 'utf8')
+    const match = pluginFile.match(/define\(\s*['"]FLUENT_PLAYER_VERSION['"]\s*,\s*['"]([^'"]+)['"]\s*\)/)
+    if (!match) {
+        throw new Error('FLUENT_PLAYER_VERSION not found in fluent-player.php — chunk cache-busting would silently break')
+    }
+    return match[1]
+}
+const PLUGIN_VERSION = getPluginVersion()
+
+// Must run at writeBundle: earlier hooks break Vite's pure-CSS-chunk import
+// stripping and empty the preload deps arrays (blank/unstyled admin pages).
+const chunkCacheBustPlugin = () => ({
+    name: 'fluent-player-chunk-cache-bust',
+    writeBundle(options, bundle) {
+        const outDir = options.dir || path.dirname(options.file)
+        const emitted = new Set(Object.keys(bundle))
+        const ver = '?ver=' + PLUGIN_VERSION
+        for (const [fileName, output] of Object.entries(bundle)) {
+            if (output.type !== 'chunk') continue
+            const filePath = path.resolve(outDir, fileName)
+            const code = fs.readFileSync(filePath, 'utf8')
+            let out = code.replace(
+                /((?<![.\w])(?:from|import)\s*\(?\s*["'])\.\/([^"']+\.js)(["'])/g,
+                (match, pre, target, post) =>
+                    emitted.has(target) ? pre + './' + target + ver + post : match
+            )
+            // .css deps stay unversioned — the preload helper type-detects stylesheets via endsWith(".css")
+            out = out.replace(
+                /\[((?:"(?:\.\/)?[^"]+\.(?:js|css)",?)+)\](?=,import\.meta\.url\))/g,
+                (match, entries) => '[' + entries.replace(
+                    /"(\.\/)?([^"]+\.js)"/g,
+                    (m, prefix, dep) => emitted.has(dep) ? '"' + (prefix || '') + dep + ver + '"' : m
+                ) + ']'
+            )
+            if (out !== code) fs.writeFileSync(filePath, out)
+        }
+    }
+})
 
 // Define all possible inputs
 const allInputs = {
@@ -166,6 +207,7 @@ export default defineConfig(({ mode, command }) => {
             rollupOptions: {
                 input: inputs,
                 external: isGutenbergBuild ? ['underscore', 'react', 'react-dom', 'react/jsx-runtime'] : [],
+                plugins: [chunkCacheBustPlugin()],
                 output: {
                     chunkFileNames: 'fp-[name].js',
                     entryFileNames: '[name].js',

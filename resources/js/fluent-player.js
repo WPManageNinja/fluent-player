@@ -2,6 +2,7 @@ import FluentPlayer from './FluentPlayer';
 import './BrowserStorage';
 import { delegateMediaUnlockForms } from './utils/unlock';
 import { computeBrandingVars } from './utils/brandingVars.js';
+import { readInlineConfig, observeInjectedPlayers } from './utils/inlineConfig.js';
 
 // Live branding preview: a page-builder settings panel emits `fluentPlayer/settingsPreview`
 // when a colour changes. Apply the vars inline on every element carrying that media id (inline
@@ -17,7 +18,11 @@ function applyLivePreviewBranding(detail) {
     });
 }
 
-// Track initialized players — Map<playerId, { instance, container, varName }>
+// Track initialized players — Map<containerEl, { instance, varName }>.
+// Keyed by the element, not by its id: a page-builder canvas renders each element in
+// its own server request, so the PHP instance counter restarts and two placements of
+// one media both serialize as `fluent_player_<id>_1`. Keying by that string made the
+// second container look already-initialized and left it unhydrated.
 const playerInstances = new Map();
 
 // A throwing destroy (e.g. already-disposed Vidstack element) must never abort
@@ -38,14 +43,17 @@ function destroyInstance(entry) {
  * Also cleans up the window[varName] global that was set during init.
  */
 function cleanupOrphanedInstances() {
-    for (const [playerId, entry] of playerInstances) {
-        if (!document.body.contains(entry.container)) {
+    for (const [container, entry] of playerInstances) {
+        if (!document.body.contains(container)) {
             destroyInstance(entry);
-            // Remove the window global that was cached during init
-            if (entry.varName && window[entry.varName]) {
+            playerInstances.delete(container);
+
+            // Only drop the global once no surviving container still shares that name —
+            // duplicate placements of one media reuse the same varName.
+            const stillUsed = [...playerInstances.values()].some((e) => e.varName === entry.varName);
+            if (entry.varName && !stillUsed && window[entry.varName]) {
                 try { delete window[entry.varName]; } catch (_) { /* non-configurable */ }
             }
-            playerInstances.delete(playerId);
         }
     }
 }
@@ -56,8 +64,7 @@ async function initFluentPlayers(force = false) {
 
     // Initialize single players
     for (const container of document.querySelectorAll('.fluent-player')) {
-        const playerId = container.id;
-        if (playerId && playerInstances.has(playerId) && !force) {
+        if (playerInstances.has(container) && !force) {
             continue;
         }
 
@@ -67,6 +74,12 @@ async function initFluentPlayers(force = false) {
 
         if (playerData && (playerData.nodeType || !playerData.media)) {
             playerData = null;
+        }
+
+        // Canvas-injected markup carries its config inline: neither the enqueued
+        // localization nor an executable <script> survives an innerHTML insertion.
+        if (!playerData) {
+            playerData = readInlineConfig(varName, container.ownerDocument);
         }
 
         // If still no data, try to fetch via AJAX for fluent community portal
@@ -91,15 +104,11 @@ async function initFluentPlayers(force = false) {
         }
 
         // Destroy previous instance before creating a new one
-        if (playerId && playerInstances.has(playerId)) {
-            destroyInstance(playerInstances.get(playerId));
+        if (playerInstances.has(container)) {
+            destroyInstance(playerInstances.get(container));
         }
 
-        const instance = new FluentPlayer(container, playerData);
-
-        if (playerId) {
-            playerInstances.set(playerId, { instance, container, varName });
-        }
+        playerInstances.set(container, { instance: new FluentPlayer(container, playerData), varName });
     }
 }
 
@@ -107,26 +116,25 @@ async function initFluentPlayer(event) {
     const container = event.detail.container;
     if (!container) return;
 
-    const playerId = container.id;
-
     let playerData = event.detail.playerData;
     const varName = container.dataset.var_name;
     if (!playerData) {
         if (!varName) return;
         playerData = window[varName];
+        // window[varName] resolves to the id-named DOM node when no config was
+        // localized, so reject anything that isn't a real config object.
+        if (playerData && (playerData.nodeType || !playerData.media)) {
+            playerData = readInlineConfig(varName, container.ownerDocument);
+        }
     }
     if (!playerData) return;
 
     // Destroy previous instance before creating a new one
-    if (playerId && playerInstances.has(playerId)) {
-        destroyInstance(playerInstances.get(playerId));
+    if (playerInstances.has(container)) {
+        destroyInstance(playerInstances.get(container));
     }
 
-    const instance = new FluentPlayer(container, playerData);
-
-    if (playerId) {
-        playerInstances.set(playerId, { instance, container, varName });
-    }
+    playerInstances.set(container, { instance: new FluentPlayer(container, playerData), varName });
 }
 
 async function fetchMediaData(container) {
@@ -207,6 +215,9 @@ if (!window.__fluentPlayerBootstrapped) {
     document.addEventListener('FComMediaReady', function(_) {
         initFluentPlayers(true);
     });
+
+    // Players injected after load; initFluentPlayers() skips containers it already owns.
+    observeInjectedPlayers(() => initFluentPlayers());
     document.addEventListener('InitSingleFluentPlayer', initFluentPlayer);
     document.addEventListener('fluentPlayer/settingsPreview', (e) => applyLivePreviewBranding(e.detail));
 

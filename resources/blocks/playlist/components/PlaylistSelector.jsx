@@ -42,6 +42,21 @@ const PlaylistSelector = ({
         setIsSelectingTags(true);
     };
 
+    // Buttons under the tag field: pressing one blurs the field, closing the suggestion popup
+    // and reflowing the panel, so the button moves before mouseup and no click is dispatched.
+    // Commit on mousedown (default prevented, so focus stays put); onClick serves keyboard
+    // activation only, which `detail === 0` identifies, so the action can't run twice.
+    const activate = (fn) => ({
+        onMouseDown: (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            fn();
+        },
+        onClick: (e) => {
+            if (e.detail === 0) fn();
+        },
+    });
+
     const handleCreateTags = () => {
         if (draftTags.length) {
             onCreateTagPlaylist(draftTags);
@@ -106,14 +121,14 @@ const PlaylistSelector = ({
                     <div className="fluent-player-form-actions">
                         <Button
                             className="components-button fp-btn-secondary"
-                            onClick={() => { setIsSelectingTags(false); setDraftTags(tags); }}
+                            {...activate(() => { setIsSelectingTags(false); setDraftTags(tags); })}
                         >
                             <BackArrowSmallSVG />
                             {__('Back', 'fluent-player')}
                         </Button>
                         <Button
                             className="components-button fp-btn-primary"
-                            onClick={handleCreateTags}
+                            {...activate(handleCreateTags)}
                             disabled={!draftTags.length}
                         >
                             <PlusIconSVG />

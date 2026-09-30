@@ -904,16 +904,14 @@ const EditInner = (props) => {
         mediaDataRef.current = mediaState.data;
     }, [mediaState.data]);
 
-    // Auto-save when player reports duration for YouTube (oEmbed doesn't include it)
+    // Auto-save when player reports duration for YouTube (oEmbed doesn't include it).
+    // duration <= 1 is the relay's onReady placeholder — saving it would burn the one-shot ref.
     const ytDurationSavedRef = useRef(false);
     useEffect(() => {
         const duration = mediaState.data?.settings?.duration;
-        if (!ytDurationSavedRef.current && mediaState.data?.settings.provider === 'youtube' && duration > 0 && mediaState.data?.ID) {
-            const settings = mediaState.data?.settings;
-            if (settings?.provider === 'youtube' && settings?.duration > 0 && mediaState.data?.ID) {
-                ytDurationSavedRef.current = true;
-                saveMediaToServerRef.current?.(null, { silent: true });
-            }
+        if (!ytDurationSavedRef.current && mediaState.data?.settings.provider === 'youtube' && duration > 1 && mediaState.data?.ID) {
+            ytDurationSavedRef.current = true;
+            saveMediaToServerRef.current?.(null, { silent: true });
         }
     }, [mediaState.data?.settings?.duration]);
 

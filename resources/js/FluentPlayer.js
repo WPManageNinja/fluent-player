@@ -10,7 +10,7 @@ import { getAjaxUrl as _getAjaxUrl, getNonce as _getNonce } from './utils/ajax';
 import { evaluateConditionals, hasEnabledConditionals, mergeConditionStates } from './utils/conditions.js';
 import { shouldWarnMissingGoogleAnalytics, waitForGoogleAnalytics } from './utils/googleAnalytics.js';
 import { disablePlayerControlsDOM, enablePlayerControlsDOM } from './utils/playerControls';
-import { applyYouTubePrivacyMode, privacyEnhanceYouTubePoster } from './utils/videoSrc.js';
+import { applyYouTubePrivacyMode, applyEmbedReferrerPolicy, privacyEnhanceYouTubePoster, applyBunnyStreamToken, appendBunnyTokenQuery } from './utils/videoSrc.js';
 import ContextMenuController from './utils/contextMenuController.js';
 import { submitEmailCapture, showEmailConfirmation } from './utils/emailCapture.js';
 import { getPlayerModalGate } from './utils/playerKeyboardGate.js';
@@ -379,6 +379,12 @@ class FluentPlayer {
      */
     destroy() {
         this._isDestroyed = true;
+
+        // SPA navigation (e.g. FC portal route change) tears down without beforeunload —
+        // this is the last chance to persist the position.
+        if (this.mediaId && this.isSavePlayPositionEnabled() && this.player?.currentTime !== this.player?.duration) {
+            this.saveCurrentPosition(true);
+        }
 
         // Destroy analytics tracker (flushes pending data, removes its listeners)
         if (this.analyticsTracker) {
@@ -758,21 +764,10 @@ class FluentPlayer {
                 const { default: HLS } = await import('hls.js');
                 provider.library = HLS;
 
-                // BunnyCDN Stream: forward player token to all HLS segment requests
-                // The same token (SHA256_HEX of ApiKey + videoId + expires) works for all
-                // paths under the video GUID — playlist, sub-playlists, .ts segments
-                const bunnyTokenQuery = this.settings?.bunny_token_query;
-                if (bunnyTokenQuery) {
-                    provider.config = {
-                        ...provider.config,
-                        xhrSetup: (xhr, url) => {
-                            if (url && !url.includes('token=')) {
-                                const sep = url.includes('?') ? '&' : '?';
-                                xhr.open('GET', url + sep + bunnyTokenQuery, true);
-                            }
-                        }
-                    };
-                }
+                // BunnyCDN Stream: forward the CDN directory token to every HLS request.
+                // One token scoped to /{guid}/ covers the playlist, sub-playlists and
+                // .ts segments, which are relative urls and inherit no query string.
+                applyBunnyStreamToken(provider, this.settings?.bunny_token_query);
 
                 // Mux DRM support (Widevine + FairPlay)
                 const drmToken = this.settings?.drm?.mux_token;
@@ -833,6 +828,7 @@ class FluentPlayer {
             // applyYouTubeParams must run synchronously before any await, so it patches
             // buildParams before Vidstack's reactive effects call setup() → #watchSrc()
             applyYouTubeParams(provider);
+            applyEmbedReferrerPolicy(provider);
             await applyHLS(provider);
         };
 
@@ -854,6 +850,7 @@ class FluentPlayer {
         if (currentProvider) {
             applyHLS(currentProvider);
             applyYouTubeParams(currentProvider);
+            applyEmbedReferrerPolicy(currentProvider);
         }
 
     }
@@ -879,12 +876,9 @@ class FluentPlayer {
 
             if (isBunnyHLS && mp4Fallback && !this.mp4FallbackAttempted) {
                 this.mp4FallbackAttempted = true;
-                let mp4Url = mp4Fallback;
-                const bunnyQ = this.settings?.bunny_token_query;
-                if (bunnyQ && typeof mp4Url === 'string' && mp4Url.indexOf('token=') === -1) {
-                    const sep = mp4Url.includes('?') ? '&' : '?';
-                    mp4Url = mp4Url + sep + bunnyQ;
-                }
+                // Re-sign rather than skip on an existing token: the stored mp4 url may
+                // carry a stale token from selection time, which would 403.
+                const mp4Url = appendBunnyTokenQuery(mp4Fallback, this.settings?.bunny_token_query);
                 this.player.src = mp4Url;
                 this.player.startLoading();
                 return;
@@ -1461,7 +1455,7 @@ class FluentPlayer {
         const pauseHandler = () => {
             // Save position when user pauses the video
             if (this.player?.currentTime !== this.player?.duration) {
-                this.saveCurrentPosition();
+                this.saveCurrentPosition(true);
             }
         };
 
@@ -1482,13 +1476,21 @@ class FluentPlayer {
         // Save position when user leaves the page
         this.beforeUnloadHandler = () => {
             if (this.player?.currentTime !== this.player?.duration) {
-                this.saveCurrentPosition();
+                this.saveCurrentPosition(true);
+            }
+        };
+
+        // Tab switch / mobile background — beforeunload does not fire in an SPA portal
+        const visibilityHandler = () => {
+            if (document.visibilityState === 'hidden' && this.player?.currentTime !== this.player?.duration) {
+                this.saveCurrentPosition(true);
             }
         };
 
         this.addEventListener(this.player, 'pause', pauseHandler);
         this.addEventListener(this.player, 'ended', endedHandler);
         this.addEventListener(this.player, 'time-update', timeUpdateHandler);
+        this.addEventListener(document, 'visibilitychange', visibilityHandler);
         window.addEventListener('beforeunload', this.beforeUnloadHandler);
     }
 
@@ -1504,16 +1506,16 @@ class FluentPlayer {
         return _getNonce();
     }
 
-    saveCurrentPosition() {
+    saveCurrentPosition(force = false) {
         const currentTime = this.player?.currentTime;
 
         // Don't save if near the beginning or end
-        if (!this.mediaId || typeof currentTime !== 'number' || currentTime < CONSTANTS.MIN_SAVE_TIME_SECONDS) {
+        if (!this.mediaId || typeof currentTime !== 'number' || !isFinite(currentTime) || currentTime < CONSTANTS.MIN_SAVE_TIME_SECONDS) {
             return;
         }
 
-        // Throttle saves to prevent too many writes
-        if (this.lastSaveTime && Date.now() - this.lastSaveTime < CONSTANTS.SAVE_THROTTLE_MS) {
+        // Throttle periodic saves; user/teardown events (pause, unload, hidden, destroy) always write
+        if (!force && this.lastSaveTime && Date.now() - this.lastSaveTime < CONSTANTS.SAVE_THROTTLE_MS) {
             return;
         }
 
@@ -1963,7 +1965,8 @@ class FluentPlayer {
     }
 
     async setupAnalyticsTracking() {
-        if (this._isDestroyed || !this.mediaId || !this.isAnalyticsEnabled() || this.isExternallyTracked()) {
+        // No nonce → the tracking endpoint would reject every beacon (403); don't attach.
+        if (this._isDestroyed || !this.mediaId || !this.analyticsNonce || !this.isAnalyticsEnabled() || this.isExternallyTracked()) {
             return;
         }
 

@@ -145,6 +145,71 @@ export function getBestVideoSrc(settings) {
 }
 
 /**
+ * Re-sign a Bunny Stream CDN url with the current directory token.
+ *
+ * Mirrors BunnyCDNService::appendPlayerToken() (PHP): strip any existing
+ * token / expires / token_path pairs first, then append the current ones. Stripping
+ * matters because the master playlist arrives already signed from the server, and a
+ * naive append produces `?token=OLD&…&token=NEW&…`, which the pull zone 403s.
+ *
+ * @param {string} url - Request url.
+ * @param {string} tokenQuery - `token=…&expires=…&token_path=…` from the server.
+ * @returns {string} Url carrying exactly one token triplet.
+ */
+export function appendBunnyTokenQuery(url, tokenQuery) {
+    if (!url || !tokenQuery || typeof url !== 'string') return url;
+
+    let fragment = '';
+    const hashPos = url.indexOf('#');
+    if (hashPos !== -1) {
+        fragment = url.slice(hashPos);
+        url = url.slice(0, hashPos);
+    }
+
+    const qPos = url.indexOf('?');
+    let base = url;
+    let kept = [];
+
+    if (qPos !== -1) {
+        base = url.slice(0, qPos);
+        kept = url.slice(qPos + 1).split('&').filter((pair) => {
+            if (!pair) return false;
+            const key = decodeURIComponent(pair.split('=')[0]).toLowerCase();
+            return key !== 'token' && key !== 'expires' && key !== 'token_path';
+        });
+    }
+
+    const query = kept.length ? kept.join('&') + '&' + tokenQuery : tokenQuery;
+
+    return base + '?' + query + fragment;
+}
+
+/**
+ * Forward the Bunny Stream token to every hls.js request.
+ *
+ * hls.js resolves sub-playlists and .ts segments as relative urls, which do NOT
+ * inherit the master playlist's query string. Without this the server-signed master
+ * loads and every segment beneath it returns 403 once the library enforces CDN URL
+ * Token Authentication. One directory-scoped token covers the whole `/{guid}/` tree.
+ *
+ * Must be called on `provider-change`, before Vidstack builds the hls.js instance.
+ *
+ * @param {object} provider - Vidstack media provider.
+ * @param {string} tokenQuery - `bunny_token_query` from the localized player settings.
+ */
+export function applyBunnyStreamToken(provider, tokenQuery) {
+    if (!provider || provider.type !== 'hls' || !tokenQuery) return;
+
+    provider.config = {
+        ...provider.config,
+        xhrSetup: (xhr, url) => {
+            if (!url) return;
+            xhr.open('GET', appendBunnyTokenQuery(url, tokenQuery), true);
+        },
+    };
+}
+
+/**
  * Apply YouTube Privacy-Enhanced Mode to a Vidstack YouTube provider.
  *
  * Vidstack derives the embed host from `provider.cookies`
@@ -165,6 +230,29 @@ export function applyYouTubePrivacyMode(provider) {
 
     const privacyMode = window.fluent_player?.youtube?.privacy_mode || false;
     provider.cookies = !privacyMode;
+}
+
+/**
+ * Restore a cross-origin referrer for embed providers (YouTube, Vimeo).
+ *
+ * A site-wide `Referrer-Policy: same-origin` header — commonly injected by security
+ * plugins — strips the `Referer` on the cross-origin iframe request to youtube.com /
+ * player.vimeo.com. Both providers use that referrer for embed-domain checks, so a
+ * stripped referrer makes restricted videos refuse to load ("player can't load").
+ *
+ * The iframe `referrerpolicy` attribute overrides the document policy for that iframe's
+ * own request, so this re-sends the origin (domain only, no path) without the site
+ * needing to loosen its global header. `strict-origin-when-cross-origin` is the modern
+ * browser default, so this only neutralises a policy a security plugin tightened.
+ *
+ * Must run synchronously on `provider-change`, before Vidstack sets the iframe `src` —
+ * the attribute has to be present when the initial embed request fires.
+ *
+ * @param {object} provider - Vidstack media provider (from the provider-change event)
+ */
+export function applyEmbedReferrerPolicy(provider) {
+    if (!provider || (provider.type !== 'youtube' && provider.type !== 'vimeo')) return;
+    provider.iframe?.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 }
 
 /**

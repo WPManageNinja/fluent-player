@@ -1,7 +1,7 @@
 import 'vidstack/player';
 import 'vidstack/player/ui';
 import '@icons'; // Custom icon loader - only imports icons we actually use
-import { getBestVideoSrc, applyYouTubePrivacyMode, privacyEnhanceYouTubePoster } from './utils/videoSrc';
+import { getBestVideoSrc, applyYouTubePrivacyMode, applyEmbedReferrerPolicy, privacyEnhanceYouTubePoster } from './utils/videoSrc';
 import { getAjaxUrl as _getAjaxUrl, getNonce as _getNonce } from './utils/ajax';
 import { bindUnlockForm } from './utils/unlock';
 import { formatDuration as formatDurationUtil } from './utils/formatDuration';
@@ -1175,9 +1175,11 @@ class FluentPlaylist {
         if (!this.player) return;
         this._addEventListener(this.player, 'provider-change', (e) => {
             applyYouTubePrivacyMode(e.detail);
+            applyEmbedReferrerPolicy(e.detail);
         });
         if (this.player.provider) {
             applyYouTubePrivacyMode(this.player.provider);
+            applyEmbedReferrerPolicy(this.player.provider);
         }
     }
 

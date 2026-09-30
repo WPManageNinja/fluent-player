@@ -12,6 +12,7 @@ import {
     cleanupDetachedMounts,
     teardownMount,
     mutationsIncludeRemovals,
+    isolateFromElementor,
 } from './canvasMount.js';
 
 const wp = window.wp || {};
@@ -63,10 +64,14 @@ function mountPlaylistPicker(scopeEl) {
     let mount = scopeEl.querySelector(':scope > .fp-el-playlist-picker-mount');
     if (!mount) {
         mount = scopeEl.ownerDocument.createElement('div');
-        mount.className = 'fp-el-playlist-picker-mount fluent-player-block-panel fp-el-host';
+        // No `fp-el-host`: that's the dark sidebar-panel theme, wrong on the light canvas.
+        mount.className = 'fp-el-playlist-picker-mount fluent-player-block-panel';
         scopeEl.appendChild(mount);
     }
     injectInteractiveStyles(mount.ownerDocument);
+    // Elementor's mousedown blurs the canvas, closing the tag suggestion list before mouseup
+    // — no click is dispatched and picking a tag does nothing. Not for the editor mount below.
+    isolateFromElementor(mount);
     if (pickerMounts.has(mount)) return;
 
     const app = wp.element.createElement(CanvasPlaylistPicker, {

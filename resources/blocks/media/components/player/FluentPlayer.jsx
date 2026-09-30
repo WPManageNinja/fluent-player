@@ -12,7 +12,7 @@ import VideoLayout from './VideoLayout';
 import CenterControls from './CenterControls';
 import VideoErrorOverlay from '../common/VideoErrorOverlay';
 import { resolveCrossOrigin } from './crossOrigin.js';
-import { isAudioMediaData } from '../../../../js/utils/videoSrc.js';
+import { isAudioMediaData, applyBunnyStreamToken } from '../../../../js/utils/videoSrc.js';
 import { createMediaErrorGuard } from './mediaErrorGuard.js';
 import '../PresetStyles.scss';
 
@@ -58,6 +58,9 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
     const onPlayerReadyCalled = useRef(false);
     const [trackKey, setTrackKey] = useState(0);
     const savedLoadStrategy = mediaData?.loadStrategy || mediaData?.settings?.loadStrategy || 'visible';
+    // Bunny Stream CDN token, signed server-side by BunnyCDNService::filterPlayerSettings()
+    // and returned through MediaController so the editor preview can play protected videos.
+    const bunnyTokenQuery = mediaData?.bunny_token_query || mediaData?.settings?.bunny_token_query || '';
     const isPosterOnlyPreview = !isPresetPreview && savedLoadStrategy === 'poster';
     const loadStrategy = 'idle';
     const behaviors = mediaData?.settings?.behaviors || mediaData?.behaviors || {};
@@ -258,6 +261,11 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
 
             if (provider.type === 'hls') {
                 provider.library = () => import('hls.js');
+                // Bunny Stream token auth: sub-playlists and .ts segments are relative
+                // urls, so they don't inherit the signed master's query string. Without
+                // this the editor preview 403s on every segment once the library enforces
+                // CDN URL Token Authentication (the frontend does the same in FluentPlayer.js).
+                applyBunnyStreamToken(provider, bunnyTokenQuery);
             }
             if (provider.type === 'youtube') {
                 patched = true;
@@ -422,7 +430,7 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                 delete player._fpRelayHandler;
             }
         };
-    }, [mediaData?.provider, isPosterOnlyPreview]);
+    }, [mediaData?.provider, isPosterOnlyPreview, bunnyTokenQuery]);
 
     // Handle player initialization
     useEffect(() => {
@@ -456,9 +464,10 @@ const FluentPlayer = ({ mediaData, updateMediaSettings, isPresetPreview = false,
                 if (!mediaData.title && state.title) {
                     updateMediaSettings && updateMediaSettings('title', state.title);
                 }
-                if (!mediaData.duration && state.duration) {
+                // duration <= 1 is the relay's onReady placeholder, not a real duration
+                if ((!mediaData.duration || mediaData.duration <= 1) && state.duration) {
                     const duration = typeof state.duration === 'function' ? state.duration() : state.duration;
-                    if (duration > 0 && isFinite(duration)) {
+                    if (duration > 1 && isFinite(duration)) {
                         updateMediaSettings && updateMediaSettings('duration', Math.round(duration));
                     }
                 }

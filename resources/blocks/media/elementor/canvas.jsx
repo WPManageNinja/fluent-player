@@ -45,7 +45,8 @@ function mountPicker(scopeEl) {
     let mount = scopeEl.querySelector(':scope > .fp-el-picker-mount');
     if (!mount) {
         mount = scopeEl.ownerDocument.createElement('div');
-        mount.className = 'fp-el-picker-mount fluent-player-block-panel fp-el-host';
+        // No `fp-el-host`: that's the dark sidebar-panel theme, wrong on the light canvas.
+        mount.className = 'fp-el-picker-mount fluent-player-block-panel';
         scopeEl.appendChild(mount);
     }
     if (pickerMounts.has(mount)) return; // already mounted

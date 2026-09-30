@@ -15,6 +15,19 @@ if (typeof args[2] !== 'undefined' && args[2] === '--build') {
 
 const modeTitle = mode === 'dev' ? 'Development' : 'Production'
 
+// Production rebuilds every chunk; sweep first so renamed/removed fp-* chunks don't linger in assets/
+if (mode === 'production') {
+    try {
+        const staleChunks = await glob(['assets/fp-*.js', 'assets/fp-*.js.map'])
+        for (const file of staleChunks) {
+            await fs.promises.rm(file, { force: true })
+        }
+        console.log(`🧹 Cleared ${staleChunks.length} stale build chunk(s)`)
+    } catch (err) {
+        console.error('Chunk clean error:', err)
+    }
+}
+
 const regexObj = new RegExp(`["']env["']\\s+=>\\s*["'](?:dev|production)["'],?`, 'g')
 
 try {

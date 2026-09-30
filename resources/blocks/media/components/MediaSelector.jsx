@@ -125,6 +125,13 @@ const MediaSelector = ({
     // Server-side, paged media search for the dropdown.
     const loadMediaPage = useCallback(({ query, page }) => mediaLoadPage(apiFetch, { query, page }), []);
 
+    // Divi's builder preventDefault()s clicks inside a module, which also cancels the
+    // implicit form submit — so the add action can't rely on onSubmit alone.
+    const runAdd = useCallback((source) => (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        processAndLoadVideo(source);
+    }, [processAndLoadVideo]);
+
     // On a fresh dedicated-media editor, land the caret in the URL field so
     // paste-to-create needs zero clicks. Delayed past Gutenberg's own title focus.
     const urlFormRef = useRef(null);
@@ -216,7 +223,7 @@ const MediaSelector = ({
             >
 
                 {mediaSource === 'youtube' && (
-                    <form className="fluent-player-youtube-form" onSubmit={(e) => { e.preventDefault(); processAndLoadVideo(); }}>
+                    <form className="fluent-player-youtube-form" onSubmit={runAdd(undefined)}>
                         <TextControl
                             label={__('YouTube URL', 'fluent-player')}
                             value={url}
@@ -237,6 +244,7 @@ const MediaSelector = ({
                             </Button>
                             <Button
                                 type="submit"
+                                onClick={runAdd(undefined)}
                                 className="components-button fp-btn-primary"
                             >
                                 <PlusIconSVG />
@@ -247,7 +255,7 @@ const MediaSelector = ({
                 )}
 
                 {mediaSource === 'vimeo' && (
-                    <form className="fluent-player-vimeo-form" onSubmit={(e) => { e.preventDefault(); processAndLoadVideo(); }}>
+                    <form className="fluent-player-vimeo-form" onSubmit={runAdd(undefined)}>
                         <TextControl
                             label={__('Vimeo URL', 'fluent-player')}
                             value={url}
@@ -268,6 +276,7 @@ const MediaSelector = ({
                             </Button>
                             <Button
                                 type="submit"
+                                onClick={runAdd(undefined)}
                                 className="components-button fp-btn-primary"
                             >
                                 <PlusIconSVG />
@@ -481,11 +490,15 @@ const MediaSelector = ({
                 </div>
                 {(() => {
                     const detection = classifyUrl(url);
+                    const addPastedUrl = (e) => {
+                        if (e && e.preventDefault) e.preventDefault();
+                        if (detection) processAndLoadVideo('url');
+                    };
                     return (
                         <form
                             ref={urlFormRef}
                             className="fluent-player-url-paste"
-                            onSubmit={(e) => { e.preventDefault(); if (detection) processAndLoadVideo('url'); }}
+                            onSubmit={addPastedUrl}
                         >
                             <TextControl
                                 label={__('Paste a media URL', 'fluent-player')}
@@ -505,6 +518,7 @@ const MediaSelector = ({
                                     </span>
                                     <Button
                                         type="submit"
+                                        onClick={addPastedUrl}
                                         className="components-button fp-btn-primary"
                                         disabled={!detection}
                                     >

@@ -35,6 +35,28 @@ export function resolveCanvasMount(elementorElement) {
 }
 
 /**
+ * Stop a mount's pointer events from reaching Elementor's widget handlers, which select the
+ * widget on mousedown and blur the canvas mid-interaction.
+ *
+ * stopPropagation, NOT stopImmediatePropagation: React 18 delegates at the root container,
+ * which is this mount, so the mount's own listeners must still run.
+ *
+ * Only for mounts that own their whole interaction (the in-canvas pickers) — the playlist
+ * editor mount needs its clicks to bubble so Elementor opens the widget panel.
+ *
+ * @param {Element|null} mount
+ */
+export function isolateFromElementor(mount) {
+    if (!mount || mount._fpIsolated) {
+        return;
+    }
+    mount._fpIsolated = true;
+    ['mousedown', 'pointerdown', 'click', 'dblclick'].forEach((type) => {
+        mount.addEventListener(type, (e) => { e.stopPropagation(); }, false);
+    });
+}
+
+/**
  * Read the media id the widget rendered, from the player markup's data-media-id
  * (emitted by MediaRenderer). Returns "" when no media is selected/rendered yet.
  *
