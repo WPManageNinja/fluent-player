@@ -3,7 +3,11 @@ import { initChapterStrips } from './chapterStrip.js';
 import './BrowserStorage';
 import { delegateMediaUnlockForms } from './utils/unlock';
 import { computeBrandingVars } from './utils/brandingVars.js';
-import { readInlineConfig, observeInjectedPlayers } from './utils/inlineConfig.js';
+import {
+    readInlineConfig,
+    observeInjectedPlayers,
+    waitsForIntegrationData,
+} from './utils/inlineConfig.js';
 
 // Live branding preview: a page-builder settings panel emits `fluentPlayer/settingsPreview`
 // when a colour changes. Apply the vars inline on every element carrying that media id (inline
@@ -105,8 +109,10 @@ async function initFluentPlayers(force = false) {
             playerData = readInlineConfig(varName, container.ownerDocument);
         }
 
-        // If still no data, try to fetch via AJAX for fluent community portal
-        if (!playerData) {
+        // Fluent Community renders with its own media IDs and supplies the
+        // player data shortly afterward through InitSingleFluentPlayer.
+        // Do not treat those IDs as Fluent Player CPT IDs.
+        if (!playerData && !waitsForIntegrationData(container)) {
             playerData = await fetchMediaData(container);
         }
 

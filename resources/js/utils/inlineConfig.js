@@ -35,6 +35,15 @@ export function readInlineConfig(varName, doc) {
     return null;
 }
 
+/**
+ * Fluent Community owns hydration for these players and supplies their data
+ * through the InitSingleFluentPlayer event.
+ */
+export function waitsForIntegrationData(container) {
+    const playerRef = String(container?.dataset?.flpRef || '');
+    return playerRef.startsWith('fcom_');
+}
+
 /** @returns {Function} Disconnects the observer. */
 export function observeInjectedPlayers(onInjected, target) {
     const root = target || document.body;
