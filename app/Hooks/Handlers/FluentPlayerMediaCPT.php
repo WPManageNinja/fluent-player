@@ -179,7 +179,8 @@ class FluentPlayerMediaCPT
             'index.php?post_type=' . self::$post_type . '&name=$matches[1]',
             'top'
         );
-        update_option('fluent_player_rewrite_rules_added', true);
+
+        // CPTHandler::maybeFlushRules() owns the persisted flag after flushing.
     }
 
     /**
